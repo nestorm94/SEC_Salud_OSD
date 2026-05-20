@@ -1,0 +1,33 @@
+<div class="login-page">
+  <div class="login-card card">
+    <div class="login-card__header">
+      <div class="login-card__logo">OS</div>
+      <h1>Observatorios Salud</h1>
+      <p>Departamental Casanare</p>
+    </div>
+
+    @if (error) {
+      <div class="alert alert--error">{{ error }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="usuario">Usuario</label>
+        <input id="usuario" type="text" formControlName="usuario" autocomplete="username" />
+        @if (form.controls.usuario.touched && form.controls.usuario.invalid) {
+          <span class="error">Usuario obligatorio</span>
+        }
+      </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input id="password" type="password" formControlName="password" autocomplete="current-password" />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="error">Contraseña obligatoria</span>
+        }
+      </div>
+      <button type="submit" class="btn btn--primary" [disabled]="loading" style="width:100%">
+        {{ loading ? 'Ingresando...' : 'Iniciar sesión' }}
+      </button>
+    </form>
+  </div>
+</div>

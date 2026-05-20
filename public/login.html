@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Iniciar sesión — Observatorio Salud Casanare</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+<body class="pagina-login">
+  <main class="login-panel">
+    <h1>Observatorio de Salud</h1>
+    <p class="subtitulo">Secretaría de Salud · Casanare</p>
+    <form id="form-login" class="form-login">
+      <label>
+        <span>Usuario</span>
+        <input type="text" id="usuario" name="usuario" autocomplete="username" required />
+      </label>
+      <label>
+        <span>Contraseña</span>
+        <input type="password" id="password" name="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit" class="btn primario">Entrar</button>
+    </form>
+    <p id="mensaje-login" class="mensaje" role="status"></p>
+    <p class="login-ayuda"><small>Desarrollo: usuario <code>admin</code> / <code>Admin123!</code></small></p>
+  </main>
+  <script src="/js/login.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cargas Excel — Observatorio Salud</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+<body>
+  <header class="cabecera">
+    <nav class="nav-sitio" aria-label="Menú principal">
+      <a href="/index.html" class="nav-sitio__link">Carga Excel</a>
+      <a href="/cargas.html" class="nav-sitio__link nav-sitio__link--activo">Historial cargas</a>
+      <a href="/proyeccion-poblacion.html" class="nav-sitio__link">Proyección población</a>
+      <button type="button" id="btn-logout" class="btn secundario nav-logout">Salir</button>
+    </nav>
+    <h1>Historial de cargues</h1>
+    <p class="subtitulo" id="usuario-info"></p>
+  </header>
+
+  <main class="contenedor contenedor--ancho">
+    <section class="panel">
+      <button type="button" id="btn-refrescar" class="btn secundario">Actualizar</button>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Archivo</th>
+              <th>Dependencia</th>
+              <th>Estado</th>
+              <th>Errores</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-cargas"></tbody>
+        </table>
+      </div>
+      <p id="mensaje-cargas" class="mensaje"></p>
+    </section>
+
+    <section class="panel" id="panel-errores" hidden>
+      <h2>Errores de validación — carga <span id="carga-errores-id"></span></h2>
+      <div class="tabla-wrap">
+        <table class="tabla tabla--compacta">
+          <thead>
+            <tr><th>Fila</th><th>Columna</th><th>Tipo</th><th>Mensaje</th></tr>
+          </thead>
+          <tbody id="cuerpo-errores"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-historial" hidden>
+      <h2>Historial del proceso</h2>
+      <ul id="lista-historial" class="lista-historial"></ul>
+    </section>
+  </main>
+
+  <script src="/js/cargas.js" type="module"></script>
+</body>
+</html>

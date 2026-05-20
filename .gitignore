@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+frontend/dist/
+frontend/.angular/
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Datos locales
+uploads/
+data/
+.env
+*.log
+appsettings.*.local.json
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store

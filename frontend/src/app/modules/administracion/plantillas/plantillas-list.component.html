@@ -1,0 +1,76 @@
+<app-page-header title="Plantillas" subtitle="Plantillas de carga Excel">
+  <button type="button" class="btn btn--primary" (click)="mostrarForm.set(!mostrarForm())">
+    {{ mostrarForm() ? 'Cancelar' : 'Nueva plantilla' }}
+  </button>
+</app-page-header>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (mostrarForm()) {
+  <div class="card" style="margin-bottom:1rem">
+    <form [formGroup]="form" (ngSubmit)="crear()">
+      <div class="form-group">
+        <label>Código</label>
+        <input type="text" formControlName="codigo" />
+      </div>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" formControlName="nombre" />
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" formControlName="descripcion" />
+      </div>
+      <div class="form-group">
+        <label>Dependencia</label>
+        <select formControlName="dependencia_id">
+          <option [value]="''">— General —</option>
+          @for (d of dependencias(); track d.id) {
+            <option [value]="d.id">{{ d.nombre }}</option>
+          }
+        </select>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" formControlName="activo" /> Activa
+      </label>
+      <button type="submit" class="btn btn--primary" style="margin-top:1rem">Crear plantilla</button>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <p class="loading">Cargando...</p>
+} @else {
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Dependencia</th>
+          <th>Campos</th>
+          <th>Activa</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of plantillas(); track p.id) {
+          <tr>
+            <td>{{ p.codigo }}</td>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.dependencia || '—' }}</td>
+            <td>{{ p.total_campos }}</td>
+            <td>{{ p.activo ? 'Sí' : 'No' }}</td>
+            <td>
+              <a [routerLink]="['/administracion/plantillas', p.id, 'campos']" class="btn btn--secondary btn--sm">
+                Campos
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

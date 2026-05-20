@@ -1,0 +1,78 @@
+<app-page-header title="Campos de plantilla" [subtitle]="'Plantilla #' + plantillaId()">
+  <a routerLink="/administracion/plantillas" class="btn btn--secondary">Volver</a>
+  <button type="button" class="btn btn--primary" (click)="mostrarForm.set(!mostrarForm())">
+    {{ mostrarForm() ? 'Cancelar' : 'Nuevo campo' }}
+  </button>
+</app-page-header>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (mostrarForm()) {
+  <div class="card" style="margin-bottom:1rem">
+    <form [formGroup]="form" (ngSubmit)="crear()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre campo</label>
+          <input type="text" formControlName="nombre_campo" />
+        </div>
+        <div class="form-group">
+          <label>Tipo dato</label>
+          <select formControlName="tipo_dato">
+            <option value="texto">Texto</option>
+            <option value="numero">Número</option>
+            <option value="fecha">Fecha</option>
+            <option value="booleano">Booleano</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Orden</label>
+          <input type="number" formControlName="orden" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" formControlName="descripcion" />
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" formControlName="obligatorio" /> Obligatorio
+      </label>
+      <button type="submit" class="btn btn--primary" style="margin-top:1rem">Agregar campo</button>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <p class="loading">Cargando...</p>
+} @else {
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Orden</th>
+          <th>Campo</th>
+          <th>Tipo</th>
+          <th>Obligatorio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of campos(); track c.id) {
+          <tr>
+            <td>{{ c.orden }}</td>
+            <td>{{ c.nombre_campo }}</td>
+            <td>{{ c.tipo_dato }}</td>
+            <td>{{ c.obligatorio ? 'Sí' : 'No' }}</td>
+            <td>
+              <button type="button" class="btn btn--danger btn--sm" (click)="eliminar(c)">Eliminar</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!campos().length) {
+      <p class="empty">Sin campos definidos</p>
+    }
+  </div>
+}

@@ -1,0 +1,47 @@
+<app-page-header [title]="esEdicion() ? 'Editar usuario' : 'Nuevo usuario'">
+  <a routerLink="/administracion/usuarios" class="btn btn--secondary">Volver</a>
+</app-page-header>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+<div class="card form-card">
+  <form [formGroup]="form" (ngSubmit)="guardar()">
+    <div class="form-group">
+      <label>Nombre de usuario</label>
+      <input type="text" formControlName="nombre_usuario" />
+    </div>
+    <div class="form-group">
+      <label>{{ esEdicion() ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</label>
+      <input type="password" formControlName="password" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" formControlName="email" />
+    </div>
+    <div class="form-group">
+      <label>Dependencia</label>
+      <select formControlName="dependencia_id">
+        <option [ngValue]="null">— Sin dependencia —</option>
+        @for (d of dependencias(); track d.id) {
+          <option [ngValue]="d.id">{{ d.codigo }} — {{ d.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Roles</label>
+      <div class="roles-check">
+        @for (r of rolesDisponibles(); track r.id) {
+          <label class="checkbox-label">
+            <input type="checkbox" [checked]="tieneRol(r.nombre)" (change)="toggleRol(r.nombre)" />
+            {{ r.nombre }}
+          </label>
+        }
+      </div>
+    </div>
+    <button type="submit" class="btn btn--primary" [disabled]="loading()">
+      {{ loading() ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </form>
+</div>

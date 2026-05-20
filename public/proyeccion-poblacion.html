@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Opcional: <meta name="observatorios-api-base" content="http://localhost:5289" /> (Live Server, etc.) -->
+  <title>Proyección población — Secretaría de Salud</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+<body class="pagina-proyeccion">
+  <header class="cabecera">
+    <nav class="nav-sitio" aria-label="Menú principal">
+      <a href="/index.html" class="nav-sitio__link">Carga Excel</a>
+      <a href="/cargas.html" class="nav-sitio__link">Historial cargas</a>
+      <div class="nav-sitio__dropdown" tabindex="0">
+        <span class="nav-sitio__dropdown-titulo" aria-current="page">Proyección población</span>
+        <ul class="nav-sitio__submenu" role="menu">
+          <li role="none"><a role="menuitem" href="#nacional-casanare" data-clave="nacional-casanare">Población nacional Casanare</a></li>
+          <li role="none"><a role="menuitem" href="#curso-vida" data-clave="curso-vida">Curso de vida (unificado)</a></li>
+          <li role="none"><a role="menuitem" href="#quinquenios" data-clave="quinquenios">Quinquenios (unificado)</a></li>
+        </ul>
+      </div>
+      <button type="button" id="btn-logout" class="btn secundario nav-logout">Salir</button>
+    </nav>
+    <h1>Proyección de población</h1>
+    <p class="subtitulo">Consulta de vistas en <code>ObservatorioDB</code></p>
+  </header>
+
+  <main class="contenedor contenedor--ancho">
+    <section class="panel" aria-live="polite">
+      <div class="proyeccion-barra">
+        <h2 id="titulo-vista" class="proyeccion-titulo-vista">—</h2>
+        <div class="proyeccion-acciones">
+          <label class="proyeccion-limite">
+            Filas por página
+            <select id="select-tamano-pagina">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <button type="button" class="btn primario" id="btn-cargar">Recargar (pág. 1)</button>
+        </div>
+      </div>
+      <div class="proyeccion-filtros" aria-label="Filtros de población">
+        <label class="campo">
+          Territorio
+          <input id="filtro-territorio" type="text" placeholder="Ej: NACIONAL o %CASANARE%" autocomplete="off" />
+        </label>
+        <label class="campo">
+          Regional
+          <input id="filtro-regional" type="text" placeholder="Ej: No aplica" autocomplete="off" />
+        </label>
+        <label class="campo">
+          Área
+          <input id="filtro-area" type="text" placeholder="Ej: Rural / Cabecera" autocomplete="off" />
+        </label>
+        <label class="campo">
+          Sexo
+          <input id="filtro-sexo" type="text" placeholder="Ej: Hombres / Mujeres" autocomplete="off" />
+        </label>
+        <label class="campo">
+          Año
+          <input id="filtro-ano" type="number" inputmode="numeric" placeholder="Ej: 2024" />
+        </label>
+        <button type="button" class="btn secundario" id="btn-limpiar-filtros">Limpiar filtros</button>
+      </div>
+      <p id="mensaje-proyeccion" class="mensaje" role="status"></p>
+      <div class="paginacion" id="barra-paginacion" hidden>
+        <button type="button" class="btn secundario" id="btn-pagina-anterior" aria-label="Página anterior">« Anterior</button>
+        <span class="paginacion__info" id="paginacion-info"></span>
+        <button type="button" class="btn secundario" id="btn-pagina-siguiente" aria-label="Página siguiente">Siguiente »</button>
+      </div>
+      <div class="tabla-wrap tabla-wrap--amplia">
+        <table class="tabla tabla--compacta" id="tabla-datos">
+          <thead id="tabla-head"></thead>
+          <tbody id="tabla-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <small>Fuentes: <code>vw_Poblacion_Nacional_Casanare</code>, <code>vw_Reporte_Poblacion_CursoVida_Unificado</code>, <code>vw_Reporte_Poblacion_Quinquenios_Unificado</code></small>
+  </footer>
+
+  <script src="/js/proyeccion-poblacion.js" type="module"></script>
+</body>
+</html>

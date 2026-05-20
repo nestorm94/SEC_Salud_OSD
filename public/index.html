@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Secretaría de Salud — Carga Excel observatorio</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+<body>
+  <header class="cabecera">
+    <nav class="nav-sitio" aria-label="Menú principal">
+      <a href="/index.html" class="nav-sitio__link nav-sitio__link--activo">Carga Excel</a>
+      <a href="/cargas.html" class="nav-sitio__link">Historial cargas</a>
+      <a href="/proyeccion-poblacion.html" class="nav-sitio__link">Proyección población</a>
+      <button type="button" id="btn-logout" class="btn secundario nav-logout">Salir</button>
+    </nav>
+    <h1>Secretaría de Salud · Observatorios departamentales</h1>
+    <p class="subtitulo" id="usuario-info"></p>
+    <p class="subtitulo">Excel obligatorio con hojas <code>Diccionario_Datos</code> y <code>Datos</code></p>
+  </header>
+
+  <main class="contenedor">
+    <section class="panel" aria-labelledby="titulo-carga">
+      <h2 id="titulo-carga">Subir archivo Excel</h2>
+      <form id="form-carga" class="form-carga" enctype="multipart/form-data">
+        <label class="etiqueta-archivo admin-only" id="wrap-dependencia" hidden>
+          <span>Dependencia (administrador)</span>
+          <select id="dependencia-id" name="dependencia_id">
+            <option value="">— Mi dependencia por defecto —</option>
+          </select>
+        </label>
+        <label class="etiqueta-archivo">
+          <span>Archivo .xlsx</span>
+          <input type="file" name="archivo" id="input-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+        </label>
+        <button type="submit" class="btn primario">Validar y cargar</button>
+      </form>
+      <p id="mensaje-carga" class="mensaje" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="titulo-lista">
+      <h2 id="titulo-lista">Archivos por dependencia</h2>
+      <button type="button" id="btn-refrescar" class="btn secundario">Actualizar lista</button>
+      <div class="tabla-wrap">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Dependencia</th>
+              <th>Tipo</th>
+              <th>Tamaño</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-tabla"></tbody>
+        </table>
+      </div>
+      <p id="mensaje-lista" class="mensaje" role="status"></p>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <small>API: JWT · <code>/api/cargas/excel</code> · SQL Server</small>
+  </footer>
+
+  <script src="/js/app.js" type="module"></script>
+  <script type="module">
+    import { esAdministrador } from "./js/auth.js";
+    if (esAdministrador()) {
+      const w = document.getElementById("wrap-dependencia");
+      if (w) w.hidden = false;
+    }
+  </script>
+</body>
+</html>

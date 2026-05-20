@@ -1,0 +1,12 @@
+.form-inline form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+
+  .form-group {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+  }
+}

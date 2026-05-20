@@ -1,0 +1,53 @@
+<app-page-header title="Dependencias" subtitle="Entidades del observatorio">
+  <button type="button" class="btn btn--primary" (click)="mostrarForm.set(!mostrarForm())">
+    {{ mostrarForm() ? 'Cancelar' : 'Nueva dependencia' }}
+  </button>
+</app-page-header>
+
+@if (mensaje()) {
+  <div class="alert alert--success">{{ mensaje() }}</div>
+}
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (mostrarForm()) {
+  <div class="card form-inline">
+    <form [formGroup]="form" (ngSubmit)="crear()">
+      <div class="form-group">
+        <label>Código</label>
+        <input type="text" formControlName="codigo" />
+      </div>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" formControlName="nombre" />
+      </div>
+      <button type="submit" class="btn btn--primary">Crear</button>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <p class="loading">Cargando...</p>
+} @else {
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Activo</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (d of dependencias(); track d.id) {
+          <tr>
+            <td>{{ d.codigo }}</td>
+            <td>{{ d.nombre }}</td>
+            <td>{{ d.activo ? 'Sí' : 'No' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

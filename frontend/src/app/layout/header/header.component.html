@@ -1,0 +1,14 @@
+<header class="header">
+  <div class="header__info">
+    @if (auth.usuario(); as u) {
+      <span class="header__user">{{ u.nombre }}</span>
+      @if (u.dependencia) {
+        <span class="header__dep">{{ u.dependencia }}</span>
+      }
+      @if (u.roles?.length) {
+        <span class="header__roles">{{ u.roles.join(', ') }}</span>
+      }
+    }
+  </div>
+  <button type="button" class="btn btn--secondary btn--sm" (click)="logout()">Cerrar sesión</button>
+</header>

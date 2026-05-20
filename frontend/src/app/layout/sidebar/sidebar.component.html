@@ -1,0 +1,28 @@
+<aside class="sidebar">
+  <div class="sidebar__brand">
+    <span class="sidebar__logo">OS</span>
+    <div>
+      <strong>Observatorios</strong>
+      <small>Salud Casanare</small>
+    </div>
+  </div>
+
+  <nav class="sidebar__nav">
+    <p class="sidebar__section">Principal</p>
+    @for (item of menuPrincipal; track item.route) {
+      <a [routerLink]="item.route" routerLinkActive="active" class="sidebar__link">
+        <span class="sidebar__icon">{{ item.icon }}</span>
+        {{ item.label }}
+      </a>
+    }
+
+    @if (isAdmin()) {
+      <p class="sidebar__section">Administración</p>
+      @for (item of menuAdmin; track item.route) {
+        <a [routerLink]="item.route" routerLinkActive="active" class="sidebar__link">
+          {{ item.label }}
+        </a>
+      }
+    }
+  </nav>
+</aside>

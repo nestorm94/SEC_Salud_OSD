@@ -1,0 +1,43 @@
+<app-page-header title="Usuarios" subtitle="Administración de cuentas">
+  <a routerLink="/administracion/usuarios/nuevo" class="btn btn--primary">Nuevo usuario</a>
+</app-page-header>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="loading">Cargando...</p>
+} @else {
+  <div class="card table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Dependencia</th>
+          <th>Roles</th>
+          <th>Activo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of usuarios(); track u.id) {
+          <tr>
+            <td>{{ u.nombre_usuario }}</td>
+            <td>{{ u.email || '—' }}</td>
+            <td>{{ u.dependencia || '—' }}</td>
+            <td>{{ u.roles?.join(', ') }}</td>
+            <td>{{ u.activo ? 'Sí' : 'No' }}</td>
+            <td>
+              <a [routerLink]="['/administracion/usuarios', u.id]" class="btn btn--secondary btn--sm">Editar</a>
+              <button type="button" class="btn btn--secondary btn--sm" (click)="toggleActivo(u)">
+                {{ u.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

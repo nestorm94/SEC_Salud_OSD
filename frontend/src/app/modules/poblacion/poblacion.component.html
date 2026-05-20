@@ -1,0 +1,58 @@
+<app-page-header title="Proyección de población" subtitle="Consulta de vistas demográficas"></app-page-header>
+
+<div class="tabs">
+  @for (t of tabs; track t.clave) {
+    <button type="button" [class.active]="tabActiva() === t.clave" (click)="cambiarTab(t.clave)">
+      {{ t.label }}
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="loading">Consultando datos...</p>
+} @else if (datos()) {
+  <div class="card">
+    <p class="meta">
+      Página {{ datos()!.pagina }} de {{ datos()!.totalPaginas }} — {{ datos()!.totalFilas }} filas —
+      Tamaño {{ datos()!.tamanoPagina }}
+    </p>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            @for (col of datos()!.columnas; track col) {
+              <th>{{ col }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of datos()!.filas; track $index) {
+            <tr>
+              @for (col of datos()!.columnas; track col) {
+                <td>{{ cellValue(fila, col) }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="paginacion">
+      <button type="button" class="btn btn--secondary btn--sm" [disabled]="pagina <= 1" (click)="paginaAnterior()">
+        Anterior
+      </button>
+      <span>Página {{ pagina }}</span>
+      <button
+        type="button"
+        class="btn btn--secondary btn--sm"
+        [disabled]="pagina >= datos()!.totalPaginas"
+        (click)="paginaSiguiente()"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+}

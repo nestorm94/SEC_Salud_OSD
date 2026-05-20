@@ -1,0 +1,51 @@
+<app-page-header title="Archivos" subtitle="Carga de Excel y gestión de archivos">
+  <label class="btn btn--primary">
+    {{ uploading() ? 'Subiendo...' : 'Subir Excel (.xlsx)' }}
+    <input type="file" accept=".xlsx" hidden (change)="onFileSelected($event)" [disabled]="uploading()" />
+  </label>
+</app-page-header>
+
+@if (mensaje()) {
+  <div class="alert alert--success">{{ mensaje() }}</div>
+}
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="loading">Cargando archivos...</p>
+} @else {
+  <div class="card table-wrap">
+    @if (archivos().length) {
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Dependencia</th>
+            <th>Tamaño</th>
+            <th>Subido por</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of archivos(); track a.id) {
+            <tr>
+              <td>{{ a.nombre_original }}</td>
+              <td>{{ a.dependencia }}</td>
+              <td>{{ formatBytes(a.tamano_bytes) }}</td>
+              <td>{{ a.subido_por }}</td>
+              <td>{{ a.creado_en | date: 'short' }}</td>
+              <td class="actions">
+                <button type="button" class="btn btn--secondary btn--sm" (click)="descargar(a)">Descargar</button>
+                <button type="button" class="btn btn--danger btn--sm" (click)="eliminar(a)">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="empty">No hay archivos registrados</p>
+    }
+  </div>
+}

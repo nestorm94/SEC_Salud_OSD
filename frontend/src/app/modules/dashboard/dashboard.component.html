@@ -1,0 +1,58 @@
+<app-page-header title="Panel principal" subtitle="Resumen del observatorio de salud"></app-page-header>
+
+@if (loading()) {
+  <p class="loading">Cargando resumen...</p>
+} @else if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+} @else if (resumen()) {
+  <div class="grid-cards">
+    <div class="stat-card">
+      <div class="stat-value">{{ resumen()!.total_archivos }}</div>
+      <div class="stat-label">Total archivos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ resumen()!.cargas_pendientes }}</div>
+      <div class="stat-label">Cargas pendientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ resumen()!.cargas_con_error }}</div>
+      <div class="stat-label">Cargas con error</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ resumen()!.cargas_aprobadas }}</div>
+      <div class="stat-label">Cargas aprobadas</div>
+    </div>
+  </div>
+
+  <section class="card" style="margin-top: 1.5rem">
+    <h2>Últimos cargues</h2>
+    @if (resumen()!.ultimos_cargues?.length) {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Dependencia</th>
+              <th>Archivo</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of resumen()!.ultimos_cargues; track c.id) {
+              <tr>
+                <td>{{ c.id }}</td>
+                <td>{{ c.dependencia }}</td>
+                <td>{{ c.archivo }}</td>
+                <td><app-status-badge [estado]="c.estado"></app-status-badge></td>
+                <td>{{ c.fecha | date: 'short' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="empty">Sin cargues recientes</p>
+    }
+  </section>
+}
