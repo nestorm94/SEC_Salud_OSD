@@ -21,6 +21,12 @@ El script:
 - Hace commit de todo el código (sin `node_modules`, `bin`, `uploads`, etc.)
 - Hace `git push -u origin main`
 
+## Problema: el repo se ve vacío en GitHub
+
+Eso pasa si **nunca se hizo `git push`** (solo commit local) o si falló la autenticación.
+
+En este proyecto, la regla `data/` en `.gitignore` **no debe ignorar** `backend/Observatorios.Api/Data/` (ya corregido a `/data/`).
+
 ## 3. Autenticación en GitHub
 
 Si pide usuario y contraseña:
