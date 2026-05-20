@@ -9,9 +9,9 @@ frontend/.angular/
 *.user
 *.suo
 
-# Datos locales
+# Datos locales (solo carpeta raíz /data, no backend/.../Data)
 uploads/
-data/
+/data/
 .env
 *.log
 appsettings.*.local.json
