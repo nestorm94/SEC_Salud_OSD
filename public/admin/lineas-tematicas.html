@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LÃ­neas temÃ¡ticas â€” AdministraciÃ³n</title>
+  <title>Líneas temáticas — Administración</title>
   <link rel="stylesheet" href="/css/estilos.css" />
   <link rel="stylesheet" href="/css/portal.css" />
 </head>
@@ -12,17 +12,17 @@
     <aside class="portal-sidebar"></aside>
     <main class="portal-main">
       <div class="toolbar-admin">
-        <h1>LÃ­neas temÃ¡ticas</h1>
-        <button type="button" id="btn-nuevo" class="btn primario">+ Nueva lÃ­nea</button>
+        <h1>Líneas temáticas</h1>
+        <button type="button" id="btn-nuevo" class="btn primario">+ Nueva línea</button>
       </div>
       <p id="msg" class="mensaje" role="status"></p>
 
       <section id="panel-form" class="panel-formulario" hidden>
-        <h2 id="titulo-form">Nueva lÃ­nea temÃ¡tica</h2>
+        <h2 id="titulo-form">Nueva línea temática</h2>
         <form id="form-linea" class="form-grid">
           <input type="hidden" id="f-id" />
           <label>
-            <span>CÃ³digo *</span>
+            <span>Código *</span>
             <input type="text" id="f-codigo" required maxlength="50" />
           </label>
           <label>
@@ -30,7 +30,7 @@
             <input type="text" id="f-nombre" required maxlength="300" />
           </label>
           <label style="grid-column:1/-1">
-            <span>DescripciÃ³n</span>
+            <span>Descripción</span>
             <input type="text" id="f-descripcion" maxlength="500" />
           </label>
           <label class="chk-inline" id="wrap-activo" hidden>
@@ -46,7 +46,7 @@
 
       <table class="tabla-portal">
         <thead>
-          <tr><th>ID</th><th>CÃ³digo</th><th>Nombre</th><th>Activa</th><th>Acciones</th></tr>
+          <tr><th>ID</th><th>Código</th><th>Nombre</th><th>Activa</th><th>Acciones</th></tr>
         </thead>
         <tbody id="tb"></tbody>
       </table>

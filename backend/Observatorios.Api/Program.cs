@@ -59,6 +59,11 @@ builder.Services.AddCors(options =>
         p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
+// Respuestas JSON y documentos en UTF-8
+System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
+
 var app = builder.Build();
 
 app.UseCors();
@@ -79,7 +84,19 @@ if (Directory.Exists(app.Environment.WebRootPath ?? ""))
     {
         DefaultFileNames = ["login.html", "index.html"]
     });
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = ctx =>
+        {
+            var ext = Path.GetExtension(ctx.File.Name);
+            if (ext.Equals(".html", StringComparison.OrdinalIgnoreCase))
+                ctx.Context.Response.ContentType = "text/html; charset=utf-8";
+            else if (ext.Equals(".css", StringComparison.OrdinalIgnoreCase))
+                ctx.Context.Response.ContentType = "text/css; charset=utf-8";
+            else if (ext.Equals(".js", StringComparison.OrdinalIgnoreCase))
+                ctx.Context.Response.ContentType = "application/javascript; charset=utf-8";
+        }
+    });
     app.MapGet("/", () => Results.Redirect("/login.html"));
 }
 

@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Validaciones â€” Observatorio</title>
+  <title>Validaciones — Observatorio</title>
   <link rel="stylesheet" href="/css/estilos.css" />
   <link rel="stylesheet" href="/css/portal.css" />
 </head>
@@ -11,7 +11,7 @@
   <div class="portal-layout">
     <aside class="portal-sidebar"></aside>
     <main class="portal-main">
-      <h1>ValidaciÃ³n de cargues</h1>
+      <h1>Validación de cargues</h1>
       <p class="subtitulo">Cargues en estado validado (listos para aprobar o rechazar).</p>
       <table class="tabla-portal">
         <thead><tr><th>ID</th><th>Archivo</th><th>Dependencia</th><th>Estado</th><th>Errores</th><th>Acciones</th></tr></thead>
@@ -33,7 +33,7 @@
           <button type="button" data-ap="${c.id}">Aprobar</button>
           <button type="button" data-rj="${c.id}">Rechazar</button>
         </td></tr>`;
-    }, "tb-cargas", "No hay cargues pendientes de aprobaciÃ³n");
+    }, "tb-cargas", "No hay cargues pendientes de aprobación");
 
     document.getElementById("tb-cargas").addEventListener("click", async (ev) => {
       const ap = ev.target.closest("[data-ap]");

@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Indicadores â€” AdministraciÃ³n</title>
+  <title>Indicadores — Administración</title>
   <link rel="stylesheet" href="/css/estilos.css" />
   <link rel="stylesheet" href="/css/portal.css" />
 </head>
@@ -15,11 +15,11 @@
         <h1>Indicadores</h1>
         <button type="button" id="btn-nuevo" class="btn primario">+ Nuevo indicador</button>
       </div>
-      <p class="subtitulo">Indicadores asociados a cada lÃ­nea temÃ¡tica del observatorio.</p>
+      <p class="subtitulo">Indicadores asociados a cada línea temática del observatorio.</p>
 
       <div class="form-grid" style="margin-bottom:1rem; max-width:480px">
         <label>
-          <span>Filtrar por lÃ­nea temÃ¡tica</span>
+          <span>Filtrar por línea temática</span>
           <select id="filtro-linea"></select>
         </label>
       </div>
@@ -30,11 +30,11 @@
         <form id="form-ind" class="form-grid">
           <input type="hidden" id="f-id" />
           <label>
-            <span>LÃ­nea temÃ¡tica *</span>
+            <span>Línea temática *</span>
             <select id="f-linea" required></select>
           </label>
           <label>
-            <span>CÃ³digo *</span>
+            <span>Código *</span>
             <input type="text" id="f-codigo" required maxlength="80" />
           </label>
           <label>
@@ -42,7 +42,7 @@
             <input type="text" id="f-nombre" required maxlength="300" />
           </label>
           <label style="grid-column:1/-1">
-            <span>DescripciÃ³n</span>
+            <span>Descripción</span>
             <input type="text" id="f-descripcion" maxlength="500" />
           </label>
           <label class="chk-inline" id="wrap-activo" hidden>
@@ -58,7 +58,7 @@
 
       <table class="tabla-portal">
         <thead>
-          <tr><th>ID</th><th>LÃ­nea temÃ¡tica</th><th>CÃ³digo</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr>
+          <tr><th>ID</th><th>Línea temática</th><th>Código</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr>
         </thead>
         <tbody id="tb"></tbody>
       </table>

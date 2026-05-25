@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SecretarÃ­a de Salud â€” Carga Excel observatorio</title>
+  <title>Secretaría de Salud — Carga Excel observatorio</title>
   <link rel="stylesheet" href="/css/estilos.css" />
   <link rel="stylesheet" href="/css/portal.css" />
 </head>
@@ -11,22 +11,22 @@
   <div class="portal-layout">
     <aside class="portal-sidebar"></aside>
     <main class="portal-main">
-      <h1>Carga de archivos Â· Observatorio OSD</h1>
-      <p class="subtitulo">Seleccione lÃ­nea temÃ¡tica, indicador y archivo (Excel o CSV). Primero valide; despuÃ©s envÃ­e.</p>
+      <h1>Carga de archivos · Observatorio OSD</h1>
+      <p class="subtitulo">Seleccione línea temática, indicador y archivo (Excel o CSV). Primero valide; después envíe.</p>
 
       <section class="panel" aria-labelledby="titulo-carga">
         <h2 id="titulo-carga">Cargar archivo</h2>
         <form id="form-carga" class="form-grid form-carga">
           <label>
-            <span>LÃ­nea temÃ¡tica *</span>
+            <span>Línea temática *</span>
             <select id="linea-tematica-id" name="linea_tematica_id" required>
-              <option value="">â€” Seleccione â€”</option>
+              <option value="">— Seleccione —</option>
             </select>
           </label>
           <label>
             <span>Indicador *</span>
             <select id="indicador-id" name="indicador_id" required disabled>
-              <option value="">â€” Primero elija lÃ­nea temÃ¡tica â€”</option>
+              <option value="">— Primero elija línea temática —</option>
             </select>
           </label>
           <label style="grid-column:1/-1">
@@ -40,7 +40,7 @@
           <div class="form-acciones form-acciones--carga">
             <button type="button" id="btn-validar" class="btn primario">Validar archivo</button>
             <button type="button" id="btn-enviar" class="btn primario" disabled>Enviar</button>
-            <button type="button" id="btn-recargar-catalogos" class="btn secundario">Recargar catÃ¡logo</button>
+            <button type="button" id="btn-recargar-catalogos" class="btn secundario">Recargar catálogo</button>
           </div>
         </form>
 
@@ -58,11 +58,11 @@
             <thead>
               <tr>
                 <th>Nombre</th>
-                <th>LÃ­nea temÃ¡tica</th>
+                <th>Línea temática</th>
                 <th>Indicador</th>
                 <th>Estado</th>
-                <th>ValidaciÃ³n</th>
-                <th>EnvÃ­o</th>
+                <th>Validación</th>
+                <th>Envío</th>
                 <th>Usuario</th>
                 <th>Acciones</th>
               </tr>
@@ -77,7 +77,7 @@
 
   <div id="modal-detalle" class="modal-overlay" hidden>
     <div class="modal-panel modal-panel--amplio" role="dialog" aria-labelledby="titulo-detalle">
-      <button type="button" class="modal-cerrar" data-cerrar="modal-detalle" aria-label="Cerrar">Ã—</button>
+      <button type="button" class="modal-cerrar" data-cerrar="modal-detalle" aria-label="Cerrar">×</button>
       <h2 id="titulo-detalle">Detalle del archivo</h2>
       <div id="contenido-detalle" class="detalle-archivo"></div>
       <div class="modal-acciones">
