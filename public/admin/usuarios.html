@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+  <title>Usuarios â€” AdministraciÃ³n</title>
+
+  <link rel="stylesheet" href="/css/estilos.css" />
+
+  <link rel="stylesheet" href="/css/portal.css" />
+
+</head>
+
+<body>
+
+  <div class="portal-layout">
+
+    <aside class="portal-sidebar"></aside>
+
+    <main class="portal-main">
+
+      <div class="toolbar-admin">
+
+        <h1>Usuarios</h1>
+
+        <button type="button" id="btn-nuevo" class="btn primario">+ Nuevo usuario</button>
+
+      </div>
+
+      <p class="subtitulo">Asigne <strong>lÃ­nea temÃ¡tica</strong> y <strong>roles</strong>. Los administradores ven todas las lÃ­neas; el resto solo la asignada.</p>
+
+      <p id="msg-usuarios" class="mensaje" role="status"></p>
+
+
+
+      <section id="panel-nuevo" class="panel-formulario" hidden>
+
+        <h2>Crear usuario</h2>
+
+        <form id="form-nuevo" class="form-grid">
+
+          <label>
+
+            <span>Usuario *</span>
+
+            <input type="text" id="f-usuario" required autocomplete="username" />
+
+          </label>
+
+          <label>
+
+            <span>ContraseÃ±a *</span>
+
+            <input type="password" id="f-password" required autocomplete="new-password" />
+
+          </label>
+
+          <label>
+
+            <span>Correo</span>
+
+            <input type="email" id="f-email" autocomplete="email" />
+
+          </label>
+
+          <label>
+
+            <span>LÃ­nea temÃ¡tica</span>
+
+            <select id="f-linea-tematica">
+
+              <option value="">â€” Sin asignar (solo admin) â€”</option>
+
+            </select>
+
+          </label>
+
+          <fieldset class="roles-fieldset">
+
+            <legend>Roles *</legend>
+
+            <div id="roles-nuevo" class="roles-checkboxes"></div>
+
+          </fieldset>
+
+          <div class="form-acciones">
+
+            <button type="submit" class="btn primario">Crear</button>
+
+            <button type="button" id="btn-cancelar-nuevo" class="btn secundario">Cancelar</button>
+
+          </div>
+
+        </form>
+
+      </section>
+
+
+
+      <table class="tabla-portal">
+
+        <thead>
+
+          <tr>
+
+            <th>ID</th>
+
+            <th>Usuario</th>
+
+            <th>Correo</th>
+
+            <th>LÃ­nea temÃ¡tica</th>
+
+            <th>Roles</th>
+
+            <th>Activo</th>
+
+            <th>Acciones</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="tb"></tbody>
+
+      </table>
+
+      <p class="subtitulo"><small>Â«DesactivarÂ» impide el acceso sin borrar el historial.</small></p>
+
+    </main>
+
+  </div>
+
+
+
+  <div id="modal-editar" class="modal-overlay" hidden>
+
+    <div class="modal-panel modal-panel--amplio" role="dialog" aria-labelledby="titulo-editar">
+
+      <button type="button" class="modal-cerrar" id="modal-cerrar-x" aria-label="Cerrar">Ã—</button>
+
+      <h2 id="titulo-editar">Editar usuario</h2>
+
+      <p id="msg-editar" class="mensaje"></p>
+
+      <form id="form-editar" class="form-grid">
+
+        <input type="hidden" id="e-id" />
+
+        <label>
+
+          <span>Usuario</span>
+
+          <input type="text" id="e-usuario" readonly disabled />
+
+        </label>
+
+        <label>
+
+          <span>Correo</span>
+
+          <input type="email" id="e-email" />
+
+        </label>
+
+        <label>
+
+          <span>Nueva contraseÃ±a</span>
+
+          <input type="password" id="e-password" placeholder="Dejar vacÃ­o para no cambiar" autocomplete="new-password" />
+
+        </label>
+
+        <label>
+
+          <span>LÃ­nea temÃ¡tica</span>
+
+          <select id="e-linea-tematica">
+
+            <option value="">â€” Sin asignar (solo admin) â€”</option>
+
+          </select>
+
+        </label>
+
+        <label class="chk-inline">
+
+          <input type="checkbox" id="e-activo" disabled />
+
+          <span>Activo (use Activar/Desactivar en la tabla)</span>
+
+        </label>
+
+        <fieldset class="roles-fieldset">
+
+          <legend>Roles</legend>
+
+          <div id="roles-editar" class="roles-checkboxes"></div>
+
+        </fieldset>
+
+        <div class="form-acciones">
+
+          <button type="submit" class="btn primario">Guardar cambios</button>
+
+          <button type="button" class="btn secundario" id="modal-cerrar-2">Cancelar</button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <script type="module" src="/js/admin/usuarios.js?v=2"></script>
+
+</body>
+
+</html>
+

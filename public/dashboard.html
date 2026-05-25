@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel principal â€” Observatorio Salud Casanare</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+  <link rel="stylesheet" href="/css/portal.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+</head>
+<body>
+  <div class="portal-layout">
+    <aside class="portal-sidebar"></aside>
+    <main class="portal-main portal-main--dashboard">
+      <div id="dashboard-root">
+        <div class="dashboard-loading">Cargando panelâ€¦</div>
+      </div>
+    </main>
+  </div>
+  <script type="module">
+    import { initPortal } from "/js/portal/layout.js";
+    import { cargarDashboard } from "/js/dashboard.js";
+
+    if (await initPortal("/dashboard.html")) {
+      await cargarDashboard();
+    }
+  </script>
+</body>
+</html>

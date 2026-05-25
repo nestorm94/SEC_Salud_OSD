@@ -38,7 +38,7 @@ VALUES (@ArchivoId, @DepId, @UserId, @Estado);
 UPDATE dbo.CargasArchivo
 SET Estado = @Estado,
     Observaciones = COALESCE(@Obs, Observaciones),
-    FechaFin = CASE WHEN @Estado IN (N'VALIDADO_OK', N'VALIDADO_CON_ERRORES', N'APROBADO', N'RECHAZADO')
+    FechaFin = CASE WHEN @Estado IN (N'VALIDADO_OK', N'VALIDADO_EXITOSO', N'VALIDADO_CON_ERRORES', N'APROBADO', N'RECHAZADO', N'CARGADO_BD')
         THEN SYSUTCDATETIME() ELSE FechaFin END
 WHERE Id = @Id;
 """;
@@ -200,6 +200,43 @@ INNER JOIN dbo.Usuarios u ON u.Id = c.UsuarioId
         await using var con = new SqlConnection(_cs);
         await con.OpenAsync(ct);
         await using var cmd = new SqlCommand(sql, con);
+        if (dependenciaIdFiltro.HasValue)
+            cmd.Parameters.AddWithValue("@DepId", dependenciaIdFiltro.Value);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        var list = new List<CargaListaRow>();
+        while (await r.ReadAsync(ct))
+        {
+            list.Add(new CargaListaRow(
+                r.GetInt32(0), r.GetInt32(1), r.GetString(2), r.GetString(3),
+                r.GetDateTime(4), r.IsDBNull(5) ? null : r.GetDateTime(5),
+                r.GetString(6), r.GetString(7), r.GetInt32(8)));
+        }
+        return list;
+    }
+
+    public async Task<IReadOnlyList<CargaListaRow>> ListarPorUsuarioAsync(
+        int usuarioId,
+        int? dependenciaIdFiltro,
+        CancellationToken ct = default)
+    {
+        var sql = """
+SELECT TOP (300) c.Id, c.DependenciaId, d.Nombre, c.Estado, c.FechaInicio, c.FechaFin,
+       a.NombreOriginal, u.NombreUsuario,
+       (SELECT COUNT(1) FROM dbo.ErroresValidacion e WHERE e.CargaArchivoId = c.Id) AS TotalErrores
+FROM dbo.CargasArchivo c
+INNER JOIN dbo.Dependencias d ON d.Id = c.DependenciaId
+INNER JOIN dbo.Archivos a ON a.Id = c.ArchivoId
+INNER JOIN dbo.Usuarios u ON u.Id = c.UsuarioId
+WHERE c.UsuarioId = @UserId
+""";
+        if (dependenciaIdFiltro.HasValue)
+            sql += " AND c.DependenciaId = @DepId";
+        sql += " ORDER BY c.FechaInicio DESC;";
+
+        await using var con = new SqlConnection(_cs);
+        await con.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, con);
+        cmd.Parameters.AddWithValue("@UserId", usuarioId);
         if (dependenciaIdFiltro.HasValue)
             cmd.Parameters.AddWithValue("@DepId", dependenciaIdFiltro.Value);
         await using var r = await cmd.ExecuteReaderAsync(ct);

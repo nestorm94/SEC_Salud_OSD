@@ -1,19 +1,5 @@
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
-import { requerirAuth, cerrarSesion, getUsuario } from "./auth.js";
-
-if (!requerirAuth()) throw new Error("redirect");
-
-const uInfo = getUsuario();
-const sub = document.querySelector(".subtitulo");
-if (sub && uInfo) {
-  sub.textContent = `${uInfo.nombre} · ${uInfo.dependencia || "Administrador"} — Consulta de vistas en ObservatorioDB`;
-}
-
-document.getElementById("btn-logout")?.addEventListener("click", () => {
-  cerrarSesion();
-  window.location.href = "/login.html";
-});
 
 const titulos = {
   "nacional-casanare": "Población nacional Casanare",
@@ -118,8 +104,8 @@ async function cargarVista(opciones = {}) {
   const barraPag = document.getElementById("barra-paginacion");
   barraPag.hidden = true;
 
-  document.querySelectorAll(".nav-sitio__submenu a").forEach((a) => {
-    a.classList.toggle("nav-sitio__submenu-link--activo", a.dataset.clave === clave);
+  document.querySelectorAll(".proyeccion-vistas a").forEach((a) => {
+    a.classList.toggle("activo", a.dataset.clave === clave);
   });
 
   const params = new URLSearchParams({
@@ -236,7 +222,7 @@ document.getElementById("btn-pagina-siguiente").addEventListener("click", () => 
   cargarVista();
 });
 
-document.querySelectorAll(".nav-sitio__submenu a").forEach((a) => {
+document.querySelectorAll(".proyeccion-vistas a").forEach((a) => {
   a.addEventListener("click", (ev) => {
     ev.preventDefault();
     const clave = a.dataset.clave;

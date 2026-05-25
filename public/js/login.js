@@ -3,7 +3,7 @@ import { fetchJson } from "./fetchJson.js";
 import { guardarSesion, getToken } from "./auth.js";
 
 const params = new URLSearchParams(window.location.search);
-const next = params.get("next") || "/index.html";
+const next = params.get("next") || "/dashboard.html";
 
 if (getToken()) {
   window.location.href = next;
@@ -28,7 +28,10 @@ document.getElementById("form-login").addEventListener("submit", async (ev) => {
       body: JSON.stringify({ usuario, password }),
     });
     if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-    guardarSesion(data.token, data.usuario);
+    guardarSesion(data.token, {
+      ...data.usuario,
+      roles: data.usuario?.roles || [],
+    });
     window.location.href = next;
   } catch (e) {
     setMensaje(String(e.message), "error");

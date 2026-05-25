@@ -1,77 +1,96 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Secretaría de Salud — Carga Excel observatorio</title>
+  <title>SecretarÃ­a de Salud â€” Carga Excel observatorio</title>
   <link rel="stylesheet" href="/css/estilos.css" />
+  <link rel="stylesheet" href="/css/portal.css" />
 </head>
 <body>
-  <header class="cabecera">
-    <nav class="nav-sitio" aria-label="Menú principal">
-      <a href="/index.html" class="nav-sitio__link nav-sitio__link--activo">Carga Excel</a>
-      <a href="/cargas.html" class="nav-sitio__link">Historial cargas</a>
-      <a href="/proyeccion-poblacion.html" class="nav-sitio__link">Proyección población</a>
-      <button type="button" id="btn-logout" class="btn secundario nav-logout">Salir</button>
-    </nav>
-    <h1>Secretaría de Salud · Observatorios departamentales</h1>
-    <p class="subtitulo" id="usuario-info"></p>
-    <p class="subtitulo">Excel obligatorio con hojas <code>Diccionario_Datos</code> y <code>Datos</code></p>
-  </header>
+  <div class="portal-layout">
+    <aside class="portal-sidebar"></aside>
+    <main class="portal-main">
+      <h1>Carga de archivos Â· Observatorio OSD</h1>
+      <p class="subtitulo">Seleccione lÃ­nea temÃ¡tica, indicador y archivo (Excel o CSV). Primero valide; despuÃ©s envÃ­e.</p>
 
-  <main class="contenedor">
-    <section class="panel" aria-labelledby="titulo-carga">
-      <h2 id="titulo-carga">Subir archivo Excel</h2>
-      <form id="form-carga" class="form-carga" enctype="multipart/form-data">
-        <label class="etiqueta-archivo admin-only" id="wrap-dependencia" hidden>
-          <span>Dependencia (administrador)</span>
-          <select id="dependencia-id" name="dependencia_id">
-            <option value="">— Mi dependencia por defecto —</option>
-          </select>
-        </label>
-        <label class="etiqueta-archivo">
-          <span>Archivo .xlsx</span>
-          <input type="file" name="archivo" id="input-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
-        </label>
-        <button type="submit" class="btn primario">Validar y cargar</button>
-      </form>
-      <p id="mensaje-carga" class="mensaje" role="status" aria-live="polite"></p>
-    </section>
+      <section class="panel" aria-labelledby="titulo-carga">
+        <h2 id="titulo-carga">Cargar archivo</h2>
+        <form id="form-carga" class="form-grid form-carga">
+          <label>
+            <span>LÃ­nea temÃ¡tica *</span>
+            <select id="linea-tematica-id" name="linea_tematica_id" required>
+              <option value="">â€” Seleccione â€”</option>
+            </select>
+          </label>
+          <label>
+            <span>Indicador *</span>
+            <select id="indicador-id" name="indicador_id" required disabled>
+              <option value="">â€” Primero elija lÃ­nea temÃ¡tica â€”</option>
+            </select>
+          </label>
+          <label style="grid-column:1/-1">
+            <span>Observaciones</span>
+            <input type="text" id="observaciones" name="observaciones" maxlength="1000" placeholder="Opcional" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>Archivo Excel (.xlsx) o CSV (.csv) *</span>
+            <input type="file" name="archivo" id="input-archivo" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required />
+          </label>
+          <div class="form-acciones form-acciones--carga">
+            <button type="button" id="btn-validar" class="btn primario">Validar archivo</button>
+            <button type="button" id="btn-enviar" class="btn primario" disabled>Enviar</button>
+            <button type="button" id="btn-recargar-catalogos" class="btn secundario">Recargar catÃ¡logo</button>
+          </div>
+        </form>
 
-    <section class="panel" aria-labelledby="titulo-lista">
-      <h2 id="titulo-lista">Archivos por dependencia</h2>
-      <button type="button" id="btn-refrescar" class="btn secundario">Actualizar lista</button>
-      <div class="tabla-wrap">
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Dependencia</th>
-              <th>Tipo</th>
-              <th>Tamaño</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="cuerpo-tabla"></tbody>
-        </table>
+        <div id="panel-estado-validacion" class="panel-validacion" hidden>
+          <p id="mensaje-carga" class="mensaje" role="status" aria-live="polite"></p>
+          <ul id="lista-errores-validacion" class="lista-errores-validacion" hidden></ul>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="titulo-lista">
+        <h2 id="titulo-lista">Archivos cargados</h2>
+        <button type="button" id="btn-refrescar" class="btn secundario">Actualizar lista</button>
+        <div class="tabla-wrap">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>LÃ­nea temÃ¡tica</th>
+                <th>Indicador</th>
+                <th>Estado</th>
+                <th>ValidaciÃ³n</th>
+                <th>EnvÃ­o</th>
+                <th>Usuario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-tabla"></tbody>
+          </table>
+        </div>
+        <p id="mensaje-lista" class="mensaje" role="status"></p>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-detalle" class="modal-overlay" hidden>
+    <div class="modal-panel modal-panel--amplio" role="dialog" aria-labelledby="titulo-detalle">
+      <button type="button" class="modal-cerrar" data-cerrar="modal-detalle" aria-label="Cerrar">Ã—</button>
+      <h2 id="titulo-detalle">Detalle del archivo</h2>
+      <div id="contenido-detalle" class="detalle-archivo"></div>
+      <div class="modal-acciones">
+        <button type="button" class="btn secundario" data-cerrar="modal-detalle">Cerrar</button>
       </div>
-      <p id="mensaje-lista" class="mensaje" role="status"></p>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <footer class="pie">
-    <small>API: JWT · <code>/api/cargas/excel</code> · SQL Server</small>
-  </footer>
-
-  <script src="/js/app.js" type="module"></script>
   <script type="module">
-    import { esAdministrador } from "./js/auth.js";
-    if (esAdministrador()) {
-      const w = document.getElementById("wrap-dependencia");
-      if (w) w.hidden = false;
-    }
+    import { initPortal } from "/js/portal/layout.js";
+    import { inicializarPaginaCarga } from "/js/app.js?v=4";
+    if (!(await initPortal("/index.html"))) throw 0;
+    await inicializarPaginaCarga();
   </script>
 </body>
 </html>

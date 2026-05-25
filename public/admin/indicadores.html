@@ -1,0 +1,69 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Indicadores â€” AdministraciÃ³n</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+  <link rel="stylesheet" href="/css/portal.css" />
+</head>
+<body>
+  <div class="portal-layout">
+    <aside class="portal-sidebar"></aside>
+    <main class="portal-main">
+      <div class="toolbar-admin">
+        <h1>Indicadores</h1>
+        <button type="button" id="btn-nuevo" class="btn primario">+ Nuevo indicador</button>
+      </div>
+      <p class="subtitulo">Indicadores asociados a cada lÃ­nea temÃ¡tica del observatorio.</p>
+
+      <div class="form-grid" style="margin-bottom:1rem; max-width:480px">
+        <label>
+          <span>Filtrar por lÃ­nea temÃ¡tica</span>
+          <select id="filtro-linea"></select>
+        </label>
+      </div>
+      <p id="msg" class="mensaje" role="status"></p>
+
+      <section id="panel-form" class="panel-formulario" hidden>
+        <h2 id="titulo-form">Nuevo indicador</h2>
+        <form id="form-ind" class="form-grid">
+          <input type="hidden" id="f-id" />
+          <label>
+            <span>LÃ­nea temÃ¡tica *</span>
+            <select id="f-linea" required></select>
+          </label>
+          <label>
+            <span>CÃ³digo *</span>
+            <input type="text" id="f-codigo" required maxlength="80" />
+          </label>
+          <label>
+            <span>Nombre *</span>
+            <input type="text" id="f-nombre" required maxlength="300" />
+          </label>
+          <label style="grid-column:1/-1">
+            <span>DescripciÃ³n</span>
+            <input type="text" id="f-descripcion" maxlength="500" />
+          </label>
+          <label class="chk-inline" id="wrap-activo" hidden>
+            <input type="checkbox" id="f-activo" checked />
+            <span>Activo</span>
+          </label>
+          <div class="form-acciones">
+            <button type="submit" class="btn primario">Guardar</button>
+            <button type="button" id="btn-cancelar" class="btn secundario">Cancelar</button>
+          </div>
+        </form>
+      </section>
+
+      <table class="tabla-portal">
+        <thead>
+          <tr><th>ID</th><th>LÃ­nea temÃ¡tica</th><th>CÃ³digo</th><th>Nombre</th><th>Activo</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </main>
+  </div>
+  <script type="module" src="/js/admin/indicadores.js"></script>
+</body>
+</html>

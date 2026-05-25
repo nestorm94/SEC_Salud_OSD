@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ãreas temÃ¡ticas â€” AdministraciÃ³n</title>
+  <link rel="stylesheet" href="/css/estilos.css" />
+  <link rel="stylesheet" href="/css/portal.css" />
+</head>
+<body>
+  <div class="portal-layout">
+    <aside class="portal-sidebar"></aside>
+    <main class="portal-main">
+      <h1>Ãreas temÃ¡ticas</h1>
+      <p class="subtitulo">Coloque el Excel en <code>data/Ãreas temÃ¡ticas OSC V.2.xlsx</code> y use importar.</p>
+      <button type="button" id="btn-import" class="btn primario">Importar desde Excel</button>
+      <p id="msg-import"></p>
+      <table class="tabla-portal"><thead><tr><th>ID</th><th>Dependencia</th><th>CÃ³digo</th><th>Nombre</th></tr></thead><tbody id="tb"></tbody></table>
+    </main>
+  </div>
+  <script type="module">
+    import { initPortal, cargarTabla, fetchJson, apiUrl } from "/js/portal/layout.js";
+    if (!(await initPortal("/admin/areas-tematicas.html", { requiereAdmin: true }))) throw 0;
+    await cargarTabla("/api/admin/areas-tematicas", (a) =>
+      `<tr><td>${a.id}</td><td>${a.dependencia}</td><td>${a.codigo}</td><td>${a.nombre}</td></tr>`, "tb");
+    document.getElementById("btn-import").onclick = async () => {
+      const { res, data } = await fetchJson(apiUrl("/api/admin/areas-tematicas/importar-excel"), { method: "POST" });
+      document.getElementById("msg-import").textContent = res.ok ? data.mensaje : (data.mensaje || data.title || "Error");
+      if (res.ok) location.reload();
+    };
+  </script>
+</body>
+</html>

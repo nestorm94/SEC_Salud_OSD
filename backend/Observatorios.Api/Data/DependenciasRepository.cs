@@ -43,6 +43,22 @@ FROM dbo.Dependencias
         return list;
     }
 
+    public async Task<int> ObtenerOCrearPorCodigoAsync(string codigo, string nombre, CancellationToken ct = default)
+    {
+        var c = codigo.Trim().ToUpperInvariant();
+        const string find = "SELECT Id FROM dbo.Dependencias WHERE Codigo = @Codigo;";
+        await using var con = new SqlConnection(_cs);
+        await con.OpenAsync(ct);
+        await using (var cmd = new SqlCommand(find, con))
+        {
+            cmd.Parameters.AddWithValue("@Codigo", c);
+            var id = await cmd.ExecuteScalarAsync(ct);
+            if (id is not null && id != DBNull.Value)
+                return Convert.ToInt32(id);
+        }
+        return await CrearAsync(c, string.IsNullOrWhiteSpace(nombre) ? c : nombre, ct);
+    }
+
     public async Task<DependenciaRow?> GetAsync(int id, CancellationToken ct = default)
     {
         const string sql = "SELECT Id, Codigo, Nombre, Activo, CreadoEn FROM dbo.Dependencias WHERE Id = @Id;";

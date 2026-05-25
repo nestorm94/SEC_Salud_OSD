@@ -44,7 +44,7 @@ public static class AuthExtensions
         services.AddAuthorization(options =>
         {
             options.AddPolicy(PolicyAdmin, p =>
-                p.RequireRole("Administrador"));
+                p.RequireRole("ADMIN", "Administrador"));
         });
 
         return services;
@@ -60,17 +60,30 @@ public static class AuthExtensions
         var depClaim = http.User.FindFirstValue("dependencia_id");
         int? depId = int.TryParse(depClaim, out var d) ? d : null;
 
+        var lineaClaim = http.User.FindFirstValue("linea_tematica_id");
+        int? lineaId = int.TryParse(lineaClaim, out var lt) ? lt : null;
+
         var roles = http.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
         var user = http.User.FindFirstValue(ClaimTypes.Name)
             ?? http.User.FindFirstValue(JwtRegisteredClaimNames.UniqueName)
             ?? "";
+
+        var areas = new List<int>();
+        var areasClaim = http.User.FindFirstValue("areas");
+        if (!string.IsNullOrWhiteSpace(areasClaim))
+        {
+            foreach (var part in areasClaim.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                if (int.TryParse(part.Trim(), out var aid)) areas.Add(aid);
+        }
 
         return new UserContext
         {
             UsuarioId = uid,
             NombreUsuario = user,
             DependenciaId = depId,
-            Roles = roles
+            LineaTematicaId = lineaId,
+            Roles = roles,
+            AreasTematicasIds = areas
         };
     }
 }

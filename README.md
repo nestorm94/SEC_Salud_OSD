@@ -41,19 +41,21 @@ Plataforma para la **Secretaría de Salud**: autenticación por dependencia, **c
 
 4. Credenciales iniciales (solo desarrollo):
 
-   | Usuario | Contraseña |
-   |---------|------------|
-   | `admin` | `Admin123!` |
+   | Usuario / correo | Contraseña |
+   |------------------|------------|
+   | `admin@observatorio.gov.co` o `admin` | `Admin123*` |
 
    Cambie la contraseña del administrador en entornos reales.
 
-Al arrancar, la API crea el esquema SQL (usuarios, roles, dependencias, cargas, validación) y el usuario `admin` si no existe.
+Al arrancar, la API aplica el esquema SQL (idempotente), crea el usuario **ADMIN** si no existe e intenta importar áreas desde `data/Áreas temáticas OSC V.2.xlsx` si está presente.
 
 ## Estructura del proyecto
 
 | Carpeta | Contenido |
 |---------|-----------|
-| `public/` | Login, carga Excel, historial de cargues, proyección población |
+| `public/` | Portal HTML: login, dashboard, cargas, validaciones, administración |
+| `data/` | Excel de áreas temáticas (opcional, ver `data/README.md`) |
+| `frontend/` | Cliente Angular (migración futura) |
 | `backend/Observatorios.Api/` | API, servicios de validación Excel, repositorios |
 | `backend/.../Auth/` | JWT y contexto de usuario |
 | `backend/.../Services/` | Autenticación, validación Excel, proceso de cargue |
@@ -61,37 +63,81 @@ Al arrancar, la API crea el esquema SQL (usuarios, roles, dependencias, cargas, 
 | `uploads/` | Archivos físicos `.xlsx` |
 | `scripts/` | Scripts SQL de referencia |
 
+## Modelo funcional
+
+```
+Dependencia → Área temática → Responsable temático → Plantilla de carga → Archivo → Validación
+```
+
+Compatibilidad: se mantiene `dbo.Archivos` / `CargasArchivo` (evolución de `dbo.Archivo`) y `uploads/`.
+
 ## Modelo de datos (SQL Server)
 
 | Tabla | Propósito |
 |-------|-----------|
-| `Dependencias` | Secretarías / áreas del observatorio |
-| `Roles`, `Usuarios`, `UsuarioRol` | Autenticación y autorización |
-| `Archivos` | Metadata del archivo por dependencia |
-| `CargasArchivo` | Proceso de cargue y estado |
-| `DiccionarioArchivo`, `CamposDiccionario` | Estructura leída de la hoja Diccionario_Datos |
-| `DatosCargados` | Filas válidas de la hoja Datos (JSON por fila) |
-| `ErroresValidacion` | Reporte fila / columna / mensaje |
-| `HistorialCarga` | Auditoría del flujo (validación, aprobación, rechazo) |
+| `Dependencias`, `AreaTematica`, `UsuarioAreaTematica` | Organización territorial/temática |
+| `Roles`, `Usuarios`, `UsuarioRol` | Autenticación (BCrypt) y autorización |
+| `ResponsableTematico`, `PlantillaCarga`, `PlantillaCampo` | Plantillas por área |
+| `Archivos`, `ArchivoCarga` | Archivo físico + contexto de cargue v2 |
+| `CargasArchivo`, `DiccionarioArchivo`, `CamposDiccionario` | Flujo de validación Excel |
+| `DatosCargados`, `ErroresValidacion`, `ValidacionArchivo` | Resultados |
+| `HistorialCarga`, `AuditoriaSistema` | Trazabilidad |
 
-**Estados de cargue:** `VALIDANDO`, `VALIDADO_OK`, `VALIDADO_CON_ERRORES`, `APROBADO`, `RECHAZADO`.
+Script idempotente completo: `scripts/schema-completo-areas-tematicas.sql`. La migración en runtime: `ObservatorioDbSchema.cs`.
+
+**Estados de cargue:** `RECIBIDO`, `EN_VALIDACION`, `VALIDADO_CON_ERRORES`, `VALIDADO_EXITOSO`, `APROBADO`, `RECHAZADO`, `CARGADO_BD` (alias v1: `VALIDANDO`, `VALIDADO_OK`).
+
+## Roles
+
+| Rol | Alcance |
+|-----|---------|
+| `ADMIN` | Todo; menú administración |
+| `COORDINADOR_DEPENDENCIA` | Su dependencia |
+| `RESPONSABLE_TEMATICO` | Carga/consulta en sus áreas |
+| `VALIDADOR` | Revisión y aprobación |
+| `CONSULTA` | Solo lectura |
+| `AUDITOR` | Historial y `/api/auditoria` |
 
 ## Formato Excel obligatorio
 
-1. **Hoja `Diccionario_Datos`** con columnas:  
-   `Nombre_Campo`, `Tipo_Dato`, `Obligatorio`, `Descripcion`, `Longitud`, `Formato`, `Valores_Permitidos`
+### Plantilla oficial OSC V.2 (`Diccionario_de_datos_OSC.V2.xlsx`)
 
-2. **Hoja `Datos`** con columnas alineadas al diccionario.
+Hoja **`Diccionario_Datos`** (encabezados en fila 5, tras metadatos de la tabla):
 
-3. **Tipos de dato:** `texto`, `entero`, `decimal`, `fecha`, `booleano`.
+| Columna | Uso |
+|---------|-----|
+| Nombre de la variable | Nombre de columna en hoja Datos |
+| Descripción de la variable | Texto descriptivo |
+| Llave Primaria | SI / NO |
+| Llave Foránea | SI / NO (infiere catálogo DIVIPOLA/municipios) |
+| Campo obligatorio | SI / NO |
+| Id. de la variable | Identificador interno |
+| Tipo de datos | Numérico, Carácter, Fecha, etc. |
+| Longitud | Ej. `5` o `p(10,2)` |
+| Dominios (Categorías, valores) | Valores permitidos |
+| Unidad de medida | Metadato |
+| Campo calculado | SI / NO |
+| Fórmula aplicada | Fórmula si aplica |
 
-4. Si hay errores → estado `VALIDADO_CON_ERRORES` + registros en `ErroresValidacion`.  
-   Si es válido → `VALIDADO_OK` + diccionario y datos persistidos.
+Hoja **`Datos`:** columnas con los mismos nombres que «Nombre de la variable» (ej. `CODIGO DIVIPOLA`, `MUNICIPIO`). La plantilla puede subirse solo con diccionario (Datos vacía).
 
-## Permisos por dependencia
+Copia de referencia: `data/Diccionario_de_datos_OSC.V2.xlsx`
 
-- Cada usuario (excepto **Administrador**) pertenece a una **dependencia** y solo ve/gestiona archivos y cargues de esa dependencia.
-- **Administrador:** acceso global; puede indicar `dependencia_id` al subir Excel.
+### Formato simplificado (legacy)
+
+1. **Hoja `Diccionario_Datos`:** `Nombre_Campo`, `Tipo_Dato`, `Obligatorio`, `Descripcion`, `Longitud`, `Formato`, `Valores_Permitidos`, `Tabla_Referencia`, `Campo_Referencia`
+
+2. **Hoja `Datos`:** columnas según el diccionario.
+
+3. **Catálogos:** si `Tabla_Referencia` es `dim_departamentos` o `dim_municipios`, se valida contra tablas existentes; el municipio debe pertenecer al departamento de la misma fila.
+
+4. **Tipos:** `texto`, `entero`, `decimal`, `fecha`, `booleano`.
+
+## Permisos
+
+- Usuario con **dependencia** y opcionalmente **áreas temáticas** (`UsuarioAreaTematica`).
+- JWT incluye roles y claim `areas` (IDs).
+- **ADMIN** ve todo; resto según rol (ver tabla arriba).
 
 ## API (requiere JWT salvo login y ping)
 
@@ -101,15 +147,22 @@ Al arrancar, la API crea el esquema SQL (usuarios, roles, dependencias, cargas, 
 | POST | `/api/usuarios` | Crear usuario (admin) |
 | POST | `/api/dependencias` | Crear dependencia (admin) |
 | GET | `/api/dependencias` | Listar dependencias |
-| POST | `/api/cargas/excel` | Subir y validar Excel |
-| POST | `/api/cargas/{id}/validar` | Revalidar (opcional nuevo archivo) |
-| GET | `/api/cargas/{id}/errores` | Reporte de errores |
-| POST | `/api/cargas/{id}/aprobar` | Aprobar (solo `VALIDADO_OK`) |
-| POST | `/api/cargas/{id}/rechazar` | Rechazar cargue |
-| GET | `/api/cargas` | Listar cargues (filtrado por dependencia) |
-| GET | `/api/cargas/historial` | Historial (`?carga_id=`) |
+| POST | `/api/cargas/upload` o `/api/cargas/excel` | Subir Excel (`archivo`, opc. `dependencia_id`, `area_tematica_id`, `plantilla_carga_id`) |
+| GET | `/api/cargas/mis-cargas` | Cargues del usuario autenticado |
+| POST | `/api/cargas/{id}/validar` | Revalidar (VALIDADOR/ADMIN) |
+| GET | `/api/cargas/{id}/errores` | Errores de validación |
+| POST | `/api/cargas/{id}/aprobar` | Aprobar (`VALIDADO_EXITOSO`) |
+| POST | `/api/cargas/{id}/rechazar` | Rechazar |
+| GET | `/api/cargas` | Listar cargues |
+| GET | `/api/auditoria` | Auditoría (ADMIN/AUDITOR) |
+| GET/POST | `/api/admin/usuarios` | Gestión usuarios |
+| GET | `/api/admin/roles` | Roles |
+| GET/POST | `/api/admin/dependencias` | Dependencias |
+| GET/POST | `/api/admin/areas-tematicas` | Áreas temáticas |
+| POST | `/api/admin/areas-tematicas/importar-excel` | Importar desde `data/` |
+| GET/POST | `/api/admin/plantillas` | Plantillas de carga |
 | GET | `/api/archivos` | Archivos por dependencia |
-| GET | `/api/archivos/{id}/descargar` | Descarga con token |
+| GET | `/api/archivos/{id}/descargar` | Descarga |
 
 **Proyección población** (vistas SQL en `ObservatorioDB`, también con JWT):
 
@@ -130,14 +183,18 @@ Al arrancar, la API crea el esquema SQL (usuarios, roles, dependencias, cargas, 
 }
 ```
 
-## Pantallas web
+## Pantallas web (HTML en `public/`)
 
 | URL | Uso |
 |-----|-----|
-| `/login.html` | Inicio de sesión |
-| `/index.html` | Subir Excel y listar archivos |
-| `/cargas.html` | Historial, errores, aprobar/rechazar |
-| `/proyeccion-poblacion.html` | Consulta de vistas |
+| `/login.html` | JWT (correo o usuario) |
+| `/dashboard.html` | Panel y menú por rol |
+| `/cargas.html` | Carga Excel e historial |
+| `/validaciones.html` | Aprobar/rechazar (VALIDADOR) |
+| `/admin/*.html` | Usuarios, roles, dependencias, áreas, plantillas (solo ADMIN) |
+| `/index.html`, `/proyeccion-poblacion.html` | Legacy (siguen operativos) |
+
+Preparado para migrar a **Angular** (`frontend/`) reutilizando los mismos endpoints.
 
 ## Conexión SQL
 

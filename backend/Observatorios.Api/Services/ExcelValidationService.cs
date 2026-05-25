@@ -8,22 +8,26 @@ namespace Observatorios.Api.Services;
 
 /// <summary>
 /// Valida libros Excel con hojas <c>Diccionario_Datos</c> y <c>Datos</c>.
+/// Soporta formato estándar y <b>OSC V.2</b> (Diccionario_de_datos_OSC).
 /// </summary>
 public sealed class ExcelValidationService
 {
-    private static readonly string[] ColumnasDiccionario =
+    private static readonly string[] ColumnasDiccionarioLegacy =
     [
         "Nombre_Campo", "Tipo_Dato", "Obligatorio", "Descripcion",
-        "Longitud", "Formato", "Valores_Permitidos"
+        "Longitud", "Formato", "Valores_Permitidos", "Tabla_Referencia", "Campo_Referencia"
     ];
 
-    public ExcelValidationResult Validar(Stream excelStream)
+    public ExcelValidationResult Validar(Stream excelStream, CatalogoValidacionContext? catalogos = null)
     {
         var errores = new List<ValidationErrorDto>();
         using var wb = new XLWorkbook(excelStream);
 
         var hojaDict = wb.Worksheets.FirstOrDefault(w =>
-            string.Equals(w.Name, "Diccionario_Datos", StringComparison.OrdinalIgnoreCase));
+            string.Equals(w.Name, "Diccionario_Datos", StringComparison.OrdinalIgnoreCase))
+            ?? wb.Worksheets.FirstOrDefault(w =>
+                w.Name.Contains("Diccionario", StringComparison.OrdinalIgnoreCase));
+
         var hojaDatos = wb.Worksheets.FirstOrDefault(w =>
             string.Equals(w.Name, "Datos", StringComparison.OrdinalIgnoreCase));
 
@@ -35,18 +39,39 @@ public sealed class ExcelValidationService
         if (hojaDict is null || hojaDatos is null)
             return new ExcelValidationResult([], [], false, errores);
 
-        var dictRange = hojaDict.RangeUsed();
-        if (dictRange is null)
+        var esOsc = DiccionarioOscV2Reader.EsPlantillaOsc(hojaDict);
+        var filaHeaderOsc = esOsc
+            ? DiccionarioOscV2Reader.BuscarFilaEncabezados(hojaDict)
+            : -1;
+        if (esOsc && filaHeaderOsc <= 0)
+            filaHeaderOsc = DiccionarioOscV2Reader.FilaEncabezadosDefault;
+        List<CampoDiccionarioDto> campos;
+
+        if (esOsc)
         {
-            errores.Add(new ValidationErrorDto(null, "Diccionario_Datos", "La hoja Diccionario_Datos está vacía.", "ESTRUCTURA"));
-            return new ExcelValidationResult([], [], false, errores);
+            var headersOsc = DiccionarioOscV2Reader.ResolverColumnas(hojaDict, filaHeaderOsc);
+            DiccionarioOscV2Reader.ValidarColumnasMinimas(headersOsc, errores);
+            if (errores.Count > 0)
+                return new ExcelValidationResult([], [], false, errores);
+
+            campos = DiccionarioOscV2Reader.LeerCampos(hojaDict, filaHeaderOsc, errores);
+        }
+        else
+        {
+            var dictRange = hojaDict.RangeUsed();
+            if (dictRange is null)
+            {
+                errores.Add(new ValidationErrorDto(null, "Diccionario_Datos", "La hoja Diccionario_Datos está vacía.", "ESTRUCTURA"));
+                return new ExcelValidationResult([], [], false, errores);
+            }
+
+            var headerMap = LeerEncabezadosLegacy(dictRange.FirstRow(), errores);
+            if (errores.Count > 0)
+                return new ExcelValidationResult([], [], false, errores);
+
+            campos = LeerCamposDiccionarioLegacy(dictRange, headerMap, errores);
         }
 
-        var headerMap = LeerEncabezados(dictRange.FirstRow(), errores);
-        if (errores.Count > 0)
-            return new ExcelValidationResult([], [], false, errores);
-
-        var campos = LeerCamposDiccionario(dictRange, headerMap, errores);
         if (campos.Count == 0 && errores.Count == 0)
             errores.Add(new ValidationErrorDto(null, "Diccionario_Datos", "No hay filas de definición de campos.", "ESTRUCTURA"));
 
@@ -56,76 +81,86 @@ public sealed class ExcelValidationService
         var filasDatos = new List<DatosFilaDto>();
         if (datosRange is null)
         {
-            errores.Add(new ValidationErrorDto(null, "Datos", "La hoja Datos está vacía.", "ESTRUCTURA"));
-            return new ExcelValidationResult(campos, filasDatos, false, errores);
+            // Plantilla OSC: puede traer solo diccionario; los datos se cargan después.
+            return new ExcelValidationResult(campos, filasDatos, errores.Count == 0, errores);
         }
-
-        var datosHeaderMap = LeerEncabezadosDatos(datosRange.FirstRow(), errores);
-        if (datosHeaderMap.Count == 0 && errores.Count > 0)
-            return new ExcelValidationResult(campos, filasDatos, false, errores);
-
-        foreach (var campo in campos)
+        else
         {
-            if (!datosHeaderMap.ContainsKey(Normalizar(campo.NombreCampo)))
+            var datosHeaderMap = LeerEncabezadosDatos(datosRange.FirstRow(), errores);
+            if (datosHeaderMap.Count == 0 && errores.Any(e => e.TipoError == "ESTRUCTURA"))
+                return new ExcelValidationResult(campos, filasDatos, false, errores);
+
+            ValidarColumnasDatos(campos, datosHeaderMap, errores);
+
+            var lastRow = datosRange.LastRow().RowNumber();
+            for (var rowNum = datosRange.FirstRow().RowNumber() + 1; rowNum <= lastRow; rowNum++)
             {
-                errores.Add(new ValidationErrorDto(
-                    null, campo.NombreCampo,
-                    $"La columna «{campo.NombreCampo}» definida en el diccionario no existe en la hoja Datos.",
-                    "COLUMNA"));
+                var row = hojaDatos.Row(rowNum);
+                if (FilaVacia(row)) continue;
+
+                var valores = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kv in datosHeaderMap)
+                {
+                    var cell = row.Cell(kv.Value);
+                    valores[kv.Key] = cell.IsEmpty() ? null : cell.GetFormattedString().Trim();
+                }
+
+                catalogos?.ValoresFila.TryAdd(rowNum, valores);
+                foreach (var campo in campos)
+                {
+                    var key = NormalizarNombreVariable(campo.NombreCampo);
+                    valores.TryGetValue(key, out var valor);
+                    ValidarValorCelda(campo, valor, rowNum, errores, catalogos);
+                }
+                filasDatos.Add(new DatosFilaDto(rowNum, JsonSerializer.Serialize(valores)));
             }
+
+            if (filasDatos.Count == 0 && campos.Any(c => c.Obligatorio))
+                errores.Add(new ValidationErrorDto(null, "Datos", "No hay filas de datos para validar.", "ESTRUCTURA"));
         }
-
-        var lastRow = datosRange.LastRow().RowNumber();
-        for (var rowNum = datosRange.FirstRow().RowNumber() + 1; rowNum <= lastRow; rowNum++)
-        {
-            var row = hojaDatos.Row(rowNum);
-            if (FilaVacia(row)) continue;
-
-            var valores = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var kv in datosHeaderMap)
-            {
-                var cell = row.Cell(kv.Value);
-                valores[kv.Key] = cell.IsEmpty() ? null : cell.GetFormattedString().Trim();
-            }
-
-            foreach (var campo in campos)
-            {
-                var key = Normalizar(campo.NombreCampo);
-                valores.TryGetValue(key, out var valor);
-                ValidarValorCelda(campo, valor, rowNum, errores);
-            }
-
-            filasDatos.Add(new DatosFilaDto(rowNum, JsonSerializer.Serialize(valores)));
-        }
-
-        if (filasDatos.Count == 0 && campos.Any(c => c.Obligatorio))
-            errores.Add(new ValidationErrorDto(null, "Datos", "No hay filas de datos para validar.", "ESTRUCTURA"));
 
         return new ExcelValidationResult(campos, filasDatos, errores.Count == 0, errores);
     }
 
-    private static Dictionary<string, int> LeerEncabezados(
+    private static void ValidarColumnasDatos(
+        IReadOnlyList<CampoDiccionarioDto> campos,
+        IReadOnlyDictionary<string, int> datosHeaderMap,
+        List<ValidationErrorDto> errores)
+    {
+        foreach (var campo in campos)
+        {
+            var key = NormalizarNombreVariable(campo.NombreCampo);
+            if (!datosHeaderMap.ContainsKey(key))
+            {
+                errores.Add(new ValidationErrorDto(
+                    null, campo.NombreCampo,
+                    $"La columna «{campo.NombreCampo}» del diccionario no existe en la hoja Datos.",
+                    "COLUMNA"));
+            }
+        }
+    }
+
+    private static Dictionary<string, int> LeerEncabezadosLegacy(
         IXLRangeRow headerRow,
-        List<ValidationErrorDto> errores,
-        string prefijo = "Diccionario_Datos")
+        List<ValidationErrorDto> errores)
     {
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var encontradas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var cell in headerRow.CellsUsed())
         {
-            var name = Normalizar(cell.GetString());
+            var name = NormalizarNombreVariable(cell.GetString());
             if (string.IsNullOrEmpty(name)) continue;
             map[name] = cell.Address.ColumnNumber;
             encontradas.Add(name);
         }
 
-        foreach (var col in ColumnasDiccionario)
+        foreach (var col in ColumnasDiccionarioLegacy)
         {
-            if (!encontradas.Contains(Normalizar(col)))
+            if (!encontradas.Contains(NormalizarNombreVariable(col)))
             {
                 errores.Add(new ValidationErrorDto(
                     null, col,
-                    $"Falta la columna «{col}» en la hoja {prefijo}.",
+                    $"Falta la columna «{col}» en la hoja Diccionario_Datos.",
                     "ESTRUCTURA"));
             }
         }
@@ -133,15 +168,12 @@ public sealed class ExcelValidationService
         return map;
     }
 
-    /// <summary>Encabezados de la hoja Datos (nombres de campo, no columnas del meta-diccionario).</summary>
-    private static Dictionary<string, int> LeerEncabezadosDatos(
-        IXLRangeRow headerRow,
-        List<ValidationErrorDto> errores)
+    private static Dictionary<string, int> LeerEncabezadosDatos(IXLRangeRow headerRow, List<ValidationErrorDto> errores)
     {
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var cell in headerRow.CellsUsed())
         {
-            var name = Normalizar(cell.GetString());
+            var name = NormalizarNombreVariable(cell.GetString());
             if (string.IsNullOrEmpty(name)) continue;
             map[name] = cell.Address.ColumnNumber;
         }
@@ -152,7 +184,7 @@ public sealed class ExcelValidationService
         return map;
     }
 
-    private static List<CampoDiccionarioDto> LeerCamposDiccionario(
+    private static List<CampoDiccionarioDto> LeerCamposDiccionarioLegacy(
         IXLRange range,
         IReadOnlyDictionary<string, int> headers,
         List<ValidationErrorDto> errores)
@@ -169,16 +201,12 @@ public sealed class ExcelValidationService
 
             string Leer(string col)
             {
-                if (!headers.TryGetValue(Normalizar(col), out var c)) return "";
+                if (!headers.TryGetValue(NormalizarNombreVariable(col), out var c)) return "";
                 return row.Cell(c).GetFormattedString().Trim();
             }
 
             var nombre = Leer("Nombre_Campo");
-            if (string.IsNullOrWhiteSpace(nombre))
-            {
-                errores.Add(new ValidationErrorDto(r, "Nombre_Campo", "Nombre_Campo es obligatorio en el diccionario.", "DICCIONARIO"));
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(nombre)) continue;
 
             if (!nombres.Add(nombre))
             {
@@ -196,26 +224,17 @@ public sealed class ExcelValidationService
 
             var oblRaw = Leer("Obligatorio");
             var obligatorio = EsObligatorio(oblRaw);
-            if (string.IsNullOrWhiteSpace(oblRaw))
-                errores.Add(new ValidationErrorDto(r, "Obligatorio", "Indique S o N en Obligatorio.", "DICCIONARIO"));
 
             int? longitud = null;
             var longStr = Leer("Longitud");
-            if (!string.IsNullOrWhiteSpace(longStr))
-            {
-                if (!int.TryParse(longStr, out var len) || len < 0)
-                    errores.Add(new ValidationErrorDto(r, "Longitud", "Longitud debe ser un entero ≥ 0.", "DICCIONARIO"));
-                else longitud = len;
-            }
+            if (!string.IsNullOrWhiteSpace(longStr) && int.TryParse(longStr, out var len) && len >= 0)
+                longitud = len;
 
             campos.Add(new CampoDiccionarioDto(
-                nombre,
-                tipo,
-                obligatorio,
-                NullIfEmpty(Leer("Descripcion")),
-                longitud,
-                NullIfEmpty(Leer("Formato")),
-                NullIfEmpty(Leer("Valores_Permitidos")),
+                nombre, tipo, obligatorio,
+                NullIfEmpty(Leer("Descripcion")), longitud,
+                NullIfEmpty(Leer("Formato")), NullIfEmpty(Leer("Valores_Permitidos")),
+                NullIfEmpty(Leer("Tabla_Referencia")), NullIfEmpty(Leer("Campo_Referencia")),
                 campos.Count));
         }
 
@@ -232,7 +251,8 @@ public sealed class ExcelValidationService
         CampoDiccionarioDto campo,
         string? valor,
         int fila,
-        List<ValidationErrorDto> errores)
+        List<ValidationErrorDto> errores,
+        CatalogoValidacionContext? catalogos)
     {
         var vacio = string.IsNullOrWhiteSpace(valor);
         if (campo.Obligatorio && vacio)
@@ -273,26 +293,54 @@ public sealed class ExcelValidationService
         if (!string.IsNullOrWhiteSpace(campo.ValoresPermitidos))
         {
             var permitidos = campo.ValoresPermitidos
-                .Split(';', ',', '|')
+                .Split(';', ',', '|', '\n')
                 .Select(v => v.Trim())
                 .Where(v => v.Length > 0)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (permitidos.Count > 0 && !permitidos.Contains(valor!))
                 errores.Add(new ValidationErrorDto(fila, campo.NombreCampo,
-                    $"Valor «{valor}» no está en valores permitidos: {campo.ValoresPermitidos}.", "DOMINIO"));
+                    $"Valor «{valor}» no está en dominios permitidos.", "DOMINIO"));
         }
 
         if (!string.IsNullOrWhiteSpace(campo.Formato) && campo.TipoDato == "texto")
         {
             try
             {
-                if (!Regex.IsMatch(valor!, campo.Formato))
+                if (campo.Formato.StartsWith('^') && !Regex.IsMatch(valor!, campo.Formato))
                     errores.Add(new ValidationErrorDto(fila, campo.NombreCampo,
-                        "No cumple el patrón (regex) definido en Formato.", "FORMATO"));
+                        "No cumple el patrón definido en Fórmula/Formato.", "FORMATO"));
             }
-            catch
+            catch { /* ignore */ }
+        }
+
+        if (catalogos is not null && !string.IsNullOrWhiteSpace(campo.TablaReferencia) && !vacio)
+            ValidarCatalogo(campo, valor!, fila, errores, catalogos);
+    }
+
+    private static void ValidarCatalogo(CampoDiccionarioDto campo, string valor, int fila, List<ValidationErrorDto> errores, CatalogoValidacionContext cat)
+    {
+        var tabla = campo.TablaReferencia!.Trim().ToLowerInvariant();
+        if (tabla is "dim_departamentos" or "departamentos")
+        {
+            if (!cat.Departamentos.ContainsKey(valor))
+                errores.Add(new ValidationErrorDto(fila, campo.NombreCampo, $"Departamento «{valor}» no existe en catálogo.", "CATALOGO"));
+            return;
+        }
+        if (tabla is "dim_municipios" or "municipios")
+        {
+            if (!cat.Municipios.ContainsKey(valor))
             {
-                /* formato regex inválido en diccionario: se ignora en fila */
+                errores.Add(new ValidationErrorDto(fila, campo.NombreCampo, $"Código DIVIPOLA/municipio «{valor}» no existe en catálogo.", "CATALOGO"));
+                return;
+            }
+            foreach (var depKey in new[] { "codigo_departamento", "departamento", "cod_departamento" })
+            {
+                if (!cat.ValoresFila.TryGetValue(fila, out var filaVals) || !filaVals.TryGetValue(depKey, out var depVal))
+                    continue;
+                var munDep = cat.Municipios[valor];
+                if (!string.Equals(depVal, munDep, StringComparison.OrdinalIgnoreCase))
+                    errores.Add(new ValidationErrorDto(fila, campo.NombreCampo, "El municipio no pertenece al departamento indicado.", "CATALOGO"));
+                break;
             }
         }
     }
@@ -328,21 +376,24 @@ public sealed class ExcelValidationService
     private static bool FilaVacia(IXLRow row) =>
         !row.CellsUsed().Any(c => !c.IsEmpty() && !string.IsNullOrWhiteSpace(c.GetFormattedString()));
 
-    private static string Normalizar(string? s) =>
-        (s ?? "").Trim().Replace(" ", "_");
+    /// <summary>Normaliza nombres de variable (CODIGO DIVIPOLA → codigo_divipola).</summary>
+    public static string NormalizarNombreVariable(string? s) =>
+        DiccionarioOscV2Reader.Normalizar(s);
 
     private static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }
 
 public sealed record CampoDiccionarioDto(
-    string NombreCampo,
-    string TipoDato,
-    bool Obligatorio,
-    string? Descripcion,
-    int? Longitud,
-    string? Formato,
-    string? ValoresPermitidos,
-    int Orden);
+    string NombreCampo, string TipoDato, bool Obligatorio,
+    string? Descripcion, int? Longitud, string? Formato, string? ValoresPermitidos,
+    string? TablaReferencia, string? CampoReferencia, int Orden);
+
+public sealed class CatalogoValidacionContext
+{
+    public Dictionary<string, string> Departamentos { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> Municipios { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<int, Dictionary<string, string?>> ValoresFila { get; } = new();
+}
 
 public sealed record DatosFilaDto(int NumeroFila, string DatosJson);
 

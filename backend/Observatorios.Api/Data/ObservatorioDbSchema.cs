@@ -55,32 +55,43 @@ END
     private async Task SeedRolesAndAdminAsync(SqlConnection con, CancellationToken ct)
     {
         const string rolesSql = """
-IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = N'Administrador')
-    INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES (N'Administrador', N'Acceso global al observatorio');
-IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = N'Operador')
-    INSERT INTO dbo.Roles (Nombre, Descripcion) VALUES (N'Operador', N'Carga y consulta en su dependencia');
+MERGE dbo.Roles AS t USING (VALUES
+ (N'ADMIN', N'Acceso total al observatorio'),
+ (N'COORDINADOR_DEPENDENCIA', N'Gestión de su dependencia'),
+ (N'RESPONSABLE_TEMATICO', N'Carga en áreas asignadas'),
+ (N'VALIDADOR', N'Revisión de cargues'),
+ (N'CONSULTA', N'Solo lectura'),
+ (N'AUDITOR', N'Trazabilidad y auditoría'),
+ (N'Administrador', N'Alias ADMIN'),
+ (N'Operador', N'Alias operador legacy')
+) AS s(Nombre, Descripcion) ON t.Nombre = s.Nombre
+WHEN NOT MATCHED THEN INSERT (Nombre, Descripcion) VALUES (s.Nombre, s.Descripcion);
 IF NOT EXISTS (SELECT 1 FROM dbo.Dependencias WHERE Codigo = N'CAS-SALUD')
-    INSERT INTO dbo.Dependencias (Codigo, Nombre) VALUES (N'CAS-SALUD', N'Secretaría de Salud — Casanare (principal)');
+    INSERT INTO dbo.Dependencias (Codigo, Nombre) VALUES (N'CAS-SALUD', N'Secretaría de Salud — Casanare');
 """;
         await using (var cmd = new SqlCommand(rolesSql, con))
             await cmd.ExecuteNonQueryAsync(ct);
 
-        const string adminCheck = "SELECT COUNT(1) FROM dbo.Usuarios WHERE NombreUsuario = N'admin';";
-        await using var check = new SqlCommand(adminCheck, con);
-        var count = (int)(await check.ExecuteScalarAsync(ct) ?? 0);
-        if (count > 0) return;
-
-        var hash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
-        const string insertAdmin = """
+        var hash = BCrypt.Net.BCrypt.HashPassword("Admin123*");
+        const string upsertAdmin = """
 DECLARE @depId INT = (SELECT TOP 1 Id FROM dbo.Dependencias ORDER BY Id);
-DECLARE @uid INT;
-INSERT INTO dbo.Usuarios (DependenciaId, NombreUsuario, Email, PasswordHash, Activo)
-VALUES (@depId, N'admin', N'admin@salud.casanare.gov.co', @Hash, 1);
-SET @uid = SCOPE_IDENTITY();
+DECLARE @uid INT = (SELECT TOP 1 Id FROM dbo.Usuarios WHERE NombreUsuario = N'admin' OR Email = N'admin@observatorio.gov.co');
+IF @uid IS NULL
+BEGIN
+  INSERT INTO dbo.Usuarios (DependenciaId, NombreUsuario, Email, PasswordHash, Activo)
+  VALUES (@depId, N'admin', N'admin@observatorio.gov.co', @Hash, 1);
+  SET @uid = SCOPE_IDENTITY();
+END
+ELSE
+BEGIN
+  UPDATE dbo.Usuarios SET Email = N'admin@observatorio.gov.co', PasswordHash = @Hash, Activo = 1 WHERE Id = @uid;
+END
 INSERT INTO dbo.UsuarioRol (UsuarioId, RolId)
-SELECT @uid, Id FROM dbo.Roles WHERE Nombre = N'Administrador';
+SELECT @uid, r.Id FROM dbo.Roles r
+WHERE r.Nombre IN (N'ADMIN', N'Administrador')
+  AND NOT EXISTS (SELECT 1 FROM dbo.UsuarioRol ur WHERE ur.UsuarioId = @uid AND ur.RolId = r.Id);
 """;
-        await using var ins = new SqlCommand(insertAdmin, con);
+        await using var ins = new SqlCommand(upsertAdmin, con);
         ins.Parameters.AddWithValue("@Hash", hash);
         await ins.ExecuteNonQueryAsync(ct);
     }
@@ -263,6 +274,92 @@ CREATE TABLE dbo.CamposPlantilla (
     ValoresPermitidos NVARCHAR(2000) NULL,
     Orden INT NOT NULL DEFAULT (0)
 );
+""",
+        """
+IF OBJECT_ID(N'dbo.dim_departamentos', N'U') IS NULL
+CREATE TABLE dbo.dim_departamentos (codigo_departamento NVARCHAR(10) NOT NULL PRIMARY KEY, nombre_departamento NVARCHAR(200) NOT NULL);
+IF OBJECT_ID(N'dbo.dim_municipios', N'U') IS NULL
+CREATE TABLE dbo.dim_municipios (codigo_municipio NVARCHAR(10) NOT NULL PRIMARY KEY, nombre_municipio NVARCHAR(200) NOT NULL, codigo_departamento NVARCHAR(10) NOT NULL);
+IF NOT EXISTS (SELECT 1 FROM dbo.dim_departamentos WHERE codigo_departamento=N'85') INSERT INTO dbo.dim_departamentos VALUES (N'85',N'Casanare');
+""",
+        """
+IF OBJECT_ID(N'dbo.AreaTematica', N'U') IS NULL
+CREATE TABLE dbo.AreaTematica (Id INT IDENTITY(1,1) PRIMARY KEY, DependenciaId INT NOT NULL REFERENCES dbo.Dependencias(Id), Codigo NVARCHAR(50) NOT NULL, Nombre NVARCHAR(300) NOT NULL, Descripcion NVARCHAR(500) NULL, Activo BIT NOT NULL DEFAULT(1), CreadoEn DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()), CONSTRAINT UQ_AreaTematica UNIQUE(DependenciaId,Codigo));
+IF OBJECT_ID(N'dbo.UsuarioAreaTematica', N'U') IS NULL
+CREATE TABLE dbo.UsuarioAreaTematica (UsuarioId INT NOT NULL REFERENCES dbo.Usuarios(Id) ON DELETE CASCADE, AreaTematicaId INT NOT NULL REFERENCES dbo.AreaTematica(Id) ON DELETE CASCADE, CONSTRAINT PK_UsuarioAreaTematica PRIMARY KEY(UsuarioId,AreaTematicaId));
+IF OBJECT_ID(N'dbo.ResponsableTematico', N'U') IS NULL
+CREATE TABLE dbo.ResponsableTematico (Id INT IDENTITY(1,1) PRIMARY KEY, AreaTematicaId INT NOT NULL REFERENCES dbo.AreaTematica(Id), UsuarioId INT NOT NULL REFERENCES dbo.Usuarios(Id), Activo BIT NOT NULL DEFAULT(1), AsignadoEn DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()));
+""",
+        """
+IF OBJECT_ID(N'dbo.PlantillaCarga', N'U') IS NULL
+CREATE TABLE dbo.PlantillaCarga (Id INT IDENTITY(1,1) PRIMARY KEY, AreaTematicaId INT NOT NULL REFERENCES dbo.AreaTematica(Id), Codigo NVARCHAR(50) NOT NULL, Nombre NVARCHAR(200) NOT NULL, Descripcion NVARCHAR(500) NULL, Version NVARCHAR(20) NULL, Activo BIT NOT NULL DEFAULT(1), CreadoEn DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()), CONSTRAINT UQ_PlantillaCarga UNIQUE(AreaTematicaId,Codigo));
+IF OBJECT_ID(N'dbo.PlantillaCampo', N'U') IS NULL
+CREATE TABLE dbo.PlantillaCampo (Id INT IDENTITY(1,1) PRIMARY KEY, PlantillaCargaId INT NOT NULL REFERENCES dbo.PlantillaCarga(Id) ON DELETE CASCADE, NombreCampo NVARCHAR(200) NOT NULL, TipoDato NVARCHAR(50) NOT NULL, Obligatorio BIT NOT NULL DEFAULT(0), Descripcion NVARCHAR(500) NULL, Longitud INT NULL, Formato NVARCHAR(100) NULL, ValoresPermitidos NVARCHAR(2000) NULL, TablaReferencia NVARCHAR(100) NULL, CampoReferencia NVARCHAR(100) NULL, Orden INT NOT NULL DEFAULT(0));
+""",
+        """
+IF OBJECT_ID(N'dbo.ArchivoCarga', N'U') IS NULL
+CREATE TABLE dbo.ArchivoCarga (Id INT IDENTITY(1,1) PRIMARY KEY, ArchivoId INT NOT NULL REFERENCES dbo.Archivos(Id), UsuarioId INT NOT NULL REFERENCES dbo.Usuarios(Id), DependenciaId INT NOT NULL REFERENCES dbo.Dependencias(Id), AreaTematicaId INT NOT NULL REFERENCES dbo.AreaTematica(Id), PlantillaCargaId INT NULL REFERENCES dbo.PlantillaCarga(Id), Estado NVARCHAR(50) NOT NULL, Observaciones NVARCHAR(1000) NULL, FechaRecepcion DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()), FechaFin DATETIME2(0) NULL);
+IF OBJECT_ID(N'dbo.ValidacionArchivo', N'U') IS NULL
+CREATE TABLE dbo.ValidacionArchivo (Id INT IDENTITY(1,1) PRIMARY KEY, ArchivoCargaId INT NOT NULL UNIQUE REFERENCES dbo.ArchivoCarga(Id) ON DELETE CASCADE, TotalFilas INT NOT NULL DEFAULT(0), TotalErrores INT NOT NULL DEFAULT(0), EsValido BIT NOT NULL DEFAULT(0), ValidadoEn DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()));
+IF OBJECT_ID(N'dbo.AuditoriaSistema', N'U') IS NULL
+CREATE TABLE dbo.AuditoriaSistema (Id BIGINT IDENTITY(1,1) PRIMARY KEY, UsuarioId INT NULL REFERENCES dbo.Usuarios(Id), Accion NVARCHAR(100) NOT NULL, Entidad NVARCHAR(100) NULL, EntidadId NVARCHAR(50) NULL, Detalle NVARCHAR(MAX) NULL, IpOrigen NVARCHAR(50) NULL, Fecha DATETIME2(0) NOT NULL DEFAULT(SYSUTCDATETIME()));
+IF NOT EXISTS (SELECT 1 FROM dbo.AreaTematica)
+BEGIN
+  DECLARE @d INT = (SELECT TOP 1 Id FROM dbo.Dependencias ORDER BY Id);
+  IF @d IS NOT NULL INSERT INTO dbo.AreaTematica (DependenciaId,Codigo,Nombre) VALUES (@d,N'OSC-GENERAL',N'Área temática general (importe Excel para detalle)');
+END
+""",
+        """
+IF OBJECT_ID(N'dbo.LineaTematica', N'U') IS NULL
+CREATE TABLE dbo.LineaTematica (
+    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Codigo NVARCHAR(50) NOT NULL UNIQUE,
+    Nombre NVARCHAR(300) NOT NULL,
+    Descripcion NVARCHAR(500) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_LineaTematica_Activo DEFAULT (1),
+    CreadoEn DATETIME2(0) NOT NULL CONSTRAINT DF_LineaTematica_CreadoEn DEFAULT (SYSUTCDATETIME())
+);
+IF OBJECT_ID(N'dbo.Indicador', N'U') IS NULL
+CREATE TABLE dbo.Indicador (
+    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    LineaTematicaId INT NOT NULL REFERENCES dbo.LineaTematica(Id),
+    Codigo NVARCHAR(80) NOT NULL,
+    Nombre NVARCHAR(300) NOT NULL,
+    Descripcion NVARCHAR(500) NULL,
+    Activo BIT NOT NULL CONSTRAINT DF_Indicador_Activo DEFAULT (1),
+    CreadoEn DATETIME2(0) NOT NULL CONSTRAINT DF_Indicador_CreadoEn DEFAULT (SYSUTCDATETIME()),
+    CONSTRAINT UQ_Indicador_Linea_Codigo UNIQUE (LineaTematicaId, Codigo)
+);
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'LineaTematicaId') IS NULL
+    ALTER TABLE dbo.Archivos ADD LineaTematicaId INT NULL REFERENCES dbo.LineaTematica(Id);
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'IndicadorId') IS NULL
+    ALTER TABLE dbo.Archivos ADD IndicadorId INT NULL REFERENCES dbo.Indicador(Id);
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'Observaciones') IS NULL
+    ALTER TABLE dbo.Archivos ADD Observaciones NVARCHAR(1000) NULL;
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Archivos_Linea_Indicador' AND object_id = OBJECT_ID(N'dbo.Archivos'))
+    CREATE INDEX IX_Archivos_Linea_Indicador ON dbo.Archivos(LineaTematicaId, IndicadorId, CreadoEn DESC);
+IF OBJECT_ID(N'dbo.Usuarios', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Usuarios', N'LineaTematicaId') IS NULL
+    ALTER TABLE dbo.Usuarios ADD LineaTematicaId INT NULL REFERENCES dbo.LineaTematica(Id);
+IF OBJECT_ID(N'dbo.Indicador', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Indicador', N'ColumnasObligatoriasJson') IS NULL
+    ALTER TABLE dbo.Indicador ADD ColumnasObligatoriasJson NVARCHAR(MAX) NULL;
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'Estado') IS NULL
+    ALTER TABLE dbo.Archivos ADD Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_Archivos_Estado DEFAULT (N'PendienteValidacion');
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'FechaValidacion') IS NULL
+    ALTER TABLE dbo.Archivos ADD FechaValidacion DATETIME2(0) NULL;
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'FechaEnvio') IS NULL
+    ALTER TABLE dbo.Archivos ADD FechaEnvio DATETIME2(0) NULL;
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'ErroresValidacionJson') IS NULL
+    ALTER TABLE dbo.Archivos ADD ErroresValidacionJson NVARCHAR(MAX) NULL;
+""",
+        """
+IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', N'Estado') IS NOT NULL
+    UPDATE dbo.Archivos SET Estado = N'Enviado', FechaEnvio = COALESCE(FechaEnvio, CreadoEn)
+    WHERE Estado = N'PendienteValidacion' AND FechaValidacion IS NULL;
+IF OBJECT_ID(N'dbo.Indicador', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Indicador', N'ColumnasObligatoriasJson') IS NOT NULL
+    UPDATE dbo.Indicador
+    SET ColumnasObligatoriasJson = N'["anio","periodo","valor","departamento","municipio"]'
+    WHERE ColumnasObligatoriasJson IS NULL OR LTRIM(RTRIM(ColumnasObligatoriasJson)) = N'';
 """
     ];
 }

@@ -9,7 +9,7 @@ const PUERTOS_SOLO_FRONTEND = new Set([
 ]);
 
 /** Puertos donde esta misma app ASP.NET suele servir HTML + API a la vez */
-const PUERTOS_API_LOCAL = new Set(["5289", "5290", "7236"]);
+const PUERTOS_API_LOCAL = new Set(["5289", "5290", "7236", "8081"]);
 
 function sinBarraFinal(s) {
   return s.replace(/\/+$/, "");

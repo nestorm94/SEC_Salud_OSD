@@ -3,18 +3,30 @@ using Observatorios.Api.Data;
 using Observatorios.Api.Endpoints;
 using Observatorios.Api.Services;
 
-var apiProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
-var repoRootForPublic = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", ".."));
-var publicDir = Path.Combine(repoRootForPublic, "public");
+var builder = WebApplication.CreateBuilder(args);
+var contentRoot = builder.Environment.ContentRootPath;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+string repoRoot;
+string? webRootPath = null;
+
+if (builder.Environment.IsDevelopment())
 {
-    Args = args,
-    ContentRootPath = apiProjectRoot,
-    WebRootPath = Directory.Exists(publicDir) ? Path.GetFullPath(publicDir) : null
-});
+    var apiProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+    var publicDir = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", "..", "public"));
+    if (Directory.Exists(publicDir))
+        webRootPath = publicDir;
+    repoRoot = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", ".."));
+}
+else
+{
+    var wwwroot = Path.Combine(contentRoot, "wwwroot");
+    if (Directory.Exists(wwwroot))
+        webRootPath = wwwroot;
+    repoRoot = contentRoot;
+}
 
-var repoRoot = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", ".."));
+if (webRootPath is not null)
+    builder.WebHost.UseWebRoot(webRootPath);
 
 builder.Services.AddObservatorioAuth(builder.Configuration);
 builder.Services.AddSingleton<ObservatorioDbSchema>();
@@ -26,9 +38,21 @@ builder.Services.AddSingleton<RolesRepository>();
 builder.Services.AddSingleton<PlantillasRepository>();
 builder.Services.AddSingleton<DashboardRepository>();
 builder.Services.AddSingleton<PoblacionVistasRepository>();
+builder.Services.AddSingleton<CatalogoRepository>();
+builder.Services.AddSingleton<AreaTematicaRepository>();
+builder.Services.AddSingleton<LineaTematicaRepository>();
+builder.Services.AddSingleton<IndicadorRepository>();
+builder.Services.AddSingleton<ArchivoCargaRepository>();
+builder.Services.AddSingleton<LineaTematicaSeedService>();
+builder.Services.AddSingleton<UsuariosPruebaSeedService>();
+builder.Services.AddSingleton<AuditoriaRepository>();
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<AuthorizationService>();
 builder.Services.AddSingleton<ExcelValidationService>();
+builder.Services.AddSingleton<ArchivoPrevalidacionService>();
+builder.Services.AddSingleton<ArchivoFlujoService>();
 builder.Services.AddSingleton<CargaArchivoService>();
+builder.Services.AddSingleton<AreasTematicasSeedService>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(p =>
@@ -51,8 +75,12 @@ app.Use(async (ctx, next) =>
 
 if (Directory.Exists(app.Environment.WebRootPath ?? ""))
 {
-    app.UseDefaultFiles();
+    app.UseDefaultFiles(new DefaultFilesOptions
+    {
+        DefaultFileNames = ["login.html", "index.html"]
+    });
     app.UseStaticFiles();
+    app.MapGet("/", () => Results.Redirect("/login.html"));
 }
 
 var uploadsDir = Path.Combine(repoRoot, "uploads");
@@ -62,6 +90,18 @@ using (var scope = app.Services.CreateScope())
 {
     var schema = scope.ServiceProvider.GetRequiredService<ObservatorioDbSchema>();
     await schema.EnsureAllAsync();
+    var seed = scope.ServiceProvider.GetRequiredService<AreasTematicasSeedService>();
+    var seedResult = await seed.ImportarSiExisteAsync(repoRoot);
+    if (seedResult.Ok)
+        Console.WriteLine($"[Observatorios.Api] Seed áreas: {seedResult.Mensaje} ({seedResult.Areas} áreas)");
+    var lineaSeed = scope.ServiceProvider.GetRequiredService<LineaTematicaSeedService>();
+    var (nLineas, nInd) = await lineaSeed.EnsureSeedAsync();
+    Console.WriteLine($"[Observatorios.Api] Líneas temáticas: {nLineas} líneas, {nInd} indicadores (seed).");
+    var usrPrueba = scope.ServiceProvider.GetRequiredService<UsuariosPruebaSeedService>();
+    var nuevos = await usrPrueba.EnsureSeedAsync();
+    if (nuevos > 0)
+        Console.WriteLine($"[Observatorios.Api] Usuarios de prueba creados: {nuevos} (rol RESPONSABLE_TEMATICO, clave {UsuariosPruebaSeedService.PasswordPrueba}).");
+    Console.WriteLine("[Observatorios.Api] Prueba por línea: prueba.aseg | prueba.ecnt | prueba.vsp | prueba.etc | prueba.econ");
 }
 
 var connStr = builder.Configuration.GetConnectionString("Default");
@@ -77,7 +117,7 @@ if (!string.IsNullOrWhiteSpace(connStr))
 }
 
 Console.WriteLine($"[Observatorios.Api] wwwroot: {app.Environment.WebRootPath ?? "(no)"}");
-Console.WriteLine("[Observatorios.Api] Login: POST /api/auth/login  |  Usuario inicial: admin / Admin123!");
+Console.WriteLine("[Observatorios.Api] Login: POST /api/auth/login  |  admin@observatorio.gov.co / Admin123*");
 Console.WriteLine();
 
 app.MapObservatorioApi(repoRoot, uploadsDir);

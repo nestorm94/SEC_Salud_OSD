@@ -1,47 +1,47 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cargas Excel — Observatorio Salud</title>
+  <title>Cargas Excel â€” Observatorio Salud</title>
   <link rel="stylesheet" href="/css/estilos.css" />
+  <link rel="stylesheet" href="/css/portal.css" />
 </head>
 <body>
-  <header class="cabecera">
-    <nav class="nav-sitio" aria-label="Menú principal">
-      <a href="/index.html" class="nav-sitio__link">Carga Excel</a>
-      <a href="/cargas.html" class="nav-sitio__link nav-sitio__link--activo">Historial cargas</a>
-      <a href="/proyeccion-poblacion.html" class="nav-sitio__link">Proyección población</a>
-      <button type="button" id="btn-logout" class="btn secundario nav-logout">Salir</button>
-    </nav>
-    <h1>Historial de cargues</h1>
-    <p class="subtitulo" id="usuario-info"></p>
-  </header>
+  <div class="portal-layout">
+    <aside class="portal-sidebar"></aside>
+    <main class="portal-main">
+      <h1>Historial de cargues</h1>
 
-  <main class="contenedor contenedor--ancho">
-    <section class="panel">
-      <button type="button" id="btn-refrescar" class="btn secundario">Actualizar</button>
-      <div class="tabla-wrap">
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Archivo</th>
-              <th>Dependencia</th>
-              <th>Estado</th>
-              <th>Errores</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="cuerpo-cargas"></tbody>
-        </table>
-      </div>
-      <p id="mensaje-cargas" class="mensaje"></p>
-    </section>
+      <section class="panel">
+        <button type="button" id="btn-refrescar" class="btn secundario">Actualizar</button>
+        <div class="tabla-wrap">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Archivo</th>
+                <th>Dependencia</th>
+                <th>Estado</th>
+                <th>Errores</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-cargas"></tbody>
+          </table>
+        </div>
+        <p id="mensaje-cargas" class="mensaje"></p>
+      </section>
 
-    <section class="panel" id="panel-errores" hidden>
-      <h2>Errores de validación — carga <span id="carga-errores-id"></span></h2>
+    </main>
+  </div>
+
+  <div id="modal-errores" class="modal-overlay" hidden role="presentation">
+    <div class="modal-panel modal-panel--amplio" role="dialog" aria-labelledby="titulo-errores" aria-modal="true">
+      <button type="button" class="modal-cerrar" data-cerrar-modal="modal-errores" aria-label="Cerrar">Ã—</button>
+      <h2 id="titulo-errores">Errores de validaciÃ³n â€” carga <span id="carga-errores-id"></span></h2>
+      <p id="msg-errores-modal" class="mensaje" role="status"></p>
       <div class="tabla-wrap">
         <table class="tabla tabla--compacta">
           <thead>
@@ -50,14 +50,28 @@
           <tbody id="cuerpo-errores"></tbody>
         </table>
       </div>
-    </section>
+      <div class="modal-acciones">
+        <button type="button" class="btn secundario" data-cerrar-modal="modal-errores">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
-    <section class="panel" id="panel-historial" hidden>
-      <h2>Historial del proceso</h2>
+  <div id="modal-historial" class="modal-overlay" hidden role="presentation">
+    <div class="modal-panel modal-panel--amplio" role="dialog" aria-labelledby="titulo-historial" aria-modal="true">
+      <button type="button" class="modal-cerrar" data-cerrar-modal="modal-historial" aria-label="Cerrar">Ã—</button>
+      <h2 id="titulo-historial">Historial del proceso â€” carga <span id="carga-historial-id"></span></h2>
+      <p id="msg-historial-modal" class="mensaje" role="status"></p>
       <ul id="lista-historial" class="lista-historial"></ul>
-    </section>
-  </main>
+      <div class="modal-acciones">
+        <button type="button" class="btn secundario" data-cerrar-modal="modal-historial">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
+  <script type="module">
+    import { initPortal } from "/js/portal/layout.js";
+    if (!(await initPortal("/cargas.html"))) throw 0;
+  </script>
   <script src="/js/cargas.js" type="module"></script>
 </body>
 </html>
