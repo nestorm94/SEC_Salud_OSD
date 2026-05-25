@@ -358,8 +358,8 @@ IF OBJECT_ID(N'dbo.Archivos', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Archivos', 
     WHERE Estado = N'PendienteValidacion' AND FechaValidacion IS NULL;
 IF OBJECT_ID(N'dbo.Indicador', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.Indicador', N'ColumnasObligatoriasJson') IS NOT NULL
     UPDATE dbo.Indicador
-    SET ColumnasObligatoriasJson = N'["anio","periodo","valor","departamento","municipio"]'
-    WHERE ColumnasObligatoriasJson IS NULL OR LTRIM(RTRIM(ColumnasObligatoriasJson)) = N'';
+    SET ColumnasObligatoriasJson = NULL
+    WHERE ColumnasObligatoriasJson = N'["anio","periodo","valor","departamento","municipio"]';
 """
     ];
 }

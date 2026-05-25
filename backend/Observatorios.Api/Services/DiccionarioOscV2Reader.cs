@@ -59,11 +59,30 @@ public static class DiccionarioOscV2Reader
 
     public static Dictionary<string, int> ResolverColumnas(IXLWorksheet hoja, int filaEncabezado)
     {
-        var dinamico = MapearEncabezados(hoja.Row(filaEncabezado));
+        var dinamico = MapearEncabezadosMultifila(hoja, filaEncabezado);
+        CompletarAliasColumnas(dinamico);
+
         if (dinamico.ContainsKey("nombre_campo") && dinamico.ContainsKey("tipo_dato"))
             return dinamico;
 
         return new Dictionary<string, int>(ColumnasFijasOsc, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Combina encabezados de la fila detectada y filas adyacentes (plantilla con títulos en dos filas).</summary>
+    public static Dictionary<string, int> MapearEncabezadosMultifila(IXLWorksheet hoja, int filaEncabezado)
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var first = Math.Max(1, filaEncabezado - 2);
+        var last = Math.Min(hoja.LastRowUsed()?.RowNumber() ?? filaEncabezado, filaEncabezado + 1);
+        for (var r = first; r <= last; r++)
+        {
+            foreach (var kv in MapearEncabezados(hoja.Row(r)))
+            {
+                if (!map.ContainsKey(kv.Key))
+                    map[kv.Key] = kv.Value;
+            }
+        }
+        return map;
     }
 
     public static Dictionary<string, int> MapearEncabezados(IXLRow headerRow)
@@ -74,10 +93,36 @@ public static class DiccionarioOscV2Reader
         {
             var texto = ObtenerTextoCelda(headerRow.Worksheet, headerRow.RowNumber(), c);
             var canon = CanonizarColumna(texto);
-            if (string.IsNullOrEmpty(canon) || canon is "id_row") continue;
+            if (string.IsNullOrEmpty(canon)) continue;
             map[canon] = c;
         }
         return map;
+    }
+
+    /// <summary>Alias cuando el título en Excel no coincide exactamente con el nombre canónico esperado.</summary>
+    private static void CompletarAliasColumnas(Dictionary<string, int> map)
+    {
+        AsignarAlias(map, "descripcion", k => k.Contains("descrip"));
+        AsignarAlias(map, "nombre_campo", k => k.Contains("nombre") && k.Contains("variable"));
+        AsignarAlias(map, "tipo_dato", k => k.Contains("tipo") && k.Contains("dato"));
+        AsignarAlias(map, "dominios", k => k.Contains("dominio") || k.Contains("categoria"));
+        AsignarAlias(map, "id_row", k => k is "id" or "id_row");
+    }
+
+    private static void AsignarAlias(
+        Dictionary<string, int> map,
+        string canon,
+        Func<string, bool> coincide)
+    {
+        if (map.ContainsKey(canon)) return;
+        foreach (var kv in map)
+        {
+            if (coincide(kv.Key))
+            {
+                map[canon] = kv.Value;
+                return;
+            }
+        }
     }
 
     public static List<CampoDiccionarioDto> LeerCampos(
@@ -159,8 +204,20 @@ public static class DiccionarioOscV2Reader
     private static string ObtenerTextoCelda(IXLWorksheet hoja, int fila, int col)
     {
         var cell = hoja.Cell(fila, col);
-        var t = cell.GetFormattedString();
-        if (string.IsNullOrWhiteSpace(t)) t = cell.GetString();
+        if (cell.IsEmpty()) return "";
+
+        if (cell.IsMerged())
+        {
+            var rango = cell.MergedRange();
+            if (rango is not null)
+                cell = rango.FirstCell();
+        }
+
+        var t = cell.GetString()?.Trim();
+        if (!string.IsNullOrEmpty(t)) return t;
+
+        t = cell.GetFormattedString();
+        if (string.IsNullOrWhiteSpace(t)) t = cell.Value.ToString();
         return (t ?? "").Trim();
     }
 
@@ -240,7 +297,8 @@ public static class DiccionarioOscV2Reader
             return "nombre_campo";
         if ((n.Contains("tipo") && n.Contains("dato")) || n is "tipo_de_datos")
             return "tipo_dato";
-        if (n.Contains("descrip") && n.Contains("variable")) return "descripcion";
+        if (n.Contains("descrip") || (n.Contains("definicion") && n.Contains("variable")))
+            return "descripcion";
         if (n.Contains("llave") && n.Contains("primaria")) return "llave_primaria";
         if (n.Contains("llave") && n.Contains("foranea")) return "llave_foranea";
         if (n.Contains("obligatorio") || n.Contains("campo_obligatorio")) return "obligatorio";
@@ -270,7 +328,8 @@ public static class DiccionarioOscV2Reader
             .Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u")
             .Replace("ñ", "n");
         while (t.Contains("  ")) t = t.Replace("  ", " ");
-        return t.Replace(" ", "_").Replace(".", "").Replace("(", "").Replace(")", "");
+        t = t.Replace(" ", "_").Replace(".", "").Replace("(", "").Replace(")", "");
+        return t.ToLowerInvariant();
     }
 
     private static bool EsObligatorio(string raw)

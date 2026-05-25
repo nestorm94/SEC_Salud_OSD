@@ -69,9 +69,8 @@
   </div>
 
   <script type="module">
-    import { initPortal } from "/js/portal/layout.js";
-    if (!(await initPortal("/cargas.html"))) throw 0;
+    import { initCargasHistorial } from "/js/cargas.js?v=7";
+    if (!(await initCargasHistorial())) throw 0;
   </script>
-  <script src="/js/cargas.js" type="module"></script>
 </body>
 </html>

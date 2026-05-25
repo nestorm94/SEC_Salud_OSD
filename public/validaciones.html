@@ -12,40 +12,60 @@
     <aside class="portal-sidebar"></aside>
     <main class="portal-main">
       <h1>Validación de cargues</h1>
-      <p class="subtitulo">Cargues en estado validado (listos para aprobar o rechazar).</p>
-      <table class="tabla-portal">
-        <thead><tr><th>ID</th><th>Archivo</th><th>Dependencia</th><th>Estado</th><th>Errores</th><th>Acciones</th></tr></thead>
-        <tbody id="tb-cargas"></tbody>
-      </table>
+      <p class="subtitulo">
+        Revise cargues enviados y validados automáticamente. El flujo es: <strong>Validar</strong> → <strong>Enviar</strong> en
+        <a href="/index.html">Carga Excel</a> → aparecen aquí para <strong>Aprobar</strong> o <strong>Rechazar</strong>.
+      </p>
+      <button type="button" id="btn-refrescar-validaciones" class="btn secundario">Actualizar</button>
+      <p id="msg-validaciones" class="mensaje" role="status"></p>
+
+      <section class="panel" style="margin-top:1rem">
+        <h2>Pendientes de aprobación</h2>
+        <p class="subtitulo">Cargues en estado <code>VALIDADO_EXITOSO</code> (envío definitivo sin errores).</p>
+        <div class="tabla-wrap">
+          <table class="tabla-portal">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Archivo</th>
+                <th>Dependencia</th>
+                <th>Usuario</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tb-cargas-aprobacion"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:1.5rem">
+        <h2>Archivos validados (sin enviar)</h2>
+        <p class="subtitulo">
+          Validados en <a href="/index.html">Carga Excel</a> pero aún no enviados. Como administrador o validador puede
+          <strong>Enviar y aprobar</strong> aquí, o el responsable puede pulsar <strong>Enviar</strong> y luego aprobar arriba.
+        </p>
+        <div class="tabla-wrap">
+          <table class="tabla-portal">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Archivo</th>
+                <th>Línea temática</th>
+                <th>Subido por</th>
+                <th>Fecha validación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tb-archivos-validados"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script type="module">
-    import { initPortal, cargarTabla, fetchJson, apiUrl, puedeValidar } from "/js/portal/layout.js";
-    if (!(await initPortal("/validaciones.html"))) throw 0;
-    if (!puedeValidar()) { document.querySelector(".portal-main").innerHTML = "<p>Sin permiso.</p>"; throw 0; }
-
-    await cargarTabla("/api/cargas", (c) => {
-      const ok = c.estado === "VALIDADO_EXITOSO" || c.estado === "VALIDADO_OK";
-      if (!ok) return "";
-      return `<tr>
-        <td>${c.id}</td><td>${c.archivo}</td><td>${c.dependencia}</td><td>${c.estado}</td><td>${c.total_errores}</td>
-        <td>
-          <button type="button" data-ap="${c.id}">Aprobar</button>
-          <button type="button" data-rj="${c.id}">Rechazar</button>
-        </td></tr>`;
-    }, "tb-cargas", "No hay cargues pendientes de aprobación");
-
-    document.getElementById("tb-cargas").addEventListener("click", async (ev) => {
-      const ap = ev.target.closest("[data-ap]");
-      const rj = ev.target.closest("[data-rj]");
-      const id = ap?.dataset.ap || rj?.dataset.rj;
-      if (!id) return;
-      const path = ap ? `/api/cargas/${id}/aprobar` : `/api/cargas/${id}/rechazar`;
-      const body = rj ? { observaciones: prompt("Motivo rechazo:") || "" } : {};
-      const { res } = await fetchJson(apiUrl(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (res.ok) location.reload();
-      else alert("Error al actualizar");
-    });
+    import { initValidaciones } from "/js/validaciones.js?v=7";
+    await initValidaciones();
   </script>
 </body>
 </html>

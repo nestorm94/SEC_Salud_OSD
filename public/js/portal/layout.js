@@ -52,6 +52,57 @@ function claseActivo(href, activePath) {
   return href === activePath ? ' class="activo"' : "";
 }
 
+function inyectarCssResponsive() {
+  if (document.getElementById("css-responsive")) return;
+  const link = document.createElement("link");
+  link.id = "css-responsive";
+  link.rel = "stylesheet";
+  link.href = "/css/responsive.css";
+  document.head.appendChild(link);
+}
+
+/** Menú lateral colapsable en pantallas pequeñas. */
+function configurarNavMovil() {
+  const layout = document.querySelector(".portal-layout");
+  const sidebar = document.querySelector(".portal-sidebar");
+  if (!layout || !sidebar || document.getElementById("portal-menu-toggle")) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "portal-menu-toggle";
+  btn.className = "portal-menu-toggle";
+  btn.setAttribute("aria-label", "Abrir menú de navegación");
+  btn.setAttribute("aria-expanded", "false");
+  btn.innerHTML = "&#9776;";
+
+  const overlay = document.createElement("div");
+  overlay.className = "portal-sidebar-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+
+  layout.insertBefore(overlay, sidebar);
+  layout.insertBefore(btn, layout.firstChild);
+
+  const cerrar = () => {
+    document.body.classList.remove("portal-nav-abierto");
+    btn.setAttribute("aria-expanded", "false");
+  };
+
+  const abrir = () => {
+    document.body.classList.add("portal-nav-abierto");
+    btn.setAttribute("aria-expanded", "true");
+  };
+
+  btn.addEventListener("click", () => {
+    if (document.body.classList.contains("portal-nav-abierto")) cerrar();
+    else abrir();
+  });
+  overlay.addEventListener("click", cerrar);
+  sidebar.querySelectorAll("nav a").forEach((a) => a.addEventListener("click", cerrar));
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 900) cerrar();
+  });
+}
+
 /** Menú lateral unificado en todas las páginas del portal. */
 export function pintarSidebar(activePath) {
   const aside = document.querySelector(".portal-sidebar");
@@ -95,6 +146,7 @@ export async function initPortal(activePath, options = {}) {
   if (!requerirAuth()) return false;
 
   document.body.classList.add("portal-tema-claro");
+  inyectarCssResponsive();
 
   await refrescarSesion();
 
@@ -104,6 +156,7 @@ export async function initPortal(activePath, options = {}) {
   }
 
   pintarSidebar(activePath);
+  configurarNavMovil();
 
   const u = getUsuario();
   document.getElementById("portal-usuario")?.replaceChildren(

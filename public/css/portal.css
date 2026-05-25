@@ -396,6 +396,56 @@ body.portal-tema-claro .portal-main {
   line-height: 1;
 }
 
+.modal-panel--dialogo {
+  max-width: 480px;
+}
+
+.modal-mensaje {
+  margin: 0.75rem 0 0;
+  color: var(--texto);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.modal-campo {
+  margin-top: 1rem;
+}
+
+.modal-campo label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.modal-campo .input-portal {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.modal-campo .input-portal:focus {
+  outline: 2px solid rgba(56, 189, 248, 0.35);
+  border-color: var(--acento);
+}
+
+.btn-dialogo-peligro {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+
+.btn-dialogo-peligro:hover {
+  background: rgba(248, 113, 113, 0.28);
+}
+
 .proyeccion-vistas {
   display: flex;
   flex-wrap: wrap;
@@ -420,12 +470,32 @@ body.portal-tema-claro .portal-main {
   color: var(--acento);
 }
 
-@media (max-width: 768px) {
-  .portal-layout {
-    grid-template-columns: 1fr;
-  }
-  .portal-sidebar {
-    border-right: none;
-    border-bottom: 1px solid var(--borde);
-  }
+/* Validación carga OSC */
+body.portal-tema-claro .panel-validacion {
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
+
+body.portal-tema-claro .resumen-validacion__item {
+  background: #fff;
+}
+
+body.portal-tema-claro .resumen-validacion__item--ok {
+  background: #e8f5e9;
+  border-color: #81c784;
+}
+
+body.portal-tema-claro .resumen-validacion__item--error {
+  background: #ffebee;
+  border-color: #ef9a9a;
+}
+
+body.portal-tema-claro .lista-errores-validacion {
+  color: #c62828;
+}
+
+body.portal-tema-claro .lista-observaciones {
+  color: #64748b !important;
+}
+
+/* Responsive: ver public/css/responsive.css */

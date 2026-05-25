@@ -230,12 +230,75 @@ public static class ApiEndpoints
                 {
                     archivo_id = result.ArchivoId,
                     carga_id = result.CargaId,
-                    estado = result.Estado,
-                    estado_etiqueta = ArchivoEstados.Etiqueta(result.Estado),
+                    estado = result.EstadoArchivo,
+                    estado_carga = CargaEstados.Normalizar(result.EstadoCarga),
+                    estado_etiqueta = ArchivoEstados.Etiqueta(result.EstadoArchivo),
                     procesamiento_valido = result.ProcesamientoValido,
                     total_errores = result.TotalErrores,
-                    mensaje = "Archivo enviado correctamente."
+                    mensaje = result.ProcesamientoValido
+                        ? "Archivo enviado. Pendiente de aprobación en Validaciones."
+                        : "Archivo enviado con errores de validación."
                 });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: 403);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        secured.MapPost("/archivos/{id:int}/enviar-y-aprobar", async (
+            int id,
+            AprobarRechazarRequest? body,
+            ArchivoFlujoService flujo,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var user = http.GetUserContext()!;
+            try
+            {
+                var result = await flujo.EnviarYAprobarAsync(id, user, repoRoot, body?.Observaciones, ct);
+                return Results.Ok(new
+                {
+                    archivo_id = result.ArchivoId,
+                    carga_id = result.CargaId,
+                    estado = result.EstadoArchivo,
+                    estado_carga = CargaEstados.Normalizar(result.EstadoCarga),
+                    procesamiento_valido = result.ProcesamientoValido,
+                    total_errores = result.TotalErrores,
+                    aprobado = result.Aprobado,
+                    mensaje = result.Aprobado
+                        ? "Cargue enviado y aprobado."
+                        : result.ProcesamientoValido
+                            ? "Cargue enviado; queda pendiente de aprobación."
+                            : "El archivo tiene errores; no se puede aprobar."
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: 403);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        secured.MapPost("/archivos/{id:int}/rechazar-validacion", async (
+            int id,
+            AprobarRechazarRequest body,
+            ArchivoFlujoService flujo,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var user = http.GetUserContext()!;
+            try
+            {
+                await flujo.RechazarValidacionAsync(id, user, body.Observaciones, ct);
+                return Results.Ok(new { ok = true, estado = ArchivoEstados.Rechazado });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -453,9 +516,9 @@ public static class ApiEndpoints
             if (carga is null) return Results.NotFound();
             if (!user.PuedeAccederDependencia(carga.DependenciaId))
                 return Results.Forbid();
-            if (carga.Estado is not (CargaEstados.ValidadoOk or CargaEstados.ValidadoExitoso))
+            if (!CargaEstados.EsPendienteAprobacion(carga.Estado))
                 return Results.BadRequest(new { error = "Solo se aprueban cargas validadas exitosamente." });
-            if (!AuthorizationService.PuedeValidarCargue(user) && !user.EsAdministrador)
+            if (!AuthorizationService.PuedeValidarCargue(user))
                 return Results.Forbid();
 
             await repo.ActualizarEstadoAsync(id, CargaEstados.Aprobado, body?.Observaciones, ct);
@@ -474,6 +537,8 @@ public static class ApiEndpoints
             var carga = await repo.GetCargaAsync(id, ct);
             if (carga is null) return Results.NotFound();
             if (!user.PuedeAccederDependencia(carga.DependenciaId))
+                return Results.Forbid();
+            if (!AuthorizationService.PuedeValidarCargue(user))
                 return Results.Forbid();
 
             await repo.ActualizarEstadoAsync(id, CargaEstados.Rechazado, body.Observaciones, ct);
@@ -500,7 +565,43 @@ public static class ApiEndpoints
                     id = c.Id,
                     dependencia_id = c.DependenciaId,
                     dependencia = c.DependenciaNombre,
-                    estado = c.Estado,
+                    estado = CargaEstados.Normalizar(c.Estado),
+                    fecha_inicio = c.FechaInicio,
+                    fecha_fin = c.FechaFin,
+                    archivo = c.NombreArchivo,
+                    usuario = c.Usuario,
+                    total_errores = c.TotalErrores
+                })
+            });
+        });
+
+        secured.MapGet("/cargas/pendientes-aprobacion", async (
+            CargasRepository repo,
+            HttpContext http,
+            [FromQuery] int? dependencia_id,
+            CancellationToken ct) =>
+        {
+            var user = http.GetUserContext()!;
+            if (!AuthorizationService.PuedeValidarCargue(user))
+                return Results.Forbid();
+
+            int? filtro = user.EsAdministrador ? dependencia_id : user.DependenciaId;
+            if (!user.EsAdministrador && dependencia_id.HasValue && dependencia_id != user.DependenciaId)
+                return Results.Forbid();
+
+            var rows = await repo.ListarAsync(filtro, ct);
+            var pendientes = rows
+                .Where(c => CargaEstados.EsPendienteAprobacion(c.Estado))
+                .ToList();
+
+            return Results.Ok(new
+            {
+                cargas = pendientes.Select(c => new
+                {
+                    id = c.Id,
+                    dependencia_id = c.DependenciaId,
+                    dependencia = c.DependenciaNombre,
+                    estado = CargaEstados.Normalizar(c.Estado),
                     fecha_inicio = c.FechaInicio,
                     fecha_fin = c.FechaFin,
                     archivo = c.NombreArchivo,
@@ -608,8 +709,14 @@ public static class ApiEndpoints
 
         var stored = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{SanitizeFileName(file.FileName)}";
         var abs = Path.Combine(uploadsDir, stored);
-        await using (var fs = File.Create(abs))
-            await file.CopyToAsync(fs, ct);
+        try
+        {
+            await GuardarArchivoSubidoAsync(file, abs, ct);
+        }
+        catch (IOException ex)
+        {
+            return Results.Json(new { error = $"No se pudo guardar el archivo: {ex.Message}" }, statusCode: 500);
+        }
 
         var rel = Path.GetRelativePath(repoRoot, abs).Replace("\\", "/");
         await using var mem = new MemoryStream();
@@ -654,10 +761,10 @@ public static class ApiEndpoints
         var form = await req.ReadFormAsync(ct);
         var file = form.Files.GetFile("archivo");
         if (file is null || file.Length == 0)
-            return Results.BadRequest(new { error = "Seleccione un archivo Excel o CSV." });
+            return Results.BadRequest(new { error = "Seleccione un archivo Excel (.xlsx) con plantilla OSC." });
 
         if (!EsArchivoPermitido(file.FileName))
-            return Results.BadRequest(new { error = "Solo se aceptan archivos .xlsx o .csv." });
+            return Results.BadRequest(new { error = "Solo se aceptan archivos Excel (.xlsx) con hojas Diccionario_datos y DATA." });
 
         if (!int.TryParse(form["linea_tematica_id"], out var lineaId) || lineaId <= 0)
             return Results.BadRequest(new { error = "Seleccione una línea temática." });
@@ -671,8 +778,14 @@ public static class ApiEndpoints
 
         var stored = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{SanitizeFileName(file.FileName)}";
         var abs = Path.Combine(uploadsDir, stored);
-        await using (var fs = File.Create(abs))
-            await file.CopyToAsync(fs, ct);
+        try
+        {
+            await GuardarArchivoSubidoAsync(file, abs, ct);
+        }
+        catch (IOException ex)
+        {
+            return Results.Json(new { error = $"No se pudo guardar el archivo: {ex.Message}" }, statusCode: 500);
+        }
 
         var rel = Path.GetRelativePath(repoRoot, abs).Replace("\\", "/");
         var mime = file.ContentType;
@@ -697,9 +810,16 @@ public static class ApiEndpoints
                 estado_etiqueta = result.EstadoEtiqueta,
                 valido = result.Valido,
                 errores = result.Errores,
+                errores_diccionario = result.ErroresDiccionario,
+                errores_data = result.ErroresData,
+                observaciones = result.Observaciones,
+                total_errores_diccionario = result.TotalErroresDiccionario,
+                total_errores_data = result.TotalErroresData,
                 mensaje = result.Valido
                     ? "Archivo validado correctamente. Puede continuar con el envío."
-                    : "El archivo presenta inconsistencias. Corrija el archivo y vuelva a cargarlo."
+                    : result.TotalErroresDiccionario > 0
+                        ? "Corrija los errores en la hoja Diccionario_datos antes de continuar."
+                        : "Corrija los errores en la hoja DATA antes de continuar."
             });
         }
         catch (UnauthorizedAccessException ex)
@@ -710,11 +830,24 @@ public static class ApiEndpoints
         {
             return Results.BadRequest(new { error = ex.Message });
         }
+        catch (IOException ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 500);
+        }
+    }
+
+    private static async Task GuardarArchivoSubidoAsync(IFormFile file, string rutaAbsoluta, CancellationToken ct)
+    {
+        var dir = Path.GetDirectoryName(rutaAbsoluta);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        await using var fs = File.Create(rutaAbsoluta);
+        await file.CopyToAsync(fs, ct);
     }
 
     private static bool EsArchivoPermitido(string name) =>
-        name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
-        || name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase);
+        name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase);
 
     private static bool EsExcel(string name) =>
         name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase);

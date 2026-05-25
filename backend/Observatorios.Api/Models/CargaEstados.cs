@@ -15,11 +15,19 @@ public static class CargaEstados
     public const string Validando = "VALIDANDO";
     public const string ValidadoOk = "VALIDADO_OK";
 
-    public static string Normalizar(string? estado) => estado switch
+    public static string Normalizar(string? estado)
     {
-        "SUBIDO" => Recibido,
-        "VALIDANDO" => EnValidacion,
-        "VALIDADO_OK" => ValidadoExitoso,
-        _ => estado ?? Recibido
-    };
+        if (string.IsNullOrWhiteSpace(estado)) return Recibido;
+        var e = estado.Trim().ToUpperInvariant();
+        return e switch
+        {
+            "SUBIDO" => Recibido,
+            "VALIDANDO" => EnValidacion,
+            "VALIDADO_OK" => ValidadoExitoso,
+            _ => e
+        };
+    }
+
+    public static bool EsPendienteAprobacion(string? estado) =>
+        Normalizar(estado) == ValidadoExitoso;
 }

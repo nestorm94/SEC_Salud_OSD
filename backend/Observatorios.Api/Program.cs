@@ -3,6 +3,75 @@ using Observatorios.Api.Data;
 using Observatorios.Api.Endpoints;
 using Observatorios.Api.Services;
 
+if (args is ["debug-osc", var xlsxPath, ..])
+{
+    using var fs = File.OpenRead(xlsxPath);
+    var r = new OscPlantillaValidacionService().Validar(fs);
+    Console.WriteLine($"Valido={r.EsValido} dict={r.TotalErroresDiccionario} data={r.TotalErroresData}");
+    foreach (var e in r.ErroresDiccionario) Console.WriteLine($"[DIC] {e}");
+    foreach (var e in r.ErroresData) Console.WriteLine($"[DATA] {e}");
+    return;
+}
+
+if (args is ["debug-osc-gen", var outPath, ..])
+{
+    GenerarExcelPruebaOsc(outPath);
+    using var fs = File.OpenRead(outPath);
+    var r = new OscPlantillaValidacionService().Validar(fs);
+    Console.WriteLine($"Generado: {outPath}");
+    Console.WriteLine($"Valido={r.EsValido} dict={r.TotalErroresDiccionario} data={r.TotalErroresData}");
+    foreach (var e in r.ErroresData) Console.WriteLine($"[DATA] {e}");
+    return;
+}
+
+static void GenerarExcelPruebaOsc(string path)
+{
+    using var wb = new ClosedXML.Excel.XLWorkbook();
+    var dict = wb.Worksheets.Add("Diccionario_datos");
+    string[] enc = ["Id", "Nombre de la variable", "Descripción de la variable", "Llave Primaria", "Llave Foránea",
+        "Campo obligatorio", "Id. de la variable", "Tipo de datos", "Longitud", "Dominios (Categorías, valores)",
+        "Unidad de medida", "Campo calculado", "Fórmula aplicada"];
+    for (var c = 0; c < enc.Length; c++) dict.Cell(5, c + 1).Value = enc[c];
+    void Var(int row, string nombre, string tipo, string obl = "S", string dom = "")
+    {
+        dict.Cell(row, 1).Value = row - 5;
+        dict.Cell(row, 2).Value = nombre;
+        dict.Cell(row, 3).Value = nombre;
+        dict.Cell(row, 4).Value = "N";
+        dict.Cell(row, 5).Value = "N";
+        dict.Cell(row, 6).Value = obl;
+        dict.Cell(row, 7).Value = row - 5;
+        dict.Cell(row, 8).Value = tipo;
+        dict.Cell(row, 9).Value = "10";
+        dict.Cell(row, 10).Value = string.IsNullOrEmpty(dom) ? "N/A" : dom;
+        dict.Cell(row, 11).Value = "N";
+        dict.Cell(row, 12).Value = "N";
+        dict.Cell(row, 13).Value = "N/A";
+    }
+    Var(6, "CODIGO DIVIPOLA", "Numérico");
+    Var(7, "AÑO", "Numérico");
+    Var(8, "MUNICIPIO", "Texto");
+    Var(9, "SEXO", "Texto", "S", "Total;Hombres;Mujeres");
+    Var(10, "POBLACION", "Numérico");
+    Var(11, "OBSERVACION", "Texto", "N");
+    var data = wb.Worksheets.Add("DATA");
+    data.Cell(1, 1).Value = "CODIGO DIVIPOLA";
+    data.Cell(1, 2).Value = "AÑO";
+    data.Cell(1, 3).Value = "MUNICIPIO";
+    data.Cell(1, 4).Value = "SEXO";
+    data.Cell(1, 5).Value = "POBLACION";
+    data.Cell(1, 6).Value = "OBSERVACION";
+    data.Cell(2, 1).Value = "85011"; data.Cell(2, 2).Value = 2024; data.Cell(2, 3).Value = "Yopal";
+    data.Cell(2, 4).Value = "Total"; data.Cell(2, 5).Value = 190456;
+    data.Cell(3, 1).Value = "ABC"; data.Cell(3, 2).Value = 2024; data.Cell(3, 3).Value = "Aguazul";
+    data.Cell(3, 4).Value = "Hombres"; data.Cell(3, 5).Value = 20750;
+    data.Cell(4, 1).Value = "85125"; data.Cell(4, 2).Value = 2024; data.Cell(4, 3).Value = "";
+    data.Cell(4, 4).Value = "Mujeres"; data.Cell(4, 5).Value = 6800;
+    data.Cell(5, 1).Value = "85400"; data.Cell(5, 2).Value = "dosm"; data.Cell(5, 3).Value = "Támara";
+    data.Cell(5, 4).Value = "Total"; data.Cell(5, 5).Value = "cinco mil";
+    wb.SaveAs(path);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 var contentRoot = builder.Environment.ContentRootPath;
 
@@ -49,6 +118,7 @@ builder.Services.AddSingleton<AuditoriaRepository>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<AuthorizationService>();
 builder.Services.AddSingleton<ExcelValidationService>();
+builder.Services.AddSingleton<OscPlantillaValidacionService>();
 builder.Services.AddSingleton<ArchivoPrevalidacionService>();
 builder.Services.AddSingleton<ArchivoFlujoService>();
 builder.Services.AddSingleton<CargaArchivoService>();
@@ -67,6 +137,20 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 var app = builder.Build();
 
 app.UseCors();
+app.UseExceptionHandler(errApp =>
+{
+    errApp.Run(async ctx =>
+    {
+        var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+        await ctx.Response.WriteAsJsonAsync(new
+        {
+            error = ex?.Message ?? "Error interno del servidor.",
+            tipo = ex?.GetType().Name
+        });
+    });
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -102,6 +186,7 @@ if (Directory.Exists(app.Environment.WebRootPath ?? ""))
 
 var uploadsDir = Path.Combine(repoRoot, "uploads");
 Directory.CreateDirectory(uploadsDir);
+Console.WriteLine($"[Observatorios.Api] uploads: {uploadsDir}");
 
 using (var scope = app.Services.CreateScope())
 {

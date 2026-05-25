@@ -1,6 +1,8 @@
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
 import { getUsuario, cerrarSesion, authHeaders, puedeAdministrar } from "./auth.js";
+import { formatearSoloFecha } from "./fechas.js";
+import { confirmar, mostrarMensaje } from "./portal/modal.js?v=7";
 
 function $(sel) {
   return document.querySelector(sel);
@@ -12,38 +14,98 @@ let archivoIdValidado = null;
 function msgCarga(texto, tipo = "") {
   const panel = $("#panel-estado-validacion");
   const el = $("#mensaje-carga");
-  if (panel) panel.hidden = !texto && !$("#lista-errores-validacion")?.childElementCount;
+  if (panel) panel.hidden = !texto && panel.querySelectorAll(".lista-errores-validacion li").length === 0 && $("#resumen-validacion")?.hidden !== false;
   if (!el) return;
   el.textContent = texto;
   el.className = "mensaje" + (tipo ? ` ${tipo}` : "");
   if (texto && panel) panel.hidden = false;
 }
 
-function mostrarErroresValidacion(errores) {
-  const ul = $("#lista-errores-validacion");
+function llenarListaErrores(ul, errores) {
   if (!ul) return;
   ul.innerHTML = "";
-  if (!errores?.length) {
-    ul.hidden = true;
-    return;
-  }
-  for (const e of errores) {
+  for (const e of errores || []) {
     const li = document.createElement("li");
     li.textContent = e;
     ul.appendChild(li);
   }
-  ul.hidden = false;
-  $("#panel-estado-validacion").hidden = false;
+}
+
+function mostrarResultadoValidacion(data) {
+  const panel = $("#panel-estado-validacion");
+  if (!panel) return;
+  panel.hidden = false;
+
+  const totalDict = data.total_errores_diccionario ?? (data.errores_diccionario?.length ?? 0);
+  const totalData = data.total_errores_data ?? (data.errores_data?.length ?? 0);
+  const valido = !!data.valido;
+
+  const resumen = $("#resumen-validacion");
+  if (resumen) {
+    resumen.hidden = false;
+    resumen.innerHTML = `
+      <div class="resumen-validacion__grid">
+        <div class="resumen-validacion__item ${valido ? "resumen-validacion__item--ok" : "resumen-validacion__item--error"}">
+          <span class="resumen-validacion__label">Estado</span>
+          <strong>${valido ? "Válido" : "Con errores"}</strong>
+        </div>
+        <div class="resumen-validacion__item">
+          <span class="resumen-validacion__label">Errores Diccionario_datos</span>
+          <strong>${totalDict}</strong>
+        </div>
+        <div class="resumen-validacion__item">
+          <span class="resumen-validacion__label">Errores DATA</span>
+          <strong>${totalData}</strong>
+        </div>
+      </div>`;
+  }
+
+  const bloqueDict = $("#bloque-errores-diccionario");
+  const listaDict = $("#lista-errores-diccionario");
+  const erroresDict = data.errores_diccionario ?? [];
+  if (bloqueDict && listaDict) {
+    llenarListaErrores(listaDict, erroresDict);
+    bloqueDict.hidden = erroresDict.length === 0;
+    const badge = $("#total-errores-diccionario");
+    if (badge) badge.textContent = `(${erroresDict.length})`;
+  }
+
+  const bloqueData = $("#bloque-errores-data");
+  const listaData = $("#lista-errores-data");
+  const erroresData = data.errores_data ?? [];
+  if (bloqueData && listaData) {
+    llenarListaErrores(listaData, erroresData);
+    bloqueData.hidden = erroresData.length === 0;
+    const badge = $("#total-errores-data");
+    if (badge) badge.textContent = `(${erroresData.length})`;
+  }
+
+  const bloqueObs = $("#bloque-observaciones");
+  const listaObs = $("#lista-observaciones");
+  const observaciones = data.observaciones ?? [];
+  if (bloqueObs && listaObs) {
+    llenarListaErrores(listaObs, observaciones);
+    bloqueObs.hidden = observaciones.length === 0;
+  }
 }
 
 function resetEstadoValidacion() {
   archivoIdValidado = null;
   const btnEnviar = $("#btn-enviar");
   if (btnEnviar) btnEnviar.disabled = true;
-  mostrarErroresValidacion([]);
   msgCarga("", "");
   const panel = $("#panel-estado-validacion");
   if (panel) panel.hidden = true;
+  $("#resumen-validacion")?.replaceChildren();
+  $("#resumen-validacion") && ($("#resumen-validacion").hidden = true);
+  for (const id of ["bloque-errores-diccionario", "bloque-errores-data", "bloque-observaciones"]) {
+    const b = document.getElementById(id);
+    if (b) b.hidden = true;
+  }
+  for (const id of ["lista-errores-diccionario", "lista-errores-data", "lista-observaciones"]) {
+    const ul = document.getElementById(id);
+    if (ul) ul.innerHTML = "";
+  }
 }
 
 function habilitarEnviar(archivoId) {
@@ -63,15 +125,6 @@ function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s ?? "";
   return d.innerHTML;
-}
-
-function formatearFecha(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("es-CO");
-  } catch {
-    return String(iso);
-  }
 }
 
 function badgeEstado(estado, etiqueta) {
@@ -94,8 +147,7 @@ function extraerIndicadores(data) {
 }
 
 function esArchivoPermitido(nombre) {
-  const n = (nombre || "").toLowerCase();
-  return n.endsWith(".xlsx") || n.endsWith(".csv");
+  return (nombre || "").toLowerCase().endsWith(".xlsx");
 }
 
 export async function cargarLineasTematicas() {
@@ -178,7 +230,7 @@ function cerrarModal(id) {
 async function verDetalle(id) {
   const { res, data } = await fetchJson(apiUrl(`/api/archivos/${id}`));
   if (!res.ok) {
-    alert(data.error || "No se pudo cargar el detalle.");
+    await mostrarMensaje({ tipo: "error", mensaje: data.error || "No se pudo cargar el detalle." });
     return;
   }
   const errores = (data.errores_validacion || []).map((e) => `<li>${escapeHtml(e)}</li>`).join("");
@@ -188,8 +240,8 @@ async function verDetalle(id) {
     <p><strong>Estado:</strong> ${badgeEstado(data.estado, data.estado_etiqueta)}</p>
     <p><strong>Línea temática:</strong> ${escapeHtml(data.linea_tematica || "—")}</p>
     <p><strong>Indicador:</strong> ${escapeHtml(data.indicador || "—")}</p>
-    <p><strong>Fecha validación:</strong> ${escapeHtml(formatearFecha(data.fecha_validacion))}</p>
-    <p><strong>Fecha envío:</strong> ${escapeHtml(formatearFecha(data.fecha_envio))}</p>
+    <p><strong>Fecha validación:</strong> ${escapeHtml(formatearSoloFecha(data.fecha_validacion))}</p>
+    <p><strong>Fecha envío:</strong> ${escapeHtml(formatearSoloFecha(data.fecha_envio))}</p>
     <p><strong>Usuario:</strong> ${escapeHtml(data.subido_por || "—")}</p>
     <p><strong>Observaciones:</strong> ${escapeHtml(data.observaciones || "—")}</p>
     ${errores ? `<p><strong>Errores de validación:</strong></p><ul>${errores}</ul>` : ""}`;
@@ -217,8 +269,8 @@ async function cargarLista() {
         <td>${escapeHtml(a.linea_tematica || "—")}</td>
         <td>${escapeHtml(a.indicador || "—")}</td>
         <td>${badgeEstado(a.estado, a.estado_etiqueta)}</td>
-        <td>${escapeHtml(formatearFecha(a.fecha_validacion))}</td>
-        <td>${escapeHtml(formatearFecha(a.fecha_envio))}</td>
+        <td>${escapeHtml(formatearSoloFecha(a.fecha_validacion))}</td>
+        <td>${escapeHtml(formatearSoloFecha(a.fecha_envio))}</td>
         <td>${escapeHtml(a.subido_por || "—")}</td>
         <td class="acciones-celda celda-acciones"></td>`;
       const acc = tr.querySelector(".acciones-celda");
@@ -254,7 +306,7 @@ async function cargarLista() {
 async function descargarArchivo(id, nombre) {
   const res = await fetch(apiUrl(`/api/archivos/${id}/descargar`), { headers: authHeaders() });
   if (!res.ok) {
-    alert("No se pudo descargar el archivo.");
+    await mostrarMensaje({ tipo: "error", mensaje: "No se pudo descargar el archivo." });
     return;
   }
   const blob = await res.blob();
@@ -267,7 +319,14 @@ async function descargarArchivo(id, nombre) {
 }
 
 async function eliminarArchivo(id) {
-  if (!confirm("¿Eliminar este archivo del servidor y de la base de datos?")) return;
+  const ok = await confirmar({
+    titulo: "Eliminar archivo",
+    mensaje: "¿Eliminar este archivo del servidor y de la base de datos?",
+    aceptar: "Eliminar",
+    cancelar: "Cancelar",
+    peligro: true,
+  });
+  if (!ok) return;
   try {
     const { res, data } = await fetchJson(apiUrl(`/api/archivos/${id}`), { method: "DELETE" });
     if (!res.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
@@ -287,12 +346,12 @@ async function validarArchivo() {
     return;
   }
   if (!input.files?.length) {
-    msgCarga("Seleccione un archivo Excel o CSV.", "error");
+    msgCarga("Seleccione un archivo Excel (.xlsx) con plantilla OSC.", "error");
     return;
   }
   const file = input.files[0];
   if (!esArchivoPermitido(file.name)) {
-    msgCarga("Solo archivos .xlsx o .csv.", "error");
+    msgCarga("Solo archivos Excel (.xlsx) con hojas Diccionario_datos y DATA.", "error");
     return;
   }
 
@@ -313,8 +372,7 @@ async function validarArchivo() {
     const { res, data } = await fetchJson(apiUrl("/api/archivos/validar"), { method: "POST", body: fd });
     if (!res.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
 
-    const errores = data.errores || [];
-    mostrarErroresValidacion(errores);
+    mostrarResultadoValidacion(data);
 
     if (data.valido) {
       msgCarga(data.mensaje || "Archivo validado correctamente. Puede continuar con el envío.", "exito");

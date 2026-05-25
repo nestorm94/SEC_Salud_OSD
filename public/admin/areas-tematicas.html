@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Áreas temáticas — Administración</title>
   <link rel="stylesheet" href="/css/estilos.css" />
   <link rel="stylesheet" href="/css/portal.css" />
@@ -14,7 +15,9 @@
       <p class="subtitulo">Coloque el Excel en <code>data/Áreas temáticas OSC V.2.xlsx</code> y use importar.</p>
       <button type="button" id="btn-import" class="btn primario">Importar desde Excel</button>
       <p id="msg-import"></p>
-      <table class="tabla-portal"><thead><tr><th>ID</th><th>Dependencia</th><th>Código</th><th>Nombre</th></tr></thead><tbody id="tb"></tbody></table>
+      <div class="tabla-wrap">
+        <table class="tabla-portal"><thead><tr><th>ID</th><th>Dependencia</th><th>Código</th><th>Nombre</th></tr></thead><tbody id="tb"></tbody></table>
+      </div>
     </main>
   </div>
   <script type="module">

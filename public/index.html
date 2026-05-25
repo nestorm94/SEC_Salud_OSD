@@ -12,7 +12,7 @@
     <aside class="portal-sidebar"></aside>
     <main class="portal-main">
       <h1>Carga de archivos · Observatorio OSD</h1>
-      <p class="subtitulo">Seleccione línea temática, indicador y archivo (Excel o CSV). Primero valide; después envíe.</p>
+      <p class="subtitulo">Plantilla OSC: hojas <strong>Diccionario_datos</strong> y <strong>DATA</strong>. Seleccione línea, indicador y archivo Excel (.xlsx). Valide y luego envíe.</p>
 
       <section class="panel" aria-labelledby="titulo-carga">
         <h2 id="titulo-carga">Cargar archivo</h2>
@@ -34,8 +34,8 @@
             <input type="text" id="observaciones" name="observaciones" maxlength="1000" placeholder="Opcional" />
           </label>
           <label style="grid-column:1/-1">
-            <span>Archivo Excel (.xlsx) o CSV (.csv) *</span>
-            <input type="file" name="archivo" id="input-archivo" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required />
+            <span>Archivo Excel (.xlsx) — plantilla OSC *</span>
+            <input type="file" name="archivo" id="input-archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
           </label>
           <div class="form-acciones form-acciones--carga">
             <button type="button" id="btn-validar" class="btn primario">Validar archivo</button>
@@ -46,7 +46,19 @@
 
         <div id="panel-estado-validacion" class="panel-validacion" hidden>
           <p id="mensaje-carga" class="mensaje" role="status" aria-live="polite"></p>
-          <ul id="lista-errores-validacion" class="lista-errores-validacion" hidden></ul>
+          <div id="resumen-validacion" class="resumen-validacion" hidden></div>
+          <section id="bloque-errores-diccionario" class="bloque-errores-validacion" hidden>
+            <h3>Diccionario_datos <span id="total-errores-diccionario" class="badge-contador"></span></h3>
+            <ul id="lista-errores-diccionario" class="lista-errores-validacion"></ul>
+          </section>
+          <section id="bloque-errores-data" class="bloque-errores-validacion" hidden>
+            <h3>DATA <span id="total-errores-data" class="badge-contador"></span></h3>
+            <ul id="lista-errores-data" class="lista-errores-validacion"></ul>
+          </section>
+          <section id="bloque-observaciones" class="bloque-errores-validacion bloque-observaciones" hidden>
+            <h3>Observaciones</h3>
+            <ul id="lista-observaciones" class="lista-errores-validacion lista-observaciones"></ul>
+          </section>
         </div>
       </section>
 
@@ -88,7 +100,7 @@
 
   <script type="module">
     import { initPortal } from "/js/portal/layout.js";
-    import { inicializarPaginaCarga } from "/js/app.js?v=4";
+    import { inicializarPaginaCarga } from "/js/app.js?v=7";
     if (!(await initPortal("/index.html"))) throw 0;
     await inicializarPaginaCarga();
   </script>

@@ -9,6 +9,7 @@ public sealed class CargaArchivoService(
     ArchivosRepository archivos,
     CargasRepository cargas,
     ExcelValidationService excelValidator,
+    OscPlantillaValidacionService oscValidador,
     CatalogoRepository catalogos,
     ArchivoCargaRepository archivoCargaRepo,
     IndicadorRepository indicadores,
@@ -102,11 +103,18 @@ public sealed class CargaArchivoService(
         UserContext user,
         int lineaTematicaId,
         int indicadorId,
+        int dependenciaArchivoId,
         string? observaciones,
+        bool envioPorValidador,
         CancellationToken ct)
     {
-        if (!AuthorizationService.PuedeSubirCargue(user))
+        if (!envioPorValidador && !AuthorizationService.PuedeSubirCargue(user))
             throw new UnauthorizedAccessException("Su rol no permite cargar archivos.");
+        if (envioPorValidador && !AuthorizationService.PuedeValidarCargue(user))
+            throw new UnauthorizedAccessException("Su rol no permite aprobar cargues.");
+
+        if (!user.PuedeAccederDependencia(dependenciaArchivoId))
+            throw new UnauthorizedAccessException("No tiene permiso para esta dependencia.");
 
         if (!user.PuedeAccederLineaTematica(lineaTematicaId))
             throw new UnauthorizedAccessException("No tiene permiso para cargar en esa línea temática.");
@@ -114,18 +122,34 @@ public sealed class CargaArchivoService(
         if (!await indicadores.PerteneceALineaAsync(indicadorId, lineaTematicaId, ct))
             throw new InvalidOperationException("El indicador no pertenece a la línea temática seleccionada.");
 
-        var depId = ResolverDependencia(user, null);
-        var cargaId = await cargas.CrearCargaAsync(archivoId, depId, user.UsuarioId, CargaEstados.Recibido, ct);
+        var cargaId = await cargas.CrearCargaAsync(archivoId, dependenciaArchivoId, user.UsuarioId, CargaEstados.Recibido, ct);
         await cargas.ActualizarEstadoAsync(cargaId, CargaEstados.EnValidacion, "Envío definitivo", ct);
         await cargas.RegistrarHistorialAsync(cargaId, user.UsuarioId, "ENVIO_DEFINITIVO",
             $"Archivo enviado: {nombreOriginal}", ct);
 
-        var esCsv = nombreOriginal.EndsWith(".csv", StringComparison.OrdinalIgnoreCase);
-        if (esCsv)
+        excelStream.Position = 0;
+        var osc = nombreOriginal.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
+            ? oscValidador.Validar(excelStream)
+            : null;
+
+        if (osc is not null)
         {
+            await cargas.GuardarDiccionarioAsync(cargaId, osc.Campos, ct);
+            if (!osc.EsValido)
+            {
+                var erroresDto = AErroresDto(osc.TodosLosErrores);
+                await cargas.GuardarErroresAsync(cargaId, erroresDto, ct);
+                await cargas.ActualizarEstadoAsync(cargaId, CargaEstados.ValidadoConErrores,
+                    $"Se encontraron {osc.TodosLosErrores.Count} error(es) en el envío.", ct);
+                await archivoCargaRepo.ActualizarEstadoPorCargaAsync(cargaId, CargaEstados.ValidadoConErrores, ct);
+                return new CargaProcesoResult(cargaId, archivoId, CargaEstados.ValidadoConErrores, false, osc.TodosLosErrores.Count);
+            }
+
+            await cargas.GuardarDatosAsync(cargaId, osc.Filas, ct);
             await cargas.ActualizarEstadoAsync(cargaId, CargaEstados.ValidadoExitoso,
-                "Archivo CSV enviado (validación estructural previa aplicada).", ct);
-            await cargas.RegistrarHistorialAsync(cargaId, user.UsuarioId, "ENVIO_CSV_OK", nombreOriginal, ct);
+                $"Envío correcto. {osc.Filas.Count} fila(s).", ct);
+            await cargas.RegistrarHistorialAsync(cargaId, user.UsuarioId, "ENVIO_OK",
+                $"{osc.Filas.Count} filas persistidas.", ct);
             await archivoCargaRepo.ActualizarEstadoPorCargaAsync(cargaId, CargaEstados.ValidadoExitoso, ct);
             await auditoria.RegistrarAsync(user.UsuarioId, "ARCHIVO_ENVIADO", "Archivos", archivoId.ToString(),
                 nombreOriginal, null, ct);
@@ -156,6 +180,26 @@ public sealed class CargaArchivoService(
             nombreOriginal, null, ct);
 
         return new CargaProcesoResult(cargaId, archivoId, CargaEstados.ValidadoExitoso, true, 0);
+    }
+
+    public async Task AprobarCargaAsync(
+        int cargaId,
+        UserContext user,
+        string? observaciones,
+        CancellationToken ct)
+    {
+        if (!AuthorizationService.PuedeValidarCargue(user))
+            throw new UnauthorizedAccessException("Su rol no permite aprobar cargues.");
+
+        var carga = await cargas.GetCargaAsync(cargaId, ct)
+            ?? throw new InvalidOperationException("Carga no encontrada.");
+        if (!user.PuedeAccederDependencia(carga.DependenciaId))
+            throw new UnauthorizedAccessException("Sin permiso para esta dependencia.");
+        if (!CargaEstados.EsPendienteAprobacion(carga.Estado))
+            throw new InvalidOperationException("Solo se aprueban cargas validadas exitosamente.");
+
+        await cargas.ActualizarEstadoAsync(cargaId, CargaEstados.Aprobado, observaciones, ct);
+        await cargas.RegistrarHistorialAsync(cargaId, user.UsuarioId, "APROBADO", observaciones, ct);
     }
 
     public async Task<CargaProcesoResult> RevalidarAsync(
@@ -199,6 +243,9 @@ public sealed class CargaArchivoService(
             throw new InvalidOperationException("El usuario no tiene dependencia asignada.");
         return user.DependenciaId.Value;
     }
+
+    private static List<ValidationErrorDto> AErroresDto(IReadOnlyList<string> mensajes) =>
+        mensajes.Select(m => new ValidationErrorDto(null, null, m, "VALIDACION")).ToList();
 }
 
 public sealed record CargaProcesoResult(

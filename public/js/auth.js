@@ -4,7 +4,7 @@ import { fetchJson } from "./fetchJson.js";
 const TOKEN_KEY = "observatorios.token";
 const USER_KEY = "observatorios.usuario";
 
-const ROLES_ADMIN = new Set(["admin", "administrador"]);
+const ROLES_ADMIN = new Set(["admin", "administrador", "ADMIN", "ADMINISTRADOR"]);
 
 export function getToken() {
   try {

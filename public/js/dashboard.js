@@ -1,4 +1,5 @@
 import { apiUrl, fetchJson } from "./portal/layout.js";
+import { formatearSoloFecha } from "./fechas.js";
 
 const STAT_ICONOS = {
   archivos: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
@@ -11,21 +12,6 @@ function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s ?? "";
   return d.innerHTML;
-}
-
-function formatearFecha(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("es-CO", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return String(iso);
-  }
 }
 
 function claseBadgeEstado(estado) {
@@ -74,7 +60,7 @@ function renderDashboard(data) {
           <td><span class="${claseBadgeEstado(u.estado)}">${escapeHtml(u.estado)}</span></td>
           <td>${escapeHtml(u.dependencia || "—")}</td>
           <td>${escapeHtml(u.usuario || "—")}</td>
-          <td>${escapeHtml(formatearFecha(u.fecha))}</td>
+          <td>${escapeHtml(formatearSoloFecha(u.fecha))}</td>
         </tr>`
           )
           .join("");
