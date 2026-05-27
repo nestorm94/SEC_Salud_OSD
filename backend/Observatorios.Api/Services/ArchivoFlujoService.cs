@@ -70,7 +70,8 @@ public sealed class ArchivoFlujoService(
             resultado.ErroresData,
             resultado.Observaciones,
             resultado.TotalErroresDiccionario,
-            resultado.TotalErroresData);
+            resultado.TotalErroresData,
+            resultado.Geografia);
     }
 
     public async Task<EnviarArchivoResponse> EnviarAsync(int archivoId, UserContext user, string repoRoot, CancellationToken ct)
@@ -236,7 +237,8 @@ public sealed record ValidarArchivoResponse(
     IReadOnlyList<string> ErroresData,
     IReadOnlyList<string> Observaciones,
     int TotalErroresDiccionario,
-    int TotalErroresData);
+    int TotalErroresData,
+    GeografiaResumenDto? Geografia);
 
 public sealed record EnviarArchivoResponse(
     int ArchivoId,

@@ -14,6 +14,23 @@ export function getToken() {
   }
 }
 
+/** true si no hay token o el JWT ya venció (evita ráfagas de 401 en catálogos). */
+export function tokenExpirado() {
+  const t = getToken();
+  if (!t) return true;
+  try {
+    const part = t.split(".")[1];
+    if (!part) return true;
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json);
+    const exp = payload.exp;
+    if (typeof exp !== "number") return false;
+    return Date.now() >= exp * 1000 - 15_000;
+  } catch {
+    return true;
+  }
+}
+
 export function getUsuario() {
   try {
     const raw = localStorage.getItem(USER_KEY);
@@ -53,12 +70,15 @@ export async function refrescarSesion() {
   if (!getToken()) return null;
   try {
     const { res, data } = await fetchJson(apiUrl("/api/auth/me"));
-    if (!res.ok) return getUsuario();
+    if (!res.ok) {
+      cerrarSesion();
+      return null;
+    }
     const usuario = normalizarUsuario(data.usuario || data);
     localStorage.setItem(USER_KEY, JSON.stringify(usuario));
     return usuario;
   } catch {
-    return getUsuario();
+    return null;
   }
 }
 
@@ -79,9 +99,12 @@ export function puedeAdministrar() {
 }
 
 export function requerirAuth() {
-  if (!getToken()) {
-    const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `/login.html?next=${next}`;
+  if (!getToken() || tokenExpirado()) {
+    cerrarSesion();
+    const next = encodeURIComponent(
+      window.location.pathname + window.location.search + window.location.hash
+    );
+    window.location.replace(`/login.html?next=${next}`);
     return false;
   }
   return true;

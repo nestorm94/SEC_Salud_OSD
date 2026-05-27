@@ -18,6 +18,8 @@ export class PoblacionService {
     if (query.area) params = params.set('area', query.area);
     if (query.sexo) params = params.set('sexo', query.sexo);
     if (query.ano != null) params = params.set('ano', query.ano);
+    if (query.codigoDepartamento) params = params.set('codigoDepartamento', query.codigoDepartamento);
+    if (query.codigoMunicipio) params = params.set('codigoMunicipio', query.codigoMunicipio);
 
     return this.http.get<ProyeccionResponse>(
       `${environment.apiUrl}/proyeccion-poblacion/${vista}`,

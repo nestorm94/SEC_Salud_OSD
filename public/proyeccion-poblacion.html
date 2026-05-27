@@ -1,173 +1,111 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
   <meta charset="UTF-8" />
-
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-
   <title>Proyección población — Secretaría de Salud</title>
-
   <link rel="stylesheet" href="/css/estilos.css" />
-
   <link rel="stylesheet" href="/css/portal.css" />
-
 </head>
-
 <body class="pagina-proyeccion">
-
   <div class="portal-layout">
-
     <aside class="portal-sidebar"></aside>
-
     <main class="portal-main contenedor--ancho">
-
       <h1>Proyección de población</h1>
-
-      <p class="subtitulo">Consulta de vistas en <code>ObservatorioDB</code></p>
-
-
+      <p class="subtitulo">Consulta de vistas en <code>ObservatorioDB</code> · filtros desde catálogos DIVIPOLA</p>
 
       <nav class="proyeccion-vistas" aria-label="Vistas de población">
-
         <a href="#nacional-casanare" data-clave="nacional-casanare">Población nacional Casanare</a>
-
         <a href="#curso-vida" data-clave="curso-vida">Curso de vida (unificado)</a>
-
         <a href="#quinquenios" data-clave="quinquenios">Quinquenios (unificado)</a>
-
       </nav>
 
-
-
       <section class="panel" aria-live="polite">
-
         <div class="proyeccion-barra">
-
           <h2 id="titulo-vista" class="proyeccion-titulo-vista">—</h2>
-
           <div class="proyeccion-acciones">
-
             <label class="proyeccion-limite">
-
               Filas por página
-
               <select id="select-tamano-pagina">
-
                 <option value="10" selected>10</option>
-
                 <option value="25">25</option>
-
                 <option value="50">50</option>
-
                 <option value="100">100</option>
-
               </select>
-
             </label>
-
             <button type="button" class="btn primario" id="btn-cargar">Recargar (pág. 1)</button>
-
+            <button type="button" class="btn secundario" id="btn-descargar-csv">Descargar Excel</button>
           </div>
-
         </div>
 
         <div class="proyeccion-filtros" aria-label="Filtros de población">
-
           <label class="campo">
-
-            Territorio
-
-            <input id="filtro-territorio" type="text" placeholder="Ej: NACIONAL o %CASANARE%" autocomplete="off" />
-
+            Departamento
+            <select id="filtro-departamento" aria-label="Departamento">
+              <option value="">Todos los departamentos</option>
+            </select>
           </label>
-
           <label class="campo">
-
+            Municipio
+            <select id="filtro-municipio" aria-label="Municipio" disabled>
+              <option value="">Todos los municipios</option>
+            </select>
+            <small class="hint-filtro" id="hint-municipio">Seleccione un departamento para ver municipios.</small>
+          </label>
+          <label class="campo">
             Regional
-
-            <input id="filtro-regional" type="text" placeholder="Ej: No aplica" autocomplete="off" />
-
+            <select id="filtro-regional" aria-label="Regional">
+              <option value="">Todas las regionales</option>
+            </select>
           </label>
-
           <label class="campo">
-
             Área
-
-            <input id="filtro-area" type="text" placeholder="Ej: Rural / Cabecera" autocomplete="off" />
-
+            <select id="filtro-area" aria-label="Área">
+              <option value="">Todas las áreas</option>
+            </select>
           </label>
-
           <label class="campo">
-
             Sexo
-
-            <input id="filtro-sexo" type="text" placeholder="Ej: Hombres / Mujeres" autocomplete="off" />
-
+            <select id="filtro-sexo" aria-label="Sexo">
+              <option value="">Todos los sexos</option>
+            </select>
           </label>
-
           <label class="campo">
-
             Año
-
-            <input id="filtro-ano" type="number" inputmode="numeric" placeholder="Ej: 2024" />
-
+            <select id="filtro-ano" aria-label="Año">
+              <option value="">Todos los años</option>
+            </select>
           </label>
-
-          <button type="button" class="btn secundario" id="btn-limpiar-filtros">Limpiar filtros</button>
-
+          <div class="campo campo-acciones-filtro">
+            <span class="campo-label">Acciones</span>
+            <button type="button" class="btn secundario" id="btn-limpiar-filtros">Limpiar filtros</button>
+          </div>
         </div>
 
         <p id="mensaje-proyeccion" class="mensaje" role="status"></p>
 
         <div class="paginacion" id="barra-paginacion" hidden>
-
           <button type="button" class="btn secundario" id="btn-pagina-anterior" aria-label="Página anterior">« Anterior</button>
-
           <span class="paginacion__info" id="paginacion-info"></span>
-
           <button type="button" class="btn secundario" id="btn-pagina-siguiente" aria-label="Página siguiente">Siguiente »</button>
-
         </div>
 
         <div class="tabla-wrap tabla-wrap--amplia">
-
           <table class="tabla tabla--compacta" id="tabla-datos">
-
             <thead id="tabla-head"></thead>
-
             <tbody id="tabla-body"></tbody>
-
           </table>
-
         </div>
-
       </section>
 
-
-
       <p class="subtitulo"><small>Fuentes: <code>vw_Poblacion_Nacional_Casanare</code>, <code>vw_Reporte_Poblacion_CursoVida_Unificado</code>, <code>vw_Reporte_Poblacion_Quinquenios_Unificado</code></small></p>
-
     </main>
-
   </div>
 
-
-
   <script type="module">
-
     import { initPortal } from "/js/portal/layout.js";
-
     if (!(await initPortal("/proyeccion-poblacion.html"))) throw 0;
-
+    await import("/js/proyeccion-poblacion.js?v=15");
   </script>
-
-  <script src="/js/proyeccion-poblacion.js" type="module"></script>
-
 </body>
-
 </html>
-

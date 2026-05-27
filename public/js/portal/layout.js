@@ -148,7 +148,12 @@ export async function initPortal(activePath, options = {}) {
   document.body.classList.add("portal-tema-claro");
   inyectarCssResponsive();
 
-  await refrescarSesion();
+  const sesion = await refrescarSesion();
+  if (!sesion) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.replace(`/login.html?next=${next}`);
+    return false;
+  }
 
   if (options.requiereAdmin && !puedeAdministrar()) {
     window.location.replace("/dashboard.html?error=sin_permiso");

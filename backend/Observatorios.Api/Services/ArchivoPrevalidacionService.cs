@@ -51,7 +51,8 @@ public sealed class ArchivoPrevalidacionService(
                 osc.TotalErroresDiccionario,
                 osc.TotalErroresData,
                 osc.Campos,
-                osc.Filas);
+                osc.Filas,
+                osc.Geografia);
         }
         catch (Exception ex)
         {
@@ -60,7 +61,7 @@ public sealed class ArchivoPrevalidacionService(
     }
 
     private static PrevalidacionResultado Fallo(IReadOnlyList<string> errores) =>
-        new(false, errores, errores, [], [], errores.Count, 0, [], []);
+        new(false, errores, errores, [], [], errores.Count, 0, [], [], null);
 }
 
 public sealed record PrevalidacionResultado(
@@ -72,4 +73,5 @@ public sealed record PrevalidacionResultado(
     int TotalErroresDiccionario,
     int TotalErroresData,
     IReadOnlyList<CampoDiccionarioDto> Campos,
-    IReadOnlyList<DatosFilaDto> Filas);
+    IReadOnlyList<DatosFilaDto> Filas,
+    GeografiaResumenDto? Geografia);

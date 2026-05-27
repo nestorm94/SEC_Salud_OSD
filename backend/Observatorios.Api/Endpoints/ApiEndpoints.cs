@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Observatorios.Api.Auth;
 using Observatorios.Api.Data;
@@ -178,6 +179,20 @@ public static class ApiEndpoints
                     descripcion = i.Descripcion
                 })
             });
+        });
+        secured.MapGet("/indicadores/prostata", async (
+            IndicadoresRepository repo,
+            [FromQuery] string? codigoDane,
+            [FromQuery] string? territorio,
+            [FromQuery] string? regional,
+            [FromQuery] int? anio,
+            [FromQuery] string? area,
+            [FromQuery] int? limit,
+            CancellationToken ct) =>
+        {
+            var rows = await repo.ListarProstataAsync(
+                codigoDane, territorio, regional, anio, area, limit ?? 20000, ct);
+            return Results.Ok(new { indicador = "prostata", fuente = "vw_Tasa_Mortalidad_Prostata_Validada", datos = rows });
         });
 
         secured.MapGet("/archivos", async (ArchivosRepository repo, HttpContext http, CancellationToken ct) =>
@@ -657,6 +672,36 @@ public static class ApiEndpoints
             });
         });
 
+        // Catálogos dinámicos (proyección población)
+        var cat = secured.MapGroup("/catalogos");
+        cat.MapGet("/proyeccion", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(await svc.ObtenerCatalogosProyeccionAsync(ct)));
+
+        cat.MapGet("/departamentos", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { departamentos = await svc.ObtenerDepartamentosAsync(ct) }));
+
+        cat.MapGet("/municipios", async ([FromQuery] string? codigoDepartamento, ICatalogoService svc, CancellationToken ct) =>
+        {
+            if (!string.IsNullOrWhiteSpace(codigoDepartamento))
+                return Results.Ok(new { municipios = await svc.ObtenerMunicipiosPorDepartamentoAsync(codigoDepartamento, ct) });
+            return Results.Ok(new { municipios = await svc.ObtenerMunicipiosAsync(ct) });
+        });
+
+        cat.MapGet("/municipios/{codigoDepartamento}", async (string codigoDepartamento, ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { municipios = await svc.ObtenerMunicipiosPorDepartamentoAsync(codigoDepartamento, ct) }));
+
+        cat.MapGet("/regionales", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { regionales = await svc.ObtenerRegionalesAsync(ct) }));
+
+        cat.MapGet("/areas", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { areas = await svc.ObtenerAreasAsync(ct) }));
+
+        cat.MapGet("/sexos", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { sexos = await svc.ObtenerSexosAsync(ct) }));
+
+        cat.MapGet("/anios", async (ICatalogoService svc, CancellationToken ct) =>
+            Results.Ok(new { anios = await svc.ObtenerAniosAsync(ct) }));
+
         // Proyección población (requiere autenticación)
         secured.MapGet("/proyeccion-poblacion/vistas", () =>
             Results.Ok(new { vistas = PoblacionVistasRepository.ClavesValidas.ToArray() }));
@@ -670,6 +715,9 @@ public static class ApiEndpoints
         secured.MapGet("/proyeccion-poblacion/quinquenios",
             (HttpRequest req, PoblacionVistasRepository repo, CancellationToken ct) =>
                 ProyeccionPoblacionJson("quinquenios", req, repo, ct));
+        secured.MapGet("/proyeccion-poblacion/{clave}/excel",
+            (string clave, HttpRequest req, PoblacionVistasRepository repo, CancellationToken ct) =>
+                ProyeccionPoblacionExcel(clave, req, repo, ct));
 
         secured.MapAdminApi(repoRoot);
         secured.MapDashboardApi();
@@ -815,6 +863,7 @@ public static class ApiEndpoints
                 observaciones = result.Observaciones,
                 total_errores_diccionario = result.TotalErroresDiccionario,
                 total_errores_data = result.TotalErroresData,
+                geografia = result.Geografia,
                 mensaje = result.Valido
                     ? "Archivo validado correctamente. Puede continuar con el envío."
                     : result.TotalErroresDiccionario > 0
@@ -871,12 +920,16 @@ public static class ApiEndpoints
         var area = req.Query["area"].FirstOrDefault();
         var sexo = req.Query["sexo"].FirstOrDefault();
         var ano = int.TryParse(req.Query["ano"], out var aq) ? aq : (int?)null;
+        var codigoDepartamento = req.Query["codigoDepartamento"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(codigoDepartamento))
+            codigoDepartamento = DimCatalogSql.CodigoDepartamentoCasanare;
+        var codigoMunicipio = req.Query["codigoMunicipio"].FirstOrDefault();
         var p = pagina ?? 1;
         var t = tamanoPagina ?? 10;
         try
         {
             var r = await repo.ConsultarPaginadoAsync(
-                clave, p, t, territorio, regional, area, sexo, ano, ct);
+                clave, p, t, territorio, regional, area, sexo, ano, codigoDepartamento, codigoMunicipio, ct);
             return Results.Ok(new
             {
                 clave = r.Clave,
@@ -887,6 +940,68 @@ public static class ApiEndpoints
                 columnas = r.Columnas,
                 filas = r.Filas
             });
+        }
+        catch (ArgumentException)
+        {
+            return Results.NotFound(new { error = "Vista no encontrada." });
+        }
+        catch (Microsoft.Data.SqlClient.SqlException ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 502);
+        }
+    }
+
+    private static async Task<IResult> ProyeccionPoblacionExcel(
+        string clave,
+        HttpRequest req,
+        PoblacionVistasRepository repo,
+        CancellationToken ct)
+    {
+        var territorio = req.Query["territorio"].FirstOrDefault();
+        var regional = req.Query["regional"].FirstOrDefault();
+        var area = req.Query["area"].FirstOrDefault();
+        var sexo = req.Query["sexo"].FirstOrDefault();
+        var ano = int.TryParse(req.Query["ano"], out var aq) ? aq : (int?)null;
+        var codigoDepartamento = req.Query["codigoDepartamento"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(codigoDepartamento))
+            codigoDepartamento = DimCatalogSql.CodigoDepartamentoCasanare;
+        var codigoMunicipio = req.Query["codigoMunicipio"].FirstOrDefault();
+
+        try
+        {
+            // Límite alto para exportar la consulta filtrada completa.
+            var r = await repo.ConsultarPaginadoAsync(
+                clave, 1, 200000, territorio, regional, area, sexo, ano, codigoDepartamento, codigoMunicipio, ct);
+
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("Consulta");
+
+            for (var c = 0; c < r.Columnas.Count; c++)
+                ws.Cell(1, c + 1).Value = r.Columnas[c];
+
+            for (var i = 0; i < r.Filas.Count; i++)
+            {
+                var fila = r.Filas[i];
+                for (var c = 0; c < r.Columnas.Count; c++)
+                {
+                    var col = r.Columnas[c];
+                    fila.TryGetValue(col, out var v);
+                    ws.Cell(i + 2, c + 1).Value = v?.ToString() ?? "";
+                }
+            }
+
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            ms.Position = 0;
+
+            var safeClave = Regex.Replace(clave, @"[^a-zA-Z0-9_-]+", "_");
+            var nombre = $"proyeccion-{safeClave}-{DateTime.Now:yyyyMMdd-HHmm}.xlsx";
+            return Results.File(
+                ms.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                nombre);
         }
         catch (ArgumentException)
         {

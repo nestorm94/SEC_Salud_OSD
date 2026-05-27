@@ -12,6 +12,45 @@ public sealed class DashboardRepository(IConfiguration config)
         int? subidoPorUsuarioId,
         CancellationToken ct = default)
     {
+        await using var con = new SqlConnection(_cs);
+        await con.OpenAsync(ct);
+
+        // Adoptamos stored procedures gradualmente (con fallback al SQL legacy si aún no existen).
+        if (await SqlProcHelper.StoredProcedureExisteAsync(con, "dbo", "usp_Dashboard_Resumen", ct))
+        {
+            await using var cmd = new SqlCommand("dbo.usp_Dashboard_Resumen", con)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.AddWithValue("@DependenciaId", (object?)dependenciaId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@SubidoPorUsuarioId", (object?)subidoPorUsuarioId ?? DBNull.Value);
+
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            if (!await r.ReadAsync(ct))
+                throw new InvalidOperationException("No se pudo leer el resumen del dashboard.");
+
+            var totalArchivos_sp = r.GetInt32(0);
+            var cargasPendientes_sp = r.GetInt32(1);
+            var cargasConError_sp = r.GetInt32(2);
+            var cargasAprobadas_sp = r.GetInt32(3);
+
+            var ultimosList_sp = new List<UltimoCargueRow>();
+            if (await r.NextResultAsync(ct))
+            {
+                while (await r.ReadAsync(ct))
+                {
+                    ultimosList_sp.Add(new UltimoCargueRow(
+                        r.GetInt32(0), r.GetString(1), r.GetString(2),
+                        r.GetString(3), r.GetDateTime(4),
+                        r.IsDBNull(5) ? null : r.GetString(5)));
+                }
+            }
+
+            return new DashboardResumen(
+                totalArchivos_sp, cargasPendientes_sp, cargasConError_sp, cargasAprobadas_sp, ultimosList_sp);
+        }
+
         var filtroA = dependenciaId.HasValue ? " AND a.DependenciaId = @DepId" : "";
         var filtroC = dependenciaId.HasValue ? " AND c.DependenciaId = @DepId" : "";
         var filtroUserA = subidoPorUsuarioId.HasValue ? " AND a.SubidoPorUsuarioId = @UserId" : "";
@@ -30,17 +69,20 @@ SELECT
 """;
 
         var sqlUltimos = $"""
-SELECT TOP (10) c.Id, d.Nombre, c.Estado, a.NombreOriginal, c.FechaInicio, u.NombreUsuario
+SELECT TOP (10)
+    c.Id,
+    d.Nombre,
+    c.Estado,
+    a.NombreOriginal,
+    COALESCE(c.FechaFin, c.FechaInicio) AS FechaActividad,
+    u.NombreUsuario
 FROM dbo.CargasArchivo c
 INNER JOIN dbo.Dependencias d ON d.Id = c.DependenciaId
 INNER JOIN dbo.Archivos a ON a.Id = c.ArchivoId
 LEFT JOIN dbo.Usuarios u ON u.Id = c.UsuarioId
 WHERE 1=1{filtroC}{filtroUserC}
-ORDER BY c.FechaInicio DESC;
+ORDER BY COALESCE(c.FechaFin, c.FechaInicio) DESC, c.Id DESC;
 """;
-
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
 
         int totalArchivos, cargasPendientes, cargasConError, cargasAprobadas;
         await using (var cmd = new SqlCommand(sqlResumen, con))

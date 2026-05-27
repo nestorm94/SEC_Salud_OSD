@@ -72,15 +72,15 @@ static void GenerarExcelPruebaOsc(string path)
     wb.SaveAs(path);
 }
 
-var builder = WebApplication.CreateBuilder(args);
-var contentRoot = builder.Environment.ContentRootPath;
+var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
+var isDevelopment = envName.Equals(Environments.Development, StringComparison.OrdinalIgnoreCase);
 
 string repoRoot;
 string? webRootPath = null;
+var apiProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
 
-if (builder.Environment.IsDevelopment())
+if (isDevelopment)
 {
-    var apiProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
     var publicDir = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", "..", "public"));
     if (Directory.Exists(publicDir))
         webRootPath = publicDir;
@@ -88,15 +88,23 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    var contentRoot = Path.GetFullPath(AppContext.BaseDirectory);
     var wwwroot = Path.Combine(contentRoot, "wwwroot");
     if (Directory.Exists(wwwroot))
         webRootPath = wwwroot;
     repoRoot = contentRoot;
 }
 
-if (webRootPath is not null)
-    builder.WebHost.UseWebRoot(webRootPath);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = webRootPath
+});
 
+builder.Services.AddMemoryCache();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddObservatorioAuth(builder.Configuration);
 builder.Services.AddSingleton<ObservatorioDbSchema>();
 builder.Services.AddSingleton<ArchivosRepository>();
@@ -108,9 +116,12 @@ builder.Services.AddSingleton<PlantillasRepository>();
 builder.Services.AddSingleton<DashboardRepository>();
 builder.Services.AddSingleton<PoblacionVistasRepository>();
 builder.Services.AddSingleton<CatalogoRepository>();
+builder.Services.AddSingleton<PoblacionCatalogosRepository>();
+builder.Services.AddSingleton<ICatalogoService, CatalogoService>();
 builder.Services.AddSingleton<AreaTematicaRepository>();
 builder.Services.AddSingleton<LineaTematicaRepository>();
 builder.Services.AddSingleton<IndicadorRepository>();
+builder.Services.AddSingleton<IndicadoresRepository>();
 builder.Services.AddSingleton<ArchivoCargaRepository>();
 builder.Services.AddSingleton<LineaTematicaSeedService>();
 builder.Services.AddSingleton<UsuariosPruebaSeedService>();
@@ -118,6 +129,7 @@ builder.Services.AddSingleton<AuditoriaRepository>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<AuthorizationService>();
 builder.Services.AddSingleton<ExcelValidationService>();
+builder.Services.AddSingleton<IGeografiaValidacionService, GeografiaValidacionService>();
 builder.Services.AddSingleton<OscPlantillaValidacionService>();
 builder.Services.AddSingleton<ArchivoPrevalidacionService>();
 builder.Services.AddSingleton<ArchivoFlujoService>();
@@ -136,6 +148,11 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 var app = builder.Build();
 
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Observatorios API v1");
+});
 app.UseCors();
 app.UseExceptionHandler(errApp =>
 {
@@ -223,4 +240,5 @@ Console.WriteLine("[Observatorios.Api] Login: POST /api/auth/login  |  admin@obs
 Console.WriteLine();
 
 app.MapObservatorioApi(repoRoot, uploadsDir);
+app.MapControllers();
 app.Run();

@@ -59,6 +59,10 @@
             <h3>Observaciones</h3>
             <ul id="lista-observaciones" class="lista-errores-validacion lista-observaciones"></ul>
           </section>
+          <section id="bloque-geografia" class="bloque-errores-validacion" hidden>
+            <h3>Validación geográfica</h3>
+            <ul id="lista-geografia" class="lista-errores-validacion"></ul>
+          </section>
         </div>
       </section>
 
@@ -100,7 +104,7 @@
 
   <script type="module">
     import { initPortal } from "/js/portal/layout.js";
-    import { inicializarPaginaCarga } from "/js/app.js?v=7";
+    import { inicializarPaginaCarga } from "/js/app.js?v=8";
     if (!(await initPortal("/index.html"))) throw 0;
     await inicializarPaginaCarga();
   </script>

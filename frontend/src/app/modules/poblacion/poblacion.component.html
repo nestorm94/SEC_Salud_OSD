@@ -8,6 +8,81 @@
   }
 </div>
 
+<div class="card filtros-card">
+  <div class="filtros-grid">
+    <div class="filtro">
+      <label>Departamento</label>
+      <select [(ngModel)]="filtroDepartamento" (change)="onDepartamentoChange()">
+        <option value="">Todos</option>
+        @for (d of departamentos; track d.codigoDane) {
+          <option [value]="d.codigoDane">{{ d.codigoDane }} - {{ d.nombreDepartamento }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtro">
+      <label>Municipio</label>
+      <select [(ngModel)]="filtroMunicipio" (change)="onMunicipioChange()" [disabled]="!filtroDepartamento">
+        <option value="">Todos</option>
+        @for (m of municipios; track m.codigoDane) {
+          <option [value]="m.codigoDane">{{ m.codigoDane }} - {{ m.nombreMunicipio }}</option>
+        }
+      </select>
+      @if (!filtroDepartamento) {
+        <small class="hint">Seleccione primero un departamento.</small>
+      }
+    </div>
+
+    <div class="filtro">
+      <label>Regional</label>
+      <select [(ngModel)]="filtroRegional" (change)="onFiltroChange()">
+        <option value="">Todas</option>
+        @for (r of regionales; track r.codigo) {
+          <option [value]="r.codigo">{{ r.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtro">
+      <label>Área</label>
+      <select [(ngModel)]="filtroArea" (change)="onFiltroChange()">
+        <option value="">Todas</option>
+        @for (a of areas; track a.codigo) {
+          <option [value]="a.codigo">{{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtro">
+      <label>Sexo</label>
+      <select [(ngModel)]="filtroSexo" (change)="onFiltroChange()">
+        <option value="">Todos</option>
+        @for (s of sexos; track s.codigo) {
+          <option [value]="s.codigo">{{ s.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtro">
+      <label>Año</label>
+      <select [(ngModel)]="filtroAnio" (change)="onFiltroChange()">
+        <option value="">Todos</option>
+        @for (a of anios; track a.codigo) {
+          <option [value]="a.codigo">{{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filtro acciones">
+      <label>&nbsp;</label>
+      <div class="acciones-row">
+        <button type="button" class="btn btn--secondary btn--sm" (click)="limpiarFiltros()">Limpiar</button>
+        <button type="button" class="btn btn--secondary btn--sm" (click)="consultar()">Recargar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @if (error()) {
   <div class="alert alert--error">{{ error() }}</div>
 }

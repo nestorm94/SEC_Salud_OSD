@@ -80,6 +80,23 @@ export interface ProyeccionResponse {
   filas: Record<string, unknown>[];
 }
 
+export interface DepartamentoDto {
+  codigoDane: string;
+  nombreDepartamento: string;
+}
+
+export interface MunicipioDto {
+  codigoDane: string;
+  codigoDepartamento: string;
+  nombreMunicipio: string;
+  regional: string;
+}
+
+export interface CatalogoSimpleDto {
+  codigo: string;
+  nombre: string;
+}
+
 export interface Dependencia {
   id: number;
   codigo: string;
@@ -134,4 +151,6 @@ export interface PaginatedQuery {
   area?: string;
   sexo?: string;
   ano?: number;
+  codigoDepartamento?: string;
+  codigoMunicipio?: string;
 }

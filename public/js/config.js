@@ -15,28 +15,51 @@ function sinBarraFinal(s) {
   return s.replace(/\/+$/, "");
 }
 
+function esHostLocal(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname === "::1"
+  );
+}
+
 export function apiBaseUrl() {
   if (typeof window === "undefined") return "";
 
+  const { protocol, hostname, port } = window.location;
+  const hostLocal = esHostLocal(hostname);
+  const puertoActual = port || "";
+
   try {
     const ls = localStorage.getItem("observatorios.apiOrigen");
-    if (ls && /^https?:\/\//i.test(ls)) return sinBarraFinal(ls);
+    if (ls && /^https?:\/\//i.test(ls)) {
+      const override = sinBarraFinal(ls);
+      /* Evita mezclar JWT entre 5289 y 8081 por un origen guardado a mano */
+      if (hostLocal && PUERTOS_API_LOCAL.has(puertoActual)) {
+        try {
+          const u = new URL(override);
+          if (esHostLocal(u.hostname) && u.port !== puertoActual) {
+            localStorage.removeItem("observatorios.apiOrigen");
+          } else {
+            return override;
+          }
+        } catch {
+          localStorage.removeItem("observatorios.apiOrigen");
+        }
+      } else {
+        return override;
+      }
+    }
   } catch {
     /* private mode */
   }
 
   const meta = document.querySelector('meta[name="observatorios-api-base"]')?.getAttribute("content")?.trim();
   if (meta && /^https?:\/\//i.test(meta)) return sinBarraFinal(meta);
-
-  const { protocol, hostname, port } = window.location;
   if (protocol === "file:") return "http://localhost:5289";
 
-  const p = port || "";
-  const hostLocal =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "[::1]" ||
-    hostname === "::1";
+  const p = puertoActual;
 
   if (hostLocal && PUERTOS_API_LOCAL.has(p))
     return sinBarraFinal(window.location.origin);

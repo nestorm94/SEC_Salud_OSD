@@ -87,6 +87,25 @@ function mostrarResultadoValidacion(data) {
     llenarListaErrores(listaObs, observaciones);
     bloqueObs.hidden = observaciones.length === 0;
   }
+
+  const bloqueGeo = $("#bloque-geografia");
+  const listaGeo = $("#lista-geografia");
+  const geo = data.geografia;
+  if (bloqueGeo && listaGeo) {
+    const items = [];
+    if (geo) {
+      items.push(`Registros evaluados: ${geo.totalRegistrosEvaluados ?? 0}`);
+      items.push(`Códigos municipio inválidos: ${geo.codigosMunicipioInvalidos ?? 0}`);
+      items.push(`Municipios inválidos: ${geo.municipiosInvalidos ?? 0}`);
+      items.push(`Códigos departamento inválidos: ${geo.codigosDepartamentoInvalidos ?? 0}`);
+      items.push(`Departamentos inválidos: ${geo.departamentosInvalidos ?? 0}`);
+      items.push(`Inconsistencias código/municipio: ${geo.inconsistenciasCodigoMunicipio ?? 0}`);
+      items.push(`Inconsistencias departamento/municipio: ${geo.inconsistenciasDepartamentoMunicipio ?? 0}`);
+      if (geo.observacion) items.push(geo.observacion);
+    }
+    llenarListaErrores(listaGeo, items);
+    bloqueGeo.hidden = items.length === 0;
+  }
 }
 
 function resetEstadoValidacion() {
@@ -98,11 +117,11 @@ function resetEstadoValidacion() {
   if (panel) panel.hidden = true;
   $("#resumen-validacion")?.replaceChildren();
   $("#resumen-validacion") && ($("#resumen-validacion").hidden = true);
-  for (const id of ["bloque-errores-diccionario", "bloque-errores-data", "bloque-observaciones"]) {
+  for (const id of ["bloque-errores-diccionario", "bloque-errores-data", "bloque-observaciones", "bloque-geografia"]) {
     const b = document.getElementById(id);
     if (b) b.hidden = true;
   }
-  for (const id of ["lista-errores-diccionario", "lista-errores-data", "lista-observaciones"]) {
+  for (const id of ["lista-errores-diccionario", "lista-errores-data", "lista-observaciones", "lista-geografia"]) {
     const ul = document.getElementById(id);
     if (ul) ul.innerHTML = "";
   }

@@ -8,7 +8,7 @@ namespace Observatorios.Api.Services;
 /// <summary>
 /// Validación en dos niveles: hoja Diccionario_datos y hoja DATA (plantilla OSC V.2).
 /// </summary>
-public sealed class OscPlantillaValidacionService
+public sealed class OscPlantillaValidacionService(IGeografiaValidacionService? geografia = null)
 {
     private const string HojaDiccionarioNombre = "Diccionario_datos";
 
@@ -58,7 +58,7 @@ public sealed class OscPlantillaValidacionService
         if (hojaDict is null)
         {
             erroresDict.Add("Falta la hoja Diccionario_datos.");
-            return Resultado(false, erroresDict, erroresData, observaciones, [], []);
+            return Resultado(false, erroresDict, erroresData, observaciones, [], [], null);
         }
 
         var filaEnc = DiccionarioOscV2Reader.BuscarFilaEncabezados(hojaDict);
@@ -68,16 +68,16 @@ public sealed class OscPlantillaValidacionService
         var headers = DiccionarioOscV2Reader.ResolverColumnas(hojaDict, filaEnc);
         ValidarColumnasDiccionario(headers, erroresDict);
         if (erroresDict.Count > 0)
-            return Resultado(false, erroresDict, erroresData, observaciones, [], []);
+            return Resultado(false, erroresDict, erroresData, observaciones, [], [], null);
 
         var definiciones = LeerDefinicionesDiccionario(hojaDict, filaEnc, headers, erroresDict);
         if (erroresDict.Count > 0)
-            return Resultado(false, erroresDict, erroresData, observaciones, [], []);
+            return Resultado(false, erroresDict, erroresData, observaciones, [], [], null);
 
         if (definiciones.Count == 0)
         {
             erroresDict.Add("La hoja Diccionario_datos no contiene registros de variables.");
-            return Resultado(false, erroresDict, erroresData, observaciones, [], []);
+            return Resultado(false, erroresDict, erroresData, observaciones, [], [], null);
         }
 
         var campos = definiciones.Select(d => d.Campo).ToList();
@@ -85,12 +85,14 @@ public sealed class OscPlantillaValidacionService
         if (hojaData is null)
         {
             erroresData.Add("Falta la hoja DATA.");
-            return Resultado(false, erroresDict, erroresData, observaciones, campos, []);
+            return Resultado(false, erroresDict, erroresData, observaciones, campos, [], null);
         }
-        ValidarHojaData(hojaData, definiciones, erroresData, observaciones);
+        var resumenGeo = geografia is null
+            ? null
+            : ValidarHojaData(hojaData, definiciones, erroresData, observaciones, geografia);
         var filas = LeerFilasData(hojaData, definiciones);
         var esValido = erroresDict.Count == 0 && erroresData.Count == 0;
-        return Resultado(esValido, erroresDict, erroresData, observaciones, campos, filas);
+        return Resultado(esValido, erroresDict, erroresData, observaciones, campos, filas, resumenGeo);
     }
 
     private static void ValidarColumnasDiccionario(
@@ -224,17 +226,18 @@ public sealed class OscPlantillaValidacionService
         return ultima;
     }
 
-    private static void ValidarHojaData(
+    private static GeografiaResumenDto? ValidarHojaData(
         IXLWorksheet hoja,
         IReadOnlyList<DefinicionVariableOsc> definiciones,
         List<string> errores,
-        List<string> observaciones)
+        List<string> observaciones,
+        IGeografiaValidacionService geo)
     {
         var range = hoja.RangeUsed();
         if (range is null)
         {
             errores.Add("La hoja DATA está vacía.");
-            return;
+            return null;
         }
 
         var filaHeader = BuscarFilaEncabezadosData(hoja, definiciones, range);
@@ -245,7 +248,7 @@ public sealed class OscPlantillaValidacionService
         if (mapaPorColumna.Count == 0)
         {
             errores.Add("No se pudieron relacionar columnas de DATA con el Diccionario_datos. Revise que los encabezados coincidan con «Nombre de la variable».");
-            return;
+            return null;
         }
 
         var lastRow = range.LastRow().RowNumber();
@@ -258,7 +261,7 @@ public sealed class OscPlantillaValidacionService
         if (filasDatos.Count == 0)
         {
             errores.Add("La hoja DATA no contiene filas de datos.");
-            return;
+            return null;
         }
 
         foreach (var fila in filasDatos)
@@ -316,6 +319,163 @@ public sealed class OscPlantillaValidacionService
         // No validar duplicados solo en CODIGO DIVIPOLA (varias filas por municipio/sexo/año).
         // Duplicado = misma combinación divipola + año + sexo (si existen esas columnas).
         ValidarRegistrosDuplicadosPorClaveCompuesta(hoja, filasDatos, mapaPorColumna, errores);
+        return ValidarGeografia(hoja, filaHeader, filasDatos, errores, observaciones, geo);
+    }
+
+    private static GeografiaResumenDto ValidarGeografia(
+        IXLWorksheet hoja,
+        int filaHeader,
+        IReadOnlyList<int> filasDatos,
+        List<string> errores,
+        List<string> observaciones,
+        IGeografiaValidacionService geo)
+    {
+        var range = hoja.RangeUsed()!;
+        var (headerExacto, headerNormalizado) = ConstruirMapasEncabezadosData(hoja, filaHeader, range);
+        int? Buscar(IEnumerable<string> nombres)
+        {
+            foreach (var n in nombres)
+            {
+                if (ResolverColumnaData(headerExacto, headerNormalizado, n, out var c))
+                    return c;
+            }
+            return null;
+        }
+
+        var colMunNom = Buscar([
+            "Municipio","Nombre municipio","Nombre del municipio","municipio_residencia","municipio_ocurrencia","municipio_atencion",
+            "municipio_procedencia","municipio_notificacion","municipio_nacimiento"
+        ]);
+        var colMunCod = Buscar([
+            "Código DANE","Codigo DANE","CODIGO_DANE","Código DIVIPOLA","Codigo DIVIPOLA","CODIGO_DIVIPOLA",
+            "cod_municipio","codigo_municipio","COD_MPIO","COD_MUNICIPIO","DIVIPOLA_MUNICIPIO"
+        ]);
+        var colDepNom = Buscar([
+            "Departamento","Nombre departamento","Nombre del departamento","departamento_residencia","departamento_ocurrencia",
+            "departamento_atencion","departamento_procedencia","departamento_notificacion","departamento_nacimiento"
+        ]);
+        var colDepCod = Buscar([
+            "Código departamento","Codigo departamento","CODIGO_DEPARTAMENTO","Código DANE departamento","Codigo DANE departamento",
+            "COD_DEPTO","COD_DANE_DEPTO","DIVIPOLA_DEPARTAMENTO"
+        ]);
+
+        if (colMunNom is null && colMunCod is null && colDepNom is null && colDepCod is null)
+        {
+            var obs = "No se detectaron columnas geográficas para validar.";
+            observaciones.Add(obs);
+            return new GeografiaResumenDto(0, 0, 0, 0, 0, 0, 0, obs);
+        }
+
+        var cat = geo.ObtenerContexto();
+        var total = 0;
+        var codMunBad = 0;
+        var munBad = 0;
+        var codDepBad = 0;
+        var depBad = 0;
+        var codMunIncons = 0;
+        var depMunIncons = 0;
+
+        foreach (var fila in filasDatos)
+        {
+            total++;
+            var vMunNom = colMunNom is int cmn ? ObtenerTexto(hoja, fila, cmn) : "";
+            var vMunCod = colMunCod is int cmc ? ObtenerTexto(hoja, fila, cmc) : "";
+            var vDepNom = colDepNom is int cdn ? ObtenerTexto(hoja, fila, cdn) : "";
+            var vDepCod = colDepCod is int cdc ? ObtenerTexto(hoja, fila, cdc) : "";
+
+            var munCod = NormalizarCodigoGeo(vMunCod, 5, out var munPadded);
+            var depCod = NormalizarCodigoGeo(vDepCod, 2, out _);
+            var munNomN = geo.NormalizarTexto(vMunNom);
+            var depNomN = geo.NormalizarTexto(vDepNom);
+
+            if (munPadded)
+                observaciones.Add($"Fila {fila}, columna {NombreColumna(colMunCod)}: código municipio completado temporalmente con ceros a la izquierda para validar.");
+
+            if (!string.IsNullOrWhiteSpace(munCod) && !geo.ValidarCodigoMunicipio(munCod))
+            {
+                codMunBad++;
+                errores.Add($"Fila {fila}, columna {NombreColumna(colMunCod)}: el código DANE/DIVIPOLA no existe en dim_municipios.");
+            }
+            if (!string.IsNullOrWhiteSpace(vMunNom) && !geo.ValidarNombreMunicipio(vMunNom))
+            {
+                munBad++;
+                errores.Add($"Fila {fila}, columna {NombreColumna(colMunNom)}: el municipio ‘{vMunNom}’ no existe en dim_municipios.");
+            }
+            if (!string.IsNullOrWhiteSpace(depCod) && !geo.ValidarCodigoDepartamento(depCod))
+            {
+                codDepBad++;
+                errores.Add($"Fila {fila}, columna {NombreColumna(colDepCod)}: el código de departamento no existe en dim_departamento.");
+            }
+            if (!string.IsNullOrWhiteSpace(vDepNom) && !geo.ValidarNombreDepartamento(vDepNom))
+            {
+                depBad++;
+                errores.Add($"Fila {fila}, columna {NombreColumna(colDepNom)}: el departamento ‘{vDepNom}’ no existe en dim_departamento.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(munCod) && !string.IsNullOrWhiteSpace(vMunNom)
+                && cat.MunicipiosPorCodigo.TryGetValue(munCod, out var mInfo)
+                && !string.Equals(geo.NormalizarTexto(mInfo.NombreMunicipio), munNomN, StringComparison.OrdinalIgnoreCase))
+            {
+                codMunIncons++;
+                errores.Add($"Fila {fila}: el código {munCod} no corresponde al municipio {vMunNom}. El municipio correcto es {mInfo.NombreMunicipio}.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(depCod) && !string.IsNullOrWhiteSpace(munCod))
+            {
+                if (!geo.ValidarDepartamentoMunicipio(depCod, munCod))
+                {
+                    depMunIncons++;
+                    errores.Add($"Fila {fila}: el municipio {vMunNom} no pertenece al departamento indicado.");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(depCod) && !string.IsNullOrWhiteSpace(vMunNom))
+            {
+                var candidates = cat.MunicipiosPorNombreNormalizado.GetValueOrDefault(munNomN) ?? [];
+                if (candidates.Count > 0 && candidates.All(c => !string.Equals(c.CodigoDepartamento, depCod, StringComparison.OrdinalIgnoreCase)))
+                {
+                    depMunIncons++;
+                    errores.Add($"Fila {fila}: el municipio {vMunNom} no pertenece al departamento indicado.");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(depNomN) && !string.IsNullOrWhiteSpace(vMunNom))
+            {
+                var depCode = cat.DepartamentosPorNombreNormalizado.GetValueOrDefault(depNomN) ?? "";
+                if (!string.IsNullOrWhiteSpace(depCode))
+                {
+                    var candidates = cat.MunicipiosPorNombreNormalizado.GetValueOrDefault(munNomN) ?? [];
+                    if (candidates.Count > 0 && candidates.All(c => !string.Equals(c.CodigoDepartamento, depCode, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        depMunIncons++;
+                        errores.Add($"Fila {fila}: el municipio {vMunNom} no pertenece al departamento indicado.");
+                    }
+                }
+            }
+        }
+
+        return new GeografiaResumenDto(total, codMunBad, munBad, codDepBad, depBad, codMunIncons, depMunIncons, null);
+
+        string NombreColumna(int? col)
+        {
+            if (col is null) return "Geografía";
+            var txt = ObtenerTexto(hoja, filaHeader, col.Value);
+            return string.IsNullOrWhiteSpace(txt) ? "Geografía" : txt;
+        }
+    }
+
+    private static string NormalizarCodigoGeo(string? input, int width, out bool padded)
+    {
+        padded = false;
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        var v = input.Trim();
+        if (v.Contains('.')) v = v.Split('.')[0];
+        v = Regex.Replace(v, @"\s+", "");
+        if (!Regex.IsMatch(v, @"^\d+$")) return v;
+        if (v.Length < width)
+        {
+            padded = true;
+            return v.PadLeft(width, '0');
+        }
+        return v;
     }
 
     /// <summary>
@@ -424,7 +584,8 @@ public sealed class OscPlantillaValidacionService
         List<string> erroresData,
         List<string> observaciones,
         IReadOnlyList<CampoDiccionarioDto> campos,
-        IReadOnlyList<DatosFilaDto> filas) =>
+        IReadOnlyList<DatosFilaDto> filas,
+        GeografiaResumenDto? geografia) =>
         new(
             esValido,
             erroresDict,
@@ -433,7 +594,8 @@ public sealed class OscPlantillaValidacionService
             campos,
             filas,
             erroresDict.Count,
-            erroresData.Count);
+            erroresData.Count,
+            geografia);
 
     private static IXLWorksheet? BuscarHojaDiccionario(IXLWorkbook wb) =>
         wb.Worksheets.FirstOrDefault(w =>
@@ -1011,7 +1173,8 @@ public sealed record OscValidacionResult(
     IReadOnlyList<CampoDiccionarioDto> Campos,
     IReadOnlyList<DatosFilaDto> Filas,
     int TotalErroresDiccionario,
-    int TotalErroresData)
+    int TotalErroresData,
+    GeografiaResumenDto? Geografia)
 {
     public IReadOnlyList<string> TodosLosErrores =>
         ErroresDiccionario.Concat(ErroresData).ToList();

@@ -1,11 +1,11 @@
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
-import { guardarSesion, getToken } from "./auth.js";
+import { guardarSesion, getToken, tokenExpirado } from "./auth.js";
 
 const params = new URLSearchParams(window.location.search);
 const next = params.get("next") || "/dashboard.html";
 
-if (getToken()) {
+if (getToken() && !tokenExpirado()) {
   window.location.href = next;
 }
 
@@ -24,6 +24,7 @@ document.getElementById("form-login").addEventListener("submit", async (ev) => {
   try {
     const { res, data } = await fetchJson(apiUrl("/api/auth/login"), {
       method: "POST",
+      sinAuth: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ usuario, password }),
     });
@@ -32,6 +33,11 @@ document.getElementById("form-login").addEventListener("submit", async (ev) => {
       ...data.usuario,
       roles: data.usuario?.roles || [],
     });
+    try {
+      localStorage.removeItem("observatorios.apiOrigen");
+    } catch {
+      /* ignore */
+    }
     window.location.href = next;
   } catch (e) {
     setMensaje(String(e.message), "error");
