@@ -1,4 +1,5 @@
 using Observatorios.Api.Auth;
+using Observatorios.Api.Health;
 using Observatorios.Api.Data;
 using Observatorios.Api.Endpoints;
 using Observatorios.Api.Services;
@@ -141,12 +142,27 @@ builder.Services.AddCors(options =>
         p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
+var connectionString = builder.Configuration.GetConnectionString("Default");
+
+builder.Services.AddHealthChecks()
+    .AddCheck("live", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API en ejecución"), tags: ["live"])
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["db"]);
+
 // Respuestas JSON y documentos en UTF-8
 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("live")
+});
+app.MapHealthChecks("/health/db", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = r => r.Tags.Contains("db")
+});
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -205,30 +221,43 @@ var uploadsDir = Path.Combine(repoRoot, "uploads");
 Directory.CreateDirectory(uploadsDir);
 Console.WriteLine($"[Observatorios.Api] uploads: {uploadsDir}");
 
+var skipBootstrap = builder.Configuration.GetValue("Observatorio:SkipSchemaBootstrap", false);
+var skipSeeds = builder.Configuration.GetValue("Observatorio:SkipStartupSeeds", false)
+    || envName.Equals(Environments.Staging, StringComparison.OrdinalIgnoreCase)
+    || envName.Equals("Testing", StringComparison.OrdinalIgnoreCase)
+    || string.Equals(Environment.GetEnvironmentVariable("OBSERVATORIO_SKIP_STARTUP_SEEDS"), "true",
+        StringComparison.OrdinalIgnoreCase);
+
 using (var scope = app.Services.CreateScope())
 {
-    var schema = scope.ServiceProvider.GetRequiredService<ObservatorioDbSchema>();
-    await schema.EnsureAllAsync();
-    var seed = scope.ServiceProvider.GetRequiredService<AreasTematicasSeedService>();
-    var seedResult = await seed.ImportarSiExisteAsync(repoRoot);
-    if (seedResult.Ok)
-        Console.WriteLine($"[Observatorios.Api] Seed áreas: {seedResult.Mensaje} ({seedResult.Areas} áreas)");
-    var lineaSeed = scope.ServiceProvider.GetRequiredService<LineaTematicaSeedService>();
-    var (nLineas, nInd) = await lineaSeed.EnsureSeedAsync();
-    Console.WriteLine($"[Observatorios.Api] Líneas temáticas: {nLineas} líneas, {nInd} indicadores (seed).");
-    var usrPrueba = scope.ServiceProvider.GetRequiredService<UsuariosPruebaSeedService>();
-    var nuevos = await usrPrueba.EnsureSeedAsync();
-    if (nuevos > 0)
-        Console.WriteLine($"[Observatorios.Api] Usuarios de prueba creados: {nuevos} (rol RESPONSABLE_TEMATICO, clave {UsuariosPruebaSeedService.PasswordPrueba}).");
-    Console.WriteLine("[Observatorios.Api] Prueba por línea: prueba.aseg | prueba.ecnt | prueba.vsp | prueba.etc | prueba.econ");
+    if (!skipBootstrap)
+    {
+        var schema = scope.ServiceProvider.GetRequiredService<ObservatorioDbSchema>();
+        await schema.EnsureAllAsync();
+    }
+
+    if (!skipSeeds)
+    {
+        var seed = scope.ServiceProvider.GetRequiredService<AreasTematicasSeedService>();
+        var seedResult = await seed.ImportarSiExisteAsync(repoRoot);
+        if (seedResult.Ok)
+            Console.WriteLine($"[Observatorios.Api] Seed áreas: {seedResult.Mensaje} ({seedResult.Areas} áreas)");
+        var lineaSeed = scope.ServiceProvider.GetRequiredService<LineaTematicaSeedService>();
+        var (nLineas, nInd) = await lineaSeed.EnsureSeedAsync();
+        Console.WriteLine($"[Observatorios.Api] Líneas temáticas: {nLineas} líneas, {nInd} indicadores (seed).");
+        var usrPrueba = scope.ServiceProvider.GetRequiredService<UsuariosPruebaSeedService>();
+        var nuevos = await usrPrueba.EnsureSeedAsync();
+        if (nuevos > 0)
+            Console.WriteLine($"[Observatorios.Api] Usuarios de prueba creados: {nuevos} (rol RESPONSABLE_TEMATICO, clave {UsuariosPruebaSeedService.PasswordPrueba}).");
+        Console.WriteLine("[Observatorios.Api] Prueba por línea: prueba.aseg | prueba.ecnt | prueba.vsp | prueba.etc | prueba.econ");
+    }
 }
 
-var connStr = builder.Configuration.GetConnectionString("Default");
-if (!string.IsNullOrWhiteSpace(connStr))
+if (!string.IsNullOrWhiteSpace(connectionString))
 {
     try
     {
-        var sb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connStr);
+        var sb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
         Console.WriteLine(
             $"[Observatorios.Api] SQL: {sb.DataSource} | {sb.InitialCatalog} | Esquema seguridad/cargas listo.");
     }

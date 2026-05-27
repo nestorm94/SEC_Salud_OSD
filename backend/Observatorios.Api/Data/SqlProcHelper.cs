@@ -1,28 +1,8 @@
-using Microsoft.Data.SqlClient;
-
 namespace Observatorios.Api.Data;
 
-/// <summary>Utilidades para adopción incremental de stored procedures.</summary>
+/// <summary>Utilidades para parámetros CSV en stored procedures de usuarios.</summary>
 internal static class SqlProcHelper
 {
-    public static async Task<bool> StoredProcedureExisteAsync(
-        SqlConnection con,
-        string schema,
-        string procedure,
-        CancellationToken ct = default)
-    {
-        const string sql = """
-SELECT 1
-FROM sys.procedures p
-INNER JOIN sys.schemas s ON s.schema_id = p.schema_id
-WHERE s.name = @schema AND p.name = @procedure;
-""";
-        await using var cmd = new SqlCommand(sql, con);
-        cmd.Parameters.AddWithValue("@schema", schema);
-        cmd.Parameters.AddWithValue("@procedure", procedure);
-        return (await cmd.ExecuteScalarAsync(ct)) is not null;
-    }
-
     public static string RolesToCsv(IEnumerable<string> roles) =>
         string.Join(',', roles
             .Where(r => !string.IsNullOrWhiteSpace(r))

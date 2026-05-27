@@ -47,8 +47,8 @@ Los SP de listado/historial de fase 1 (`usp_Carga_Listar`, etc.) se reutilizan s
 | Archivo | Cambio |
 |---------|--------|
 | `Data/SqlTvpHelper.cs` | Construcción de TVP desde DTOs |
-| `Data/CargasRepository.cs` | Escrituras y lecturas puntuales vía SP + fallback |
-| `Data/ArchivosRepository.cs` | CRUD vía SP + fallback; listado sin `TOP 300` |
+| `Data/CargasRepository.cs` | Escrituras y lecturas puntuales vía SP |
+| `Data/ArchivosRepository.cs` | CRUD vía SP; listado sin `TOP 300` |
 
 ## Despliegue
 

@@ -228,7 +228,7 @@ Models/
 El acceso a datos del API prioriza objetos en SQL Server (`vw_`, `usp_`, `ufn_`, `Tvp_`) con **fallback en C#** si un SP no está desplegado.
 
 - **Catálogo completo para desarrolladores:** [SQL-SERVER-CATALOGO-OBJETOS.md](./SQL-SERVER-CATALOGO-OBJETOS.md)
-- **Scripts de despliegue (orden fases 1–5):** [../scripts/README-SQL-REFACTOR.md](../scripts/README-SQL-REFACTOR.md)
+- **Scripts de despliegue (orden fases 1–6):** [../scripts/README-SQL-REFACTOR.md](../scripts/README-SQL-REFACTOR.md)
 
 ### 5.2 Modelo de datos (tablas principales)
 

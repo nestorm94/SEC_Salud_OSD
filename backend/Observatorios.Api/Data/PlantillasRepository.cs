@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
@@ -9,16 +10,8 @@ public sealed class PlantillasRepository(IConfiguration config)
 
     public async Task<IReadOnlyList<PlantillaRow>> ListarAsync(CancellationToken ct = default)
     {
-        const string sql = """
-SELECT p.Id, p.Codigo, p.Nombre, p.Descripcion, p.DependenciaId, d.Nombre, p.Activo, p.CreadoEn,
-       (SELECT COUNT(1) FROM dbo.CamposPlantilla c WHERE c.PlantillaId = p.Id) AS TotalCampos
-FROM dbo.PlantillasCarga p
-LEFT JOIN dbo.Dependencias d ON d.Id = p.DependenciaId
-ORDER BY p.Nombre;
-""";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Listar");
         await using var r = await cmd.ExecuteReaderAsync(ct);
         var list = new List<PlantillaRow>();
         while (await r.ReadAsync(ct))
@@ -35,49 +28,34 @@ ORDER BY p.Nombre;
 
     public async Task<int> CrearAsync(PlantillaUpsert req, CancellationToken ct = default)
     {
-        const string sql = """
-INSERT INTO dbo.PlantillasCarga (Codigo, Nombre, Descripcion, DependenciaId, Activo)
-OUTPUT INSERTED.Id VALUES (@Codigo, @Nombre, @Desc, @DepId, @Activo);
-""";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
-        cmd.Parameters.AddWithValue("@Codigo", req.Codigo.Trim().ToUpperInvariant());
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Crear");
+        cmd.Parameters.AddWithValue("@Codigo", req.Codigo);
         cmd.Parameters.AddWithValue("@Nombre", req.Nombre);
-        cmd.Parameters.AddWithValue("@Desc", (object?)req.Descripcion ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@DepId", (object?)req.DependenciaId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Descripcion", (object?)req.Descripcion ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DependenciaId", (object?)req.DependenciaId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Activo", req.Activo);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
     public async Task ActualizarAsync(int id, PlantillaUpsert req, CancellationToken ct = default)
     {
-        const string sql = """
-UPDATE dbo.PlantillasCarga SET Codigo=@Codigo, Nombre=@Nombre, Descripcion=@Desc,
-    DependenciaId=@DepId, Activo=@Activo WHERE Id=@Id;
-""";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Actualizar");
         cmd.Parameters.AddWithValue("@Id", id);
-        cmd.Parameters.AddWithValue("@Codigo", req.Codigo.Trim().ToUpperInvariant());
+        cmd.Parameters.AddWithValue("@Codigo", req.Codigo);
         cmd.Parameters.AddWithValue("@Nombre", req.Nombre);
-        cmd.Parameters.AddWithValue("@Desc", (object?)req.Descripcion ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@DepId", (object?)req.DependenciaId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Descripcion", (object?)req.Descripcion ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DependenciaId", (object?)req.DependenciaId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Activo", req.Activo);
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
     public async Task<IReadOnlyList<CampoPlantillaRow>> ListarCamposAsync(int plantillaId, CancellationToken ct = default)
     {
-        const string sql = """
-SELECT Id, PlantillaId, NombreCampo, TipoDato, Obligatorio, Descripcion, Longitud, Formato, ValoresPermitidos, Orden
-FROM dbo.CamposPlantilla WHERE PlantillaId = @Pid ORDER BY Orden, Id;
-""";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
-        cmd.Parameters.AddWithValue("@Pid", plantillaId);
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Campos_Listar");
+        cmd.Parameters.AddWithValue("@PlantillaId", plantillaId);
         await using var r = await cmd.ExecuteReaderAsync(ct);
         var list = new List<CampoPlantillaRow>();
         while (await r.ReadAsync(ct))
@@ -92,34 +70,37 @@ FROM dbo.CamposPlantilla WHERE PlantillaId = @Pid ORDER BY Orden, Id;
 
     public async Task<int> CrearCampoAsync(int plantillaId, CampoPlantillaUpsert req, CancellationToken ct = default)
     {
-        const string sql = """
-INSERT INTO dbo.CamposPlantilla (PlantillaId, NombreCampo, TipoDato, Obligatorio, Descripcion, Longitud, Formato, ValoresPermitidos, Orden)
-OUTPUT INSERTED.Id VALUES (@Pid, @Nombre, @Tipo, @Obl, @Desc, @Len, @Fmt, @Val, @Ord);
-""";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
-        cmd.Parameters.AddWithValue("@Pid", plantillaId);
-        cmd.Parameters.AddWithValue("@Nombre", req.NombreCampo);
-        cmd.Parameters.AddWithValue("@Tipo", req.TipoDato);
-        cmd.Parameters.AddWithValue("@Obl", req.Obligatorio);
-        cmd.Parameters.AddWithValue("@Desc", (object?)req.Descripcion ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Len", (object?)req.Longitud ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Fmt", (object?)req.Formato ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Val", (object?)req.ValoresPermitidos ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Ord", req.Orden);
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Campo_Crear");
+        cmd.Parameters.AddWithValue("@PlantillaId", plantillaId);
+        cmd.Parameters.AddWithValue("@NombreCampo", req.NombreCampo);
+        cmd.Parameters.AddWithValue("@TipoDato", req.TipoDato);
+        cmd.Parameters.AddWithValue("@Obligatorio", req.Obligatorio);
+        cmd.Parameters.AddWithValue("@Descripcion", (object?)req.Descripcion ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Longitud", (object?)req.Longitud ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Formato", (object?)req.Formato ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ValoresPermitidos", (object?)req.ValoresPermitidos ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Orden", req.Orden);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
     public async Task EliminarCampoAsync(int campoId, CancellationToken ct = default)
     {
-        const string sql = "DELETE FROM dbo.CamposPlantilla WHERE Id = @Id;";
-        await using var con = new SqlConnection(_cs);
-        await con.OpenAsync(ct);
-        await using var cmd = new SqlCommand(sql, con);
+        await using var con = await AbrirAsync(ct);
+        await using var cmd = Sp(con, "dbo.usp_Plantilla_Campo_Eliminar");
         cmd.Parameters.AddWithValue("@Id", campoId);
         await cmd.ExecuteNonQueryAsync(ct);
     }
+
+    private async Task<SqlConnection> AbrirAsync(CancellationToken ct)
+    {
+        var con = new SqlConnection(_cs);
+        await con.OpenAsync(ct);
+        return con;
+    }
+
+    private static SqlCommand Sp(SqlConnection con, string name) =>
+        new(name, con) { CommandType = CommandType.StoredProcedure };
 }
 
 public sealed record PlantillaRow(int Id, string Codigo, string Nombre, string? Descripcion,

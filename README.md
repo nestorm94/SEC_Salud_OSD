@@ -47,7 +47,13 @@ Plataforma para la **Secretaría de Salud**: autenticación por dependencia, **c
 
    Cambie la contraseña del administrador en entornos reales.
 
-Al arrancar, la API aplica el esquema SQL (idempotente), crea el usuario **ADMIN** si no existe e intenta importar áreas desde `data/Áreas temáticas OSC V.2.xlsx` si está presente.
+Al arrancar en desarrollo, la API aplica `scripts/schema-bootstrap.sql` (idempotente), crea el usuario **ADMIN** si no existe e intenta importar áreas desde `data/Áreas temáticas OSC V.2.xlsx` si está presente. En producción/IIS use `Observatorio:SkipSchemaBootstrap: true` y despliegue SQL manual (ver `scripts/README-SQL-REFACTOR.md`).
+
+**Monitoreo:** `GET /health` (API viva) · `GET /health/db` (conexión SQL).
+
+**Pruebas:** `dotnet test backend/Observatorios.Api.Tests/Observatorios.Api.Tests.csproj`
+
+**Secretos:** ver [docs/CONFIGURACION-SECRETOS.md](docs/CONFIGURACION-SECRETOS.md).
 
 ## Estructura del proyecto
 

@@ -3,7 +3,7 @@
 Documentación de referencia para **desarrolladores** que mantengan o extiendan el backend. Describe vistas (`vw_`), funciones (`ufn_`), tipos tabla (`Tvp_`), procedimientos (`usp_`), scripts de despliegue y su relación con el código C#.
 
 **Base de datos:** `ObservatorioDB`  
-**Convención:** lecturas sin filtros → vista; lecturas con filtros → `usp_`; escrituras → `usp_` obligatorio en producción; el backend conserva **SQL legacy en C#** si el SP no existe (despliegue incremental).
+**Convención:** lecturas sin filtros → vista; lecturas con filtros → `usp_`; escrituras → `usp_` obligatorio. Los repositorios del refactor **solo invocan SP** (sin SQL inline duplicado en C#). Los scripts de las fases 1–6 deben estar aplicados en cada entorno.
 
 ---
 
@@ -30,9 +30,7 @@ Cliente (public/ o Angular)
     → API ASP.NET Core (Controllers / Minimal APIs)
         → Services (reglas de negocio, Excel, BCrypt)
             → Repositories (Data/*Repository.cs)
-                → SqlProcHelper.StoredProcedureExisteAsync
-                    ├─ SÍ → EXEC dbo.usp_...
-                    └─ NO → SQL inline legacy (fallback)
+                → EXEC dbo.usp_...
 ```
 
 | Tipo de operación | Objeto SQL preferido |
@@ -46,9 +44,9 @@ Cliente (public/ o Angular)
 
 | Archivo | Rol |
 |---------|-----|
-| `Data/SqlProcHelper.cs` | Detecta si existe un SP; utilidades CSV roles/áreas |
+| `Data/SqlProcHelper.cs` | Utilidades CSV roles/áreas para SP de usuarios |
 | `Data/SqlTvpHelper.cs` | Construye `DataTable` para TVP de cargas |
-| `Data/DimCatalogSql.cs` | Resolución dinámica de tablas `dim_*` (fallback catálogos) |
+| `Data/DimCatalogSql.cs` | Constantes (ej. código DANE Casanare `85`) |
 
 ---
 
@@ -224,6 +222,42 @@ Construcción en C#: `SqlTvpHelper.CampoDiccionario`, `.DatosCargados`, `.Errore
 | `usp_Carga_GuardarDatosBulk` | `@CargaId`, `@Filas` TVP | `CargasRepository.GuardarDatosAsync` |
 | `usp_Carga_GuardarErroresBulk` | `@CargaId`, `@Errores` TVP | `CargasRepository.GuardarErroresAsync` |
 
+### Fase 6 — Administración, ArchivoCarga y auditoría
+
+#### Vistas
+| Vista | Tablas base |
+|-------|-------------|
+| `vw_LineaTematica_Listado` | `LineaTematica` |
+| `vw_Indicador_Listado` | `Indicador` + `LineaTematica` |
+| `vw_Plantilla_Listado` | `PlantillasCarga` + `Dependencias` |
+| `vw_AreaTematica_Listado` | `AreaTematica` + `Dependencias` |
+
+#### Línea temática e indicador (app)
+| Procedimiento | Parámetros | Repositorio C# |
+|---------------|------------|----------------|
+| `usp_LineaTematica_Listar` | `@SoloActivas` | `LineaTematicaRepository` |
+| `usp_LineaTematica_Obtener` | `@Id` | `LineaTematicaRepository` |
+| `usp_LineaTematica_Crear` / `Actualizar` | datos línea | `LineaTematicaRepository` |
+| `usp_LineaTematica_ContarIndicadores` | `@Id` | `LineaTematicaRepository` |
+| `usp_Indicador_Listar` | `@LineaTematicaId`, `@SoloActivas` | `IndicadorRepository` |
+| `usp_Indicador_Obtener` | `@Id` | `IndicadorRepository` |
+| `usp_Indicador_ObtenerColumnasObligatoriasJson` | `@Id` | `IndicadorRepository` |
+| `usp_Indicador_PerteneceALinea` | `@IndicadorId`, `@LineaTematicaId` | `IndicadorRepository` |
+| `usp_Indicador_Crear` / `Actualizar` | datos indicador | `IndicadorRepository` |
+
+**Nota:** `usp_Indicador_Prostata_Listar` (fase 1) es distinto; lo usa `IndicadoresRepository` (API pública).
+
+#### Plantillas, áreas, ArchivoCarga, auditoría
+| Procedimiento | Repositorio C# |
+|---------------|----------------|
+| `usp_Plantilla_Listar`, `Crear`, `Actualizar` | `PlantillasRepository` |
+| `usp_Plantilla_Campos_Listar`, `usp_Plantilla_Campo_Crear`, `usp_Plantilla_Campo_Eliminar` | `PlantillasRepository` |
+| `usp_AreaTematica_Listar`, `usp_AreaTematica_Crear` | `AreaTematicaRepository` |
+| `usp_ArchivoCarga_Sincronizar`, `usp_ArchivoCarga_ActualizarEstadoPorCarga` | `ArchivoCargaRepository` |
+| `usp_Auditoria_Registrar`, `usp_Auditoria_Listar` | `AuditoriaRepository` |
+
+**Catálogo validación Excel:** `CatalogoRepository` → `usp_Catalogo_Departamentos_Listar` + `usp_Catalogo_Municipios_Listar` (sin SP nuevo; reutiliza fase 4).
+
 ---
 
 ## Mapa C# ↔ SQL
@@ -239,10 +273,17 @@ Construcción en C#: `SqlTvpHelper.CampoDiccionario`, `.DatosCargados`, `.Errore
 | `IndicadoresRepository.cs` | `usp_Indicador_Prostata_Listar` |
 | `PoblacionCatalogosRepository.cs` | `usp_Catalogo_*` |
 | `PoblacionVistasRepository.cs` | `usp_ProyeccionPoblacion_ConsultarPaginado` |
+| `LineaTematicaRepository.cs` | Fase 6 líneas temáticas |
+| `IndicadorRepository.cs` | Fase 6 indicadores app |
+| `PlantillasRepository.cs` | Fase 6 plantillas y campos |
+| `AreaTematicaRepository.cs` | Fase 6 áreas temáticas |
+| `ArchivoCargaRepository.cs` | Fase 6 vínculo ArchivoCarga |
+| `AuditoriaRepository.cs` | Fase 6 auditoría |
+| `CatalogoRepository.cs` | `usp_Catalogo_Departamentos_Listar`, `usp_Catalogo_Municipios_Listar` (validación Excel) |
 
 **Servicios que orquestan (sin SQL directo):**
 
-- `CargaArchivoService` — flujo Excel → `CargasRepository` + `ArchivosRepository`
+- `CargaArchivoService` — flujo Excel → `CargasRepository` + `ArchivosRepository` + `CatalogoRepository` + `ArchivoCargaRepository`
 - `ArchivoFlujoService` — prevalidación y envío
 - `CatalogoService` — caché 6 h sobre catálogos de proyección
 - `ExcelValidationService` / `OscPlantillaValidacionService` — validación en memoria
@@ -284,7 +325,11 @@ No migrar a SQL (por diseño):
 | Autorización por rol / dependencia / línea | `AuthorizationService`, `UserContext` |
 | Almacenamiento de archivos en disco | rutas bajo `uploads/`, IIS |
 | Caché en memoria | `CatalogoService`, `PoblacionVistasRepository` (3 min), catálogos (6 h) |
-| Auditoría de aplicación | `AuditoriaRepository` (si aplica) |
+| Registro de auditoría en BD | `AuditoriaRepository` → `usp_Auditoria_*` |
+| DDL inicial y seed mínimo | `scripts/schema-bootstrap.sql`, `scripts/schema-seed-minimo.sql` (también vía `ObservatorioDbSchema` en dev) |
+| Usuario admin al arrancar | `ObservatorioDbSchema` → `usp_Usuario_*` si fase 2 aplicada; si no, SQL parametrizado + BCrypt en C# |
+
+**Bootstrap:** en **producción** (`appsettings.Production.json`) `Observatorio:SkipSchemaBootstrap: true` — el esquema se despliega solo con `sqlcmd`. En **desarrollo** la API ejecuta los scripts SQL al iniciar.
 
 ---
 
@@ -293,7 +338,7 @@ No migrar a SQL (por diseño):
 1. **Nuevo listado:** crear `vw_MiEntidad_Listado` + `usp_MiEntidad_Listar` con filtros como parámetros.
 2. **Nueva escritura:** solo `usp_`; transacción en SQL si toca varias tablas.
 3. **Bulk:** preferir TVP + un SP; en C# usar `SqlTvpHelper` como plantilla.
-4. **Backend:** siempre comprobar `SqlProcHelper.StoredProcedureExisteAsync` y mantener fallback hasta que el script esté en todos los entornos.
+4. **Backend:** añadir método en el repositorio que llame al nuevo `usp_` (sin duplicar SQL en C#).
 5. **Sin `TOP` arbitrario** en listados de negocio (usar paginación explícita).
 6. **Nombres de parámetros SP:** evitar colisión con variables locales (`@Territorio` ≡ `@territorio` en SQL Server — usar prefijo `@pTerritorio` en SQL dinámico).
 7. **Columnas opcionales en `dim_*`:** usar `sp_executesql` en el SP para no fallar la compilación si la tabla existe sin esa columna.
@@ -311,6 +356,7 @@ Diagnósticos y notas de validación (más detalle operativo):
 | 3 | [sql-refactor-diagnostico-fase3-dashboard.md](./sql-refactor-diagnostico-fase3-dashboard.md) |
 | 4 | [sql-refactor-diagnostico-fase4-proyeccion-catalogos.md](./sql-refactor-diagnostico-fase4-proyeccion-catalogos.md) |
 | 5 | [sql-refactor-diagnostico-fase5-cargas-archivos.md](./sql-refactor-diagnostico-fase5-cargas-archivos.md) |
+| 6 | [sql-refactor-diagnostico-fase6.md](./sql-refactor-diagnostico-fase6.md) |
 
 Arquitectura general del producto: [ARQUITECTURA.md](./ARQUITECTURA.md).
 
@@ -325,12 +371,16 @@ Arquitectura general del producto: [ARQUITECTURA.md](./ARQUITECTURA.md).
 - `sql-refactor-fase3-dashboard.sql`
 - `sql-refactor-fase4-proyeccion-catalogos.sql`
 - `sql-refactor-fase5-cargas-archivos-writes.sql`
+- `sql-refactor-fase6-admin-catalogos.sql`
+- `schema-bootstrap.sql`, `schema-seed-minimo.sql`
 
 ### Backend (`backend/Observatorios.Api/`)
 
 - `Data/CargasRepository.cs`, `ArchivosRepository.cs`, `DashboardRepository.cs`
 - `Data/UsuariosRepository.cs`, `RolesRepository.cs`, `DependenciasRepository.cs`
 - `Data/IndicadoresRepository.cs`, `PoblacionCatalogosRepository.cs`, `PoblacionVistasRepository.cs`
+- `Data/LineaTematicaRepository.cs`, `IndicadorRepository.cs`, `PlantillasRepository.cs`, `AreaTematicaRepository.cs`
+- `Data/ArchivoCargaRepository.cs`, `AuditoriaRepository.cs`, `CatalogoRepository.cs`
 - `Data/SqlProcHelper.cs`, `SqlTvpHelper.cs`, `DimCatalogSql.cs`
 - `Services/CatalogoService.cs`, `GeografiaValidacionService.cs`, …
 - `Controllers/PublicIndicadoresController.cs`
@@ -343,4 +393,4 @@ Arquitectura general del producto: [ARQUITECTURA.md](./ARQUITECTURA.md).
 
 ---
 
-*Última actualización: refactor fases 1–5 (mayo 2026).*
+*Última actualización: refactor fases 1–6 (mayo 2026).*

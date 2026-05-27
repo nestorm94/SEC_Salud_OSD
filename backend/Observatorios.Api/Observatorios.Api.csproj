@@ -4,7 +4,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>observatorios-api-dev</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Observatorios.Api.Tests" />
+  </ItemGroup>
 
   <PropertyGroup>
     <PublicWebSource>$(MSBuildProjectDirectory)\..\..\public</PublicWebSource>
@@ -12,6 +17,11 @@
 
   <ItemGroup>
     <Content Include="$(PublicWebSource)\**\*" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\scripts\schema-bootstrap.sql" Link="Sql\schema-bootstrap.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\scripts\schema-seed-minimo.sql" Link="Sql\schema-seed-minimo.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

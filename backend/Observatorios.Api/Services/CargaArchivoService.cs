@@ -59,7 +59,7 @@ public sealed class CargaArchivoService(
             $"Archivo recibido: {nombreOriginal}", ct);
 
         if (areaTematicaId.HasValue)
-            await archivoCargaRepo.SincronizarAsync(archivoId, cargaId, user.UsuarioId, depId,
+            await archivoCargaRepo.SincronizarAsync(archivoId, user.UsuarioId, depId,
                 areaTematicaId.Value, plantillaCargaId, CargaEstados.EnValidacion, ct);
 
         excelStream.Position = 0;
