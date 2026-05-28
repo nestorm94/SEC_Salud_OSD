@@ -1,6 +1,6 @@
 <app-page-header title="Campos de plantilla" [subtitle]="'Plantilla #' + plantillaId()">
-  <a routerLink="/administracion/plantillas" class="btn btn--secondary">Volver</a>
-  <button type="button" class="btn btn--primary" (click)="mostrarForm.set(!mostrarForm())">
+  <a routerLink="/administracion/plantillas" class="btn-secondary">Volver</a>
+  <button type="button" class="btn-primary" (click)="mostrarForm.set(!mostrarForm())">
     {{ mostrarForm() ? 'Cancelar' : 'Nuevo campo' }}
   </button>
 </app-page-header>
@@ -10,7 +10,8 @@
 }
 
 @if (mostrarForm()) {
-  <div class="card" style="margin-bottom:1rem">
+  <div class="content-card filter-card">
+    <h3 class="content-card__title">Agregar campo</h3>
     <form [formGroup]="form" (ngSubmit)="crear()">
       <div class="form-row">
         <div class="form-group">
@@ -36,41 +37,56 @@
         <input type="text" formControlName="descripcion" />
       </div>
       <label class="checkbox-label">
-        <input type="checkbox" formControlName="obligatorio" /> Obligatorio
+        <input type="checkbox" formControlName="obligatorio" /> Campo obligatorio
       </label>
-      <button type="submit" class="btn btn--primary" style="margin-top:1rem">Agregar campo</button>
+      <button type="submit" class="btn-primary" style="margin-top: 1rem">Agregar campo</button>
     </form>
   </div>
 }
 
 @if (loading()) {
-  <p class="loading">Cargando...</p>
+  <app-loading-state></app-loading-state>
 } @else {
-  <div class="card table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Orden</th>
-          <th>Campo</th>
-          <th>Tipo</th>
-          <th>Obligatorio</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (c of campos(); track c.id) {
+  <div class="table-card">
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
           <tr>
-            <td>{{ c.orden }}</td>
-            <td>{{ c.nombre_campo }}</td>
-            <td>{{ c.tipo_dato }}</td>
-            <td>{{ c.obligatorio ? 'Sí' : 'No' }}</td>
-            <td>
-              <button type="button" class="btn btn--danger btn--sm" (click)="eliminar(c)">Eliminar</button>
-            </td>
+            <th>Orden</th>
+            <th>Campo</th>
+            <th>Tipo</th>
+            <th>Obligatorio</th>
+            <th>Acciones</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (c of pag.paginated(); track c.id) {
+            <tr>
+              <td>{{ c.orden }}</td>
+              <td>{{ c.nombre_campo }}</td>
+              <td>{{ c.tipo_dato }}</td>
+              <td>{{ c.obligatorio ? 'Sí' : 'No' }}</td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action
+                    icon="delete"
+                    label="Eliminar campo"
+                    variant="danger"
+                    (action)="eliminar(c)"
+                  />
+                </app-table-actions>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
     @if (!campos().length) {
       <p class="empty">Sin campos definidos</p>
     }

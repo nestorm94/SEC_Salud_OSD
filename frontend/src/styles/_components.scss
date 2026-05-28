@@ -1,0 +1,663 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Cards
+.content-card,
+.filter-card,
+.table-card,
+.card {
+  @include card-surface;
+  padding: $space-6;
+
+  @include respond-mobile {
+    padding: $space-4;
+  }
+
+  &__title {
+    margin: 0 0 $space-5;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $color-primary-dark;
+  }
+}
+
+.filter-card {
+  margin-bottom: $space-6;
+  padding: $space-5 $space-6;
+  background: linear-gradient(180deg, $color-surface 0%, #fafcfe 100%);
+}
+
+.form-group--full {
+  grid-column: 1 / -1;
+}
+
+.lista-errores-validacion {
+  margin: $space-3 0 $space-5;
+  padding-left: $space-5;
+  color: $color-text;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+
+  li + li {
+    margin-top: $space-2;
+  }
+}
+
+.lista-observaciones li {
+  color: $color-text-muted;
+}
+
+.table-card {
+  padding: 0;
+  overflow: visible;
+  max-width: 100%;
+
+  .table-card__toolbar {
+    padding: $space-4 $space-6;
+    border-bottom: 1px solid $color-border;
+    @include flex-between;
+    gap: $space-4;
+    flex-wrap: wrap;
+  }
+
+  .responsive-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0 $space-4 $space-4;
+  }
+}
+
+// Stat cards
+.grid-cards,
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: $space-5;
+  margin-bottom: $space-6;
+}
+
+.stat-card {
+  @include card-surface;
+  padding: $space-5 $space-6;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow $transition-base, transform $transition-fast;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, $color-primary-dark, $color-accent);
+    border-radius: $radius-sm 0 0 $radius-sm;
+  }
+
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+
+  &--success::before {
+    background: $color-success;
+  }
+
+  &--warning::before {
+    background: $color-warning;
+  }
+
+  &--danger::before {
+    background: $color-danger;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: $color-primary-dark;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  .stat-label {
+    margin-top: $space-2;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $color-text-muted;
+  }
+}
+
+// Botones
+.btn,
+%btn {
+  @include btn-base;
+}
+
+.btn-primary {
+  @include btn-base;
+  background: linear-gradient(135deg, $color-primary-dark 0%, $color-primary 100%);
+  color: $color-text-inverse;
+  box-shadow: 0 2px 8px rgba(11, 31, 58, 0.2);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    box-shadow: 0 4px 12px rgba(11, 31, 58, 0.25);
+  }
+}
+
+.btn-secondary {
+  @include btn-base;
+  background: $color-surface;
+  color: $color-primary-dark;
+  border: 1px solid $color-border-strong;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: $color-primary-light;
+    color: $color-primary;
+  }
+}
+
+.btn-success {
+  @include btn-base;
+  background: linear-gradient(135deg, $color-accent-dark 0%, $color-accent 100%);
+  color: $color-text-inverse;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+}
+
+.btn-danger {
+  @include btn-base;
+  background: $color-danger;
+  color: $color-text-inverse;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.95);
+  }
+}
+
+.btn-sm {
+  min-height: 34px;
+  padding: 0 $space-4;
+  font-size: $font-size-xs;
+}
+
+.btn-icon {
+  min-width: 40px;
+  padding: 0 $space-3;
+}
+
+// Compatibilidad clases anteriores
+.btn--primary {
+  @extend .btn-primary;
+}
+.btn--secondary {
+  @extend .btn-secondary;
+}
+.btn--danger {
+  @extend .btn-danger;
+}
+.btn--sm {
+  @extend .btn-sm;
+}
+
+// Formularios
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-5 $space-6;
+
+  @include respond-mobile {
+    grid-template-columns: 1fr;
+  }
+
+  &--3 {
+    grid-template-columns: repeat(3, 1fr);
+
+    @include respond-tablet {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include respond-mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.form-group,
+.osd-field {
+  margin-bottom: $space-4;
+
+  label,
+  .mat-mdc-form-field-label,
+  mat-label {
+    display: block;
+    margin-bottom: $space-2;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $color-text;
+  }
+
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: $space-3 $space-4;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface;
+    color: $color-text;
+    transition: border-color $transition-fast, box-shadow $transition-fast;
+
+    &:focus {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+    }
+  }
+
+  textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  .error,
+  .field-error {
+    display: block;
+    margin-top: $space-2;
+    font-size: $font-size-xs;
+    color: $color-danger;
+  }
+
+  .hint {
+    display: block;
+    margin-top: $space-1;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: $space-4 $space-5;
+  align-items: end;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-4;
+  margin-top: $space-5;
+  padding-top: $space-5;
+  border-top: 1px solid $color-border;
+
+  > .btn,
+  > .btn-primary,
+  > .btn-secondary,
+  > .btn-success,
+  > .btn-danger {
+    flex-shrink: 0;
+  }
+}
+
+// Primera opción de listas desplegables (placeholder)
+select option.option-placeholder {
+  color: $color-text-muted;
+}
+
+// Tablas responsive
+.table-wrap,
+.responsive-table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  border-radius: $radius-md;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-border-strong;
+    border-radius: 4px;
+  }
+}
+
+.table-scroll-hint {
+  display: none;
+  margin: 0 $space-4 $space-2;
+  padding: $space-2 $space-3;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  text-align: center;
+  background: $color-accent-light;
+  border-radius: $radius-sm;
+
+  @include respond-tablet {
+    display: block;
+  }
+}
+
+// Si la tabla usa tarjetas móviles (data-label), no mostrar hint de scroll
+.table-card:has(td[data-label]) .table-scroll-hint,
+.content-card:has(td[data-label]) .table-scroll-hint {
+  @include respond-tablet {
+    display: none;
+  }
+}
+
+table.data-table,
+.responsive-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $font-size-sm;
+
+  th {
+    @include table-header-cell;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  td {
+    padding: $space-4;
+    border-bottom: 1px solid $color-border;
+    color: $color-text;
+    vertical-align: middle;
+    max-width: 280px;
+  }
+
+  tbody tr {
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba(30, 77, 140, 0.04);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+
+    &.selected {
+      background: rgba(31, 122, 58, 0.08);
+    }
+  }
+
+  .actions,
+  .table-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: $space-1;
+    white-space: nowrap;
+    max-width: none;
+  }
+}
+
+// Botones de acción compactos (iconos)
+.icon-btn,
+a.icon-btn {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  color: $color-primary;
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: background $transition-fast, color $transition-fast, border-color $transition-fast,
+    box-shadow $transition-fast;
+
+  .material-icons {
+    font-size: 20px;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: $color-primary-light;
+    color: $color-primary-dark;
+    box-shadow: $shadow-sm;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &--success {
+    color: $color-accent;
+    border-color: rgba(31, 122, 58, 0.35);
+
+    &:hover:not(:disabled) {
+      background: $color-accent-light;
+      color: $color-accent-dark;
+    }
+  }
+
+  &--danger {
+    color: $color-danger;
+    border-color: rgba(220, 38, 38, 0.35);
+
+    &:hover:not(:disabled) {
+      background: #fef2f2;
+      color: $color-danger;
+    }
+  }
+
+  &--ghost {
+    border-color: transparent;
+    background: transparent;
+
+    &:hover:not(:disabled) {
+      background: rgba(11, 31, 58, 0.06);
+    }
+  }
+}
+
+// Móvil/tablet: tabla en tarjetas si cada <td> tiene data-label
+@include respond-tablet {
+  .responsive-table-wrap:has(.responsive-table td[data-label]) {
+    overflow-x: visible;
+  }
+
+  .responsive-table:has(td[data-label]) {
+    min-width: 0;
+    width: 100%;
+
+    thead {
+      display: none;
+    }
+
+    tbody tr {
+      display: block;
+      margin-bottom: $space-4;
+      padding: $space-4;
+      background: $color-surface;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      box-shadow: $shadow-sm;
+
+      &:hover {
+        background: $color-surface;
+      }
+    }
+
+    td {
+      display: grid;
+      grid-template-columns: minmax(100px, 36%) 1fr;
+      align-items: start;
+      gap: $space-1 $space-3;
+      max-width: none;
+      padding: $space-2 0;
+      border-bottom: 1px solid $color-border;
+      white-space: normal;
+      word-break: break-word;
+
+      &::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: $font-size-xs;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: $color-text-muted;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.actions {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: $space-2;
+
+        &::before {
+          flex: 0 0 100%;
+          margin-bottom: $space-2;
+        }
+
+        .table-actions {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
+// Tabs
+.tabs,
+.osd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  margin-bottom: $space-6;
+  padding: $space-1;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+
+  button,
+  .tab-btn {
+    padding: $space-3 $space-5;
+    border: none;
+    border-radius: $radius-md;
+    background: transparent;
+    color: $color-text-muted;
+    font-weight: 600;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      color: $color-primary;
+      background: rgba(11, 31, 58, 0.04);
+    }
+
+    &.active {
+      color: $color-text-inverse;
+      background: linear-gradient(135deg, $color-primary-dark, $color-primary);
+      box-shadow: $shadow-sm;
+    }
+  }
+}
+
+// Paginación
+.paginacion,
+.osd-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-4;
+  margin-top: $space-6;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+// Alertas y estados
+.alert {
+  padding: $space-4 $space-5;
+  border-radius: $radius-md;
+  margin-bottom: $space-5;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  border-left: 4px solid transparent;
+
+  &--error {
+    background: #fef2f2;
+    color: $color-danger;
+    border-color: $color-danger;
+  }
+
+  &--success {
+    background: $color-accent-light;
+    color: $color-accent-dark;
+    border-color: $color-accent;
+  }
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: $space-10 $space-6;
+  color: $color-text-muted;
+  font-size: $font-size-base;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-4;
+}
+
+.meta {
+  margin: 0 0 $space-4;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: $space-4 $space-5;
+  margin-bottom: $space-4;
+}
+
+.roles-check {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  font-weight: 500;
+  cursor: pointer;
+}

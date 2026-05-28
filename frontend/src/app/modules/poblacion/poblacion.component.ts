@@ -2,6 +2,9 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
+import { TablePaginatorComponent } from '../../shared/components/table-paginator/table-paginator.component';
+import { TABLE_PAGE_SIZE } from '../../shared/utils/table-pagination.util';
 import { PoblacionService, VistaPoblacion } from './poblacion.service';
 import { CatalogoSimpleDto, DepartamentoDto, MunicipioDto, ProyeccionResponse } from '../../shared/models/api.models';
 import { CatalogoService } from '../../core/services/catalogo.service';
@@ -9,7 +12,7 @@ import { CatalogoService } from '../../core/services/catalogo.service';
 @Component({
   selector: 'app-poblacion',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, LoadingStateComponent, TablePaginatorComponent],
   templateUrl: './poblacion.component.html',
   styleUrl: './poblacion.component.scss'
 })
@@ -23,7 +26,7 @@ export class PoblacionComponent implements OnInit {
   error = signal('');
 
   pagina = 1;
-  tamanoPagina = 20;
+  readonly tamanoPagina = TABLE_PAGE_SIZE;
 
   // Catálogos dinámicos
   departamentos: DepartamentoDto[] = [];
@@ -150,6 +153,12 @@ export class PoblacionComponent implements OnInit {
       this.pagina++;
       this.consultar();
     }
+  }
+
+  irAPagina(p: number): void {
+    if (p === this.pagina) return;
+    this.pagina = p;
+    this.consultar();
   }
 
   ngOnInit(): void {

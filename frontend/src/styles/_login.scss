@@ -1,0 +1,36 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.login-page {
+  min-height: 100vh;
+  @include flex-center;
+  padding: $space-6;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(31, 122, 58, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 90% 90%, rgba(11, 31, 58, 0.15) 0%, transparent 50%),
+    linear-gradient(160deg, #e8eef5 0%, $color-bg 45%, #eef2f7 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: $space-10 $space-8 !important;
+  border-radius: $radius-xl !important;
+  box-shadow: $shadow-lg !important;
+
+  @include respond-mobile {
+    padding: $space-8 $space-6 !important;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: $space-8;
+  }
+
+  &__tagline {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+  }
+}

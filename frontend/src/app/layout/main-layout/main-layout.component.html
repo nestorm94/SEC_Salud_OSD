@@ -1,9 +1,15 @@
-<div class="layout">
-  <app-sidebar></app-sidebar>
-  <div class="layout__main">
-    <app-header></app-header>
-    <main class="layout__content">
-      <router-outlet></router-outlet>
+<div class="app-layout">
+  @if (sidebarOpen()) {
+    <div class="app-layout__backdrop" (click)="closeSidebar()" aria-hidden="true"></div>
+  }
+  <app-sidebar [menuOpen]="sidebarOpen()"></app-sidebar>
+  <div class="app-layout__main">
+    <app-header (menuToggle)="toggleSidebar()"></app-header>
+    <main class="app-layout__content">
+      <div class="page-container">
+        <app-breadcrumbs></app-breadcrumbs>
+        <router-outlet></router-outlet>
+      </div>
     </main>
   </div>
 </div>

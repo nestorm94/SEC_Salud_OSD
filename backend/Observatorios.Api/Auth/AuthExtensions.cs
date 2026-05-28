@@ -44,7 +44,11 @@ public static class AuthExtensions
         services.AddAuthorization(options =>
         {
             options.AddPolicy(PolicyAdmin, p =>
-                p.RequireRole("ADMIN", "Administrador"));
+                p.RequireAssertion(ctx =>
+                {
+                    var roles = ctx.User.FindAll(ClaimTypes.Role).Select(c => c.Value);
+                    return Observatorios.Api.Models.RolNombres.EsAdmin(roles);
+                }));
         });
 
         return services;

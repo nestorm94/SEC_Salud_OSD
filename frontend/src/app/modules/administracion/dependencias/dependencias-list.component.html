@@ -1,5 +1,5 @@
-<app-page-header title="Dependencias" subtitle="Entidades del observatorio">
-  <button type="button" class="btn btn--primary" (click)="mostrarForm.set(!mostrarForm())">
+<app-page-header title="Dependencias" subtitle="Entidades y secretarías del observatorio">
+  <button type="button" class="btn-primary" (click)="mostrarForm.set(!mostrarForm())">
     {{ mostrarForm() ? 'Cancelar' : 'Nueva dependencia' }}
   </button>
 </app-page-header>
@@ -12,8 +12,8 @@
 }
 
 @if (mostrarForm()) {
-  <div class="card form-inline">
-    <form [formGroup]="form" (ngSubmit)="crear()">
+  <div class="filter-card content-card">
+    <form [formGroup]="form" (ngSubmit)="crear()" class="form-grid">
       <div class="form-group">
         <label>Código</label>
         <input type="text" formControlName="codigo" />
@@ -22,32 +22,44 @@
         <label>Nombre</label>
         <input type="text" formControlName="nombre" />
       </div>
-      <button type="submit" class="btn btn--primary">Crear</button>
+      <div class="form-group" style="align-self: end">
+        <button type="submit" class="btn-success">Crear dependencia</button>
+      </div>
     </form>
   </div>
 }
 
 @if (loading()) {
-  <p class="loading">Cargando...</p>
+  <app-loading-state></app-loading-state>
 } @else {
-  <div class="card table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Activo</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (d of dependencias(); track d.id) {
+  <div class="table-card">
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
           <tr>
-            <td>{{ d.codigo }}</td>
-            <td>{{ d.nombre }}</td>
-            <td>{{ d.activo ? 'Sí' : 'No' }}</td>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Estado</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (d of pag.paginated(); track d.id) {
+            <tr>
+              <td data-label="Código"><strong>{{ d.codigo }}</strong></td>
+              <td data-label="Nombre">{{ d.nombre }}</td>
+              <td data-label="Estado">
+                <app-status-badge [estado]="d.activo ? 'ACTIVO' : 'INACTIVO'"></app-status-badge>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
   </div>
 }

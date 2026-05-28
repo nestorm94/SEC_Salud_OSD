@@ -1,28 +1,59 @@
-<aside class="sidebar">
-  <div class="sidebar__brand">
-    <span class="sidebar__logo">OS</span>
-    <div>
-      <strong>Observatorios</strong>
-      <small>Salud Casanare</small>
+<aside class="osd-sidebar" [class.is-open]="menuOpen()">
+  <div class="osd-sidebar__brand">
+    <div class="osd-sidebar__brand-logo-wrap">
+      <img
+        class="osd-brand-logo osd-brand-logo--sidebar"
+        [src]="branding.logoHorizontal"
+        [alt]="branding.alt"
+        width="220"
+        height="52"
+      />
     </div>
   </div>
 
-  <nav class="sidebar__nav">
-    <p class="sidebar__section">Principal</p>
+  <nav class="osd-sidebar__nav" aria-label="Menú principal">
+    <p class="osd-sidebar__section">Principal</p>
     @for (item of menuPrincipal; track item.route) {
-      <a [routerLink]="item.route" routerLinkActive="active" class="sidebar__link">
-        <span class="sidebar__icon">{{ item.icon }}</span>
+      <a [routerLink]="item.route" routerLinkActive="active" class="osd-sidebar__link">
+        <span class="material-icons osd-sidebar__icon" aria-hidden="true">{{ item.icon }}</span>
         {{ item.label }}
       </a>
     }
 
-    @if (isAdmin()) {
-      <p class="sidebar__section">Administración</p>
-      @for (item of menuAdmin; track item.route) {
-        <a [routerLink]="item.route" routerLinkActive="active" class="sidebar__link">
-          {{ item.label }}
-        </a>
-      }
+    @if (auth.isAdmin()) {
+      <div class="osd-sidebar__group">
+        <button
+          type="button"
+          class="osd-sidebar__group-toggle"
+          [attr.aria-expanded]="adminExpanded()"
+          aria-controls="sidebar-admin-menu"
+          (click)="toggleAdmin()"
+        >
+          <span class="osd-sidebar__group-label">
+            <span class="material-icons osd-sidebar__icon" aria-hidden="true">admin_panel_settings</span>
+            Administración
+          </span>
+          <span
+            class="material-icons osd-sidebar__chevron"
+            [class.is-expanded]="adminExpanded()"
+            aria-hidden="true"
+            >expand_more</span
+          >
+        </button>
+        <div
+          id="sidebar-admin-menu"
+          class="osd-sidebar__submenu"
+          [class.is-expanded]="adminExpanded()"
+          [attr.aria-hidden]="!adminExpanded()"
+        >
+          @for (item of menuAdmin; track item.route) {
+            <a [routerLink]="item.route" routerLinkActive="active" class="osd-sidebar__link osd-sidebar__link--child">
+              <span class="material-icons osd-sidebar__icon" aria-hidden="true">{{ item.icon }}</span>
+              {{ item.label }}
+            </a>
+          }
+        </div>
+      </div>
     }
   </nav>
 </aside>

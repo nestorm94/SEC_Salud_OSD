@@ -1,5 +1,6 @@
 import { initPortal, fetchJson, apiUrl } from "../portal/layout.js";
 import { getUsuario } from "../auth.js";
+import { iconButton, iconActionsHtml } from "../shared/icon-actions.js";
 
 let lineasTematicas = [];
 let rolesDisponibles = [];
@@ -93,14 +94,30 @@ async function refrescarTabla() {
     tbody.innerHTML = rows
       .map((u) => {
         const esYo = usuarioActualId === u.id;
-        const acciones = esYo
-          ? '<span class="hint">(usted)</span>'
-          : `<button type="button" class="btn-mini" data-editar="${u.id}">Editar</button>
-             <button type="button" class="btn-mini btn-peligro" data-desactivar="${u.id}">Desactivar</button>`;
-        const reactivar =
-          !u.activo && !esYo
-            ? `<button type="button" class="btn-mini" data-activar="${u.id}">Activar</button>`
-            : "";
+        let acciones = '<span class="hint">(usted)</span>';
+        if (!esYo) {
+          const btns = [
+            iconButton("edit", "Editar usuario", { attrs: `data-editar="${u.id}"` }),
+            u.activo
+              ? iconButton("person_off", "Desactivar usuario", {
+                  variant: "danger",
+                  attrs: `data-desactivar="${u.id}"`,
+                })
+              : iconButton("person_add", "Activar usuario", {
+                  variant: "success",
+                  attrs: `data-activar="${u.id}"`,
+                }),
+          ];
+          if (u.activo) {
+            btns.push(
+              iconButton("delete", "Eliminar (desactivar) usuario", {
+                variant: "danger",
+                attrs: `data-eliminar="${u.id}"`,
+              })
+            );
+          }
+          acciones = iconActionsHtml(btns.join(""));
+        }
         return `<tr class="${u.activo ? "" : "fila-inactiva"}">
           <td>${u.id}</td>
           <td>${esc(u.nombre_usuario)}</td>
@@ -108,7 +125,7 @@ async function refrescarTabla() {
           <td>${esc(u.linea_tematica || "—")}</td>
           <td>${(u.roles || []).map(esc).join(", ")}</td>
           <td>${u.activo ? "Sí" : "No"}</td>
-          <td class="celda-acciones">${acciones} ${reactivar}</td>
+          <td class="celda-acciones acciones-celda">${acciones}</td>
         </tr>`;
       })
       .join("");
@@ -121,6 +138,9 @@ async function refrescarTabla() {
     );
     tbody.querySelectorAll("[data-activar]").forEach((btn) =>
       btn.addEventListener("click", () => cambiarActivo(Number(btn.dataset.activar), true))
+    );
+    tbody.querySelectorAll("[data-eliminar]").forEach((btn) =>
+      btn.addEventListener("click", () => eliminarUsuario(Number(btn.dataset.eliminar)))
     );
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="7" class="error">${esc(e.message)}</td></tr>`;
@@ -252,6 +272,21 @@ async function abrirEditar(id) {
 
 function cerrarModal() {
   document.getElementById("modal-editar").hidden = true;
+}
+
+async function eliminarUsuario(id) {
+  if (!confirm(`¿Desactivar el usuario #${id}?`)) return;
+  const msg = document.getElementById("msg-usuarios");
+  try {
+    const { res, data } = await fetchJson(apiUrl(`/api/admin/usuarios/${id}`), { method: "DELETE" });
+    if (!res.ok) throw new Error(data.error || "Error");
+    msg.textContent = "Usuario desactivado.";
+    msg.className = "mensaje ok";
+    await refrescarTabla();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "mensaje error";
+  }
 }
 
 async function cambiarActivo(id, activo) {

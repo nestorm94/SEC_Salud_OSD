@@ -1,5 +1,10 @@
-<app-page-header title="Usuarios" subtitle="Administración de cuentas">
-  <a routerLink="/administracion/usuarios/nuevo" class="btn btn--primary">Nuevo usuario</a>
+<app-page-header title="Usuarios" subtitle="Administración de cuentas y permisos del observatorio">
+  <app-icon-action
+    icon="person_add"
+    label="Crear usuario"
+    variant="success"
+    [link]="['/administracion/usuarios/nuevo']"
+  />
 </app-page-header>
 
 @if (error()) {
@@ -7,37 +12,68 @@
 }
 
 @if (loading()) {
-  <p class="loading">Cargando...</p>
+  <app-loading-state></app-loading-state>
 } @else {
-  <div class="card table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th>Email</th>
-          <th>Dependencia</th>
-          <th>Roles</th>
-          <th>Activo</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (u of usuarios(); track u.id) {
+  <div class="table-card">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
           <tr>
-            <td>{{ u.nombre_usuario }}</td>
-            <td>{{ u.email || '—' }}</td>
-            <td>{{ u.dependencia || '—' }}</td>
-            <td>{{ u.roles?.join(', ') }}</td>
-            <td>{{ u.activo ? 'Sí' : 'No' }}</td>
-            <td>
-              <a [routerLink]="['/administracion/usuarios', u.id]" class="btn btn--secondary btn--sm">Editar</a>
-              <button type="button" class="btn btn--secondary btn--sm" (click)="toggleActivo(u)">
-                {{ u.activo ? 'Desactivar' : 'Activar' }}
-              </button>
-            </td>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Dependencia</th>
+            <th>Roles</th>
+            <th>Activo</th>
+            <th>Acciones</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (u of pag.paginated(); track u.id) {
+            <tr>
+              <td data-label="Usuario">{{ u.nombre_usuario }}</td>
+              <td data-label="Email">{{ u.email || '—' }}</td>
+              <td data-label="Dependencia">{{ u.dependencia || '—' }}</td>
+              <td data-label="Roles">{{ u.roles?.join(', ') }}</td>
+              <td data-label="Activo">
+                <app-status-badge [estado]="u.activo ? 'ACTIVO' : 'INACTIVO'"></app-status-badge>
+              </td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action
+                    icon="edit"
+                    label="Editar usuario"
+                    [link]="['/administracion/usuarios', u.id]"
+                  />
+                  <app-icon-action
+                    [icon]="u.activo ? 'person_off' : 'person_add'"
+                    [label]="u.activo ? 'Desactivar usuario' : 'Activar usuario'"
+                    [variant]="u.activo ? 'danger' : 'success'"
+                    (action)="toggleActivo(u)"
+                  />
+                  @if (u.activo) {
+                    <app-icon-action
+                      icon="delete"
+                      label="Eliminar (desactivar) usuario"
+                      variant="danger"
+                      (action)="eliminar(u)"
+                    />
+                  }
+                </app-table-actions>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
+    @if (!usuarios().length) {
+      <p class="empty">No hay usuarios registrados. Use el botón «Crear usuario» para agregar uno.</p>
+    }
   </div>
 }

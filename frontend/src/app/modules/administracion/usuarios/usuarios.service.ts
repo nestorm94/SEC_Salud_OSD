@@ -45,4 +45,10 @@ export class UsuariosService {
   actualizarRoles(id: number, roles: string[]) {
     return this.http.put(`${environment.apiUrl}/admin/usuarios/${id}/roles`, { roles });
   }
+
+  eliminar(id: number) {
+    return this.http.delete<{ ok: boolean; activo: boolean }>(
+      `${environment.apiUrl}/admin/usuarios/${id}`
+    );
+  }
 }

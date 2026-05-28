@@ -2,13 +2,24 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { DependenciasService } from './dependencias.service';
 import { Dependencia } from '../../../shared/models/api.models';
+import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
+import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
 @Component({
   selector: 'app-dependencias-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    StatusBadgeComponent,
+    TablePaginatorComponent
+  ],
   templateUrl: './dependencias-list.component.html',
   styleUrl: './dependencias-list.component.scss'
 })
@@ -17,6 +28,7 @@ export class DependenciasListComponent implements OnInit {
   private readonly dependenciasService = inject(DependenciasService);
 
   dependencias = signal<Dependencia[]>([]);
+  readonly pag = tablePagination(this.dependencias);
   loading = signal(true);
   error = signal('');
   mensaje = signal('');
@@ -36,6 +48,7 @@ export class DependenciasListComponent implements OnInit {
     this.dependenciasService.listar().subscribe({
       next: (res) => {
         this.dependencias.set(res.dependencias || []);
+        this.pag.resetPage();
         this.loading.set(false);
       },
       error: () => {

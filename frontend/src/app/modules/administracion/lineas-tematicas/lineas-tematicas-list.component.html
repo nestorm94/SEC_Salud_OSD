@@ -1,0 +1,89 @@
+<app-page-header title="Líneas temáticas" subtitle="Catálogo de líneas temáticas del observatorio">
+  <app-icon-action icon="add" label="Crear línea temática" variant="success" (action)="abrirCrear()" />
+</app-page-header>
+
+@if (mensaje()) {
+  <div class="alert alert--success">{{ mensaje() }}</div>
+}
+@if (error() && !modalAbierto()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <app-loading-state></app-loading-state>
+} @else {
+  <div class="table-card">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of pag.paginated(); track l.id) {
+            <tr [class.row-inactive]="l.activo === false">
+              <td data-label="ID">{{ l.id }}</td>
+              <td data-label="Código"><code>{{ l.codigo }}</code></td>
+              <td data-label="Nombre"><strong>{{ l.nombre }}</strong></td>
+              <td data-label="Estado">
+                <app-status-badge [estado]="l.activo !== false ? 'ACTIVO' : 'INACTIVO'" />
+              </td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action icon="edit" label="Editar línea temática" (action)="abrirEditar(l)" />
+                </app-table-actions>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
+    @if (!lineas().length) {
+      <p class="empty">No hay líneas temáticas registradas</p>
+    }
+  </div>
+}
+
+<app-modal [open]="modalAbierto()" [title]="tituloModal()" (close)="cerrarModal()">
+  @if (error() && modalAbierto()) {
+    <div class="alert alert--error" style="margin-bottom: 1rem">{{ error() }}</div>
+  }
+  <div class="form-group">
+    <label for="lt-codigo">Código *</label>
+    <input id="lt-codigo" type="text" [(ngModel)]="codigo" maxlength="30" [disabled]="codigoBloqueado()" />
+  </div>
+  <div class="form-group">
+    <label for="lt-nombre">Nombre *</label>
+    <input id="lt-nombre" type="text" [(ngModel)]="nombre" maxlength="200" />
+  </div>
+  <div class="form-group">
+    <label for="lt-desc">Descripción</label>
+    <textarea id="lt-desc" [(ngModel)]="descripcion" rows="3" maxlength="500"></textarea>
+  </div>
+  @if (editando()) {
+    <div class="form-group form-group--checkbox">
+      <label>
+        <input type="checkbox" [(ngModel)]="activo" />
+        Activa
+      </label>
+    </div>
+  }
+  <div modalFooter>
+    <button type="button" class="btn-secondary" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+    <button type="button" class="btn-primary" (click)="guardar()" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>

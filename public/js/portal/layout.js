@@ -39,11 +39,15 @@ const NAV_ICONOS = {
   check: '<svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
 };
 
+/** Incrementar al cambiar menú o assets del portal (evita caché del navegador). */
+export const PORTAL_ASSET_VERSION = "20250528";
+
 const ENLACES_ADMIN = [
   { href: "/admin/usuarios.html", label: "Usuarios" },
   { href: "/admin/roles.html", label: "Roles" },
   { href: "/admin/lineas-tematicas.html", label: "Líneas temáticas" },
   { href: "/admin/indicadores.html", label: "Indicadores" },
+  { href: "/admin/dependencias.html", label: "Dependencias" },
   { href: "/admin/areas-tematicas.html", label: "Áreas OSC" },
   { href: "/admin/plantillas.html", label: "Plantillas" },
 ];
@@ -57,7 +61,16 @@ function inyectarCssResponsive() {
   const link = document.createElement("link");
   link.id = "css-responsive";
   link.rel = "stylesheet";
-  link.href = "/css/responsive.css";
+  link.href = `/css/responsive.css?v=${PORTAL_ASSET_VERSION}`;
+  document.head.appendChild(link);
+}
+
+function inyectarMaterialIcons() {
+  if (document.getElementById("material-icons-font")) return;
+  const link = document.createElement("link");
+  link.id = "material-icons-font";
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
   document.head.appendChild(link);
 }
 
@@ -129,11 +142,18 @@ export function pintarSidebar(activePath) {
   html += `</nav>`;
 
   if (admin) {
-    html += `<h2>Administración</h2><nav class="portal-nav-admin">`;
+    const enAdmin = activePath.startsWith("/admin/");
+    const expandido = enAdmin ? "true" : "false";
+    html += `<div class="portal-nav-group">
+      <button type="button" class="portal-nav-group-toggle" id="portal-admin-toggle" aria-expanded="${expandido}" aria-controls="portal-nav-admin">
+        <span>Administración</span>
+        <span class="portal-nav-chevron" aria-hidden="true">▼</span>
+      </button>
+      <nav id="portal-nav-admin" class="portal-nav-admin portal-nav-submenu${enAdmin ? " is-expanded" : ""}">`;
     for (const e of ENLACES_ADMIN) {
       html += `<a href="${e.href}"${claseActivo(e.href, activePath)}>${e.label}</a>`;
     }
-    html += `</nav>`;
+    html += `</nav></div>`;
   }
 
   html += `<div class="portal-sidebar-landscape" aria-hidden="true"></div>
@@ -147,6 +167,7 @@ export async function initPortal(activePath, options = {}) {
 
   document.body.classList.add("portal-tema-claro");
   inyectarCssResponsive();
+  inyectarMaterialIcons();
 
   const sesion = await refrescarSesion();
   if (!sesion) {
@@ -178,6 +199,15 @@ export async function initPortal(activePath, options = {}) {
   document.querySelectorAll("[data-validador-only]").forEach((el) => {
     if (el.closest(".portal-sidebar")) return;
     el.hidden = !puedeValidar();
+  });
+
+  document.getElementById("portal-admin-toggle")?.addEventListener("click", () => {
+    const btn = document.getElementById("portal-admin-toggle");
+    const sub = document.getElementById("portal-nav-admin");
+    if (!btn || !sub) return;
+    const open = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", open ? "false" : "true");
+    sub.classList.toggle("is-expanded", !open);
   });
 
   document.getElementById("btn-logout")?.addEventListener("click", () => {

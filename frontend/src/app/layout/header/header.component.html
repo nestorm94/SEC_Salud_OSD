@@ -1,14 +1,38 @@
-<header class="header">
-  <div class="header__info">
-    @if (auth.usuario(); as u) {
-      <span class="header__user">{{ u.nombre }}</span>
-      @if (u.dependencia) {
-        <span class="header__dep">{{ u.dependencia }}</span>
+<header class="osd-header">
+  <div class="osd-header__left">
+    <button
+      type="button"
+      class="btn-secondary btn-icon osd-header__menu-btn"
+      (click)="menuToggle.emit()"
+      aria-label="Abrir menú"
+    >
+      <span class="material-icons" aria-hidden="true">menu</span>
+    </button>
+    <img
+      class="osd-brand-logo osd-brand-logo--header"
+      src="/branding/logo-horizontal.png"
+      alt="Observatorio de Salud de Casanare"
+      width="160"
+      height="40"
+    />
+    <div class="osd-header__info">
+      @if (auth.usuario(); as u) {
+        <span class="osd-header__user">{{ u.nombre }}</span>
+        <span class="osd-header__meta">
+          @if (u.dependencia) {
+            {{ u.dependencia }}
+          }
+          @if (u.roles?.length) {
+            · {{ u.roles.join(', ') }}
+          }
+        </span>
       }
-      @if (u.roles?.length) {
-        <span class="header__roles">{{ u.roles.join(', ') }}</span>
-      }
-    }
+    </div>
   </div>
-  <button type="button" class="btn btn--secondary btn--sm" (click)="logout()">Cerrar sesión</button>
+  <div class="osd-header__actions">
+    <button type="button" class="btn-secondary btn-sm" (click)="logout()">
+      <span class="material-icons" aria-hidden="true">logout</span>
+      Cerrar sesión
+    </button>
+  </div>
 </header>

@@ -1,30 +1,79 @@
-<app-page-header title="Roles" subtitle="Roles del sistema"></app-page-header>
+<app-page-header title="Roles" subtitle="Catálogo de roles y permisos del sistema">
+  <app-icon-action icon="add" label="Crear rol" variant="success" (action)="abrirCrear()" />
+</app-page-header>
 
-@if (error()) {
+@if (mensaje()) {
+  <div class="alert alert--success">{{ mensaje() }}</div>
+}
+@if (error() && !modalAbierto()) {
   <div class="alert alert--error">{{ error() }}</div>
 }
 
 @if (loading()) {
-  <p class="loading">Cargando...</p>
+  <app-loading-state></app-loading-state>
 } @else {
-  <div class="card table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Descripción</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of roles(); track r.id) {
+  <div class="table-card">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
           <tr>
-            <td>{{ r.id }}</td>
-            <td>{{ r.nombre }}</td>
-            <td>{{ r.descripcion || '—' }}</td>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (r of pag.paginated(); track r.id) {
+            <tr>
+              <td data-label="ID">{{ r.id }}</td>
+              <td data-label="Nombre"><strong>{{ r.nombre }}</strong></td>
+              <td data-label="Descripción">{{ r.descripcion || '—' }}</td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action icon="edit" label="Editar rol" (action)="abrirEditar(r)" />
+                  <app-icon-action
+                    icon="delete"
+                    label="Eliminar rol"
+                    variant="danger"
+                    (action)="eliminar(r)"
+                  />
+                </app-table-actions>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
+    @if (!roles().length) {
+      <p class="empty">No hay roles registrados</p>
+    }
   </div>
 }
+
+<app-modal [open]="modalAbierto()" [title]="tituloModal()" (close)="cerrarModal()">
+  @if (error() && modalAbierto()) {
+    <div class="alert alert--error" style="margin-bottom: 1rem">{{ error() }}</div>
+  }
+  <div class="form-group">
+    <label for="rol-nombre">Nombre *</label>
+    <input id="rol-nombre" type="text" [(ngModel)]="nombre" maxlength="50" />
+  </div>
+  <div class="form-group">
+    <label for="rol-desc">Descripción</label>
+    <textarea id="rol-desc" [(ngModel)]="descripcion" rows="3" maxlength="300"></textarea>
+  </div>
+  <div modalFooter>
+    <button type="button" class="btn-secondary" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+    <button type="button" class="btn-primary" (click)="guardar()" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>

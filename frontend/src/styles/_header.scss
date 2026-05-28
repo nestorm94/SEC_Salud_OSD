@@ -1,0 +1,64 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.osd-header {
+  @include flex-between;
+  min-height: $header-height;
+  padding: 0 $page-padding;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+  box-shadow: $shadow-sm;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  @include respond-mobile {
+    padding: 0 $page-padding-mobile;
+    flex-wrap: wrap;
+    gap: $space-3;
+  }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    min-width: 0;
+  }
+
+  &__menu-btn {
+    display: none;
+    @include respond-tablet {
+      display: inline-flex;
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    @include respond-mobile {
+      display: none;
+    }
+  }
+
+  &__user {
+    font-weight: 700;
+    font-size: $font-size-sm;
+    color: $color-primary-dark;
+    @include truncate;
+  }
+
+  &__meta {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    @include truncate;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+  }
+}

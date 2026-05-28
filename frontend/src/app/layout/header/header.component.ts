@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -11,6 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class HeaderComponent {
   readonly auth = inject(AuthService);
+  readonly menuToggle = output<void>();
 
   logout(): void {
     this.auth.logout();

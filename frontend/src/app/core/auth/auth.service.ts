@@ -28,11 +28,13 @@ export class AuthService {
     );
   }
 
-  logout(): void {
+  logout(options?: { sessionExpired?: boolean }): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     this._usuario.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login'], {
+      queryParams: options?.sessionExpired ? { expired: '1' } : {}
+    });
   }
 
   getToken(): string | null {
@@ -47,11 +49,26 @@ export class AuthService {
     return this.checkAdmin(this._usuario());
   }
 
+  /** Sincroniza usuario y roles desde el token (útil tras cambios de permisos). */
+  refrescarSesion() {
+    if (!this.getToken()) return;
+    return this.http.get<{ usuario: UsuarioSesion }>(`${environment.apiUrl}/auth/me`).pipe(
+      tap((res) => {
+        const u = res.usuario;
+        if (u) {
+          localStorage.setItem(USER_KEY, JSON.stringify(u));
+          this._usuario.set(u);
+        }
+      })
+    );
+  }
+
   private checkAdmin(user: UsuarioSesion | null): boolean {
     if (!user?.roles?.length) return false;
-    return user.roles.some(
-      (r) => r.toUpperCase() === 'ADMINISTRADOR' || r.toUpperCase() === 'ADMIN'
-    );
+    return user.roles.some((r) => {
+      const n = String(r).trim().toUpperCase();
+      return n === 'ADMIN' || n === 'ADMINISTRADOR' || n === 'ADMINISTRATOR';
+    });
   }
 
   private loadUsuario(): UsuarioSesion | null {

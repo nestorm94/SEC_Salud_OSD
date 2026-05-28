@@ -5,33 +5,47 @@ import { CommonModule } from '@angular/common';
   selector: 'app-status-badge',
   standalone: true,
   imports: [CommonModule],
-  template: `<span class="badge" [class]="cssClass()">{{ estado }}</span>`,
+  template: `<span class="osd-badge" [class]="badgeClass()">{{ estado || '—' }}</span>`,
   styles: `
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
+    .osd-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.65rem;
       border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-size: 0.6875rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      background: #f1f5f9;
+      color: #64748b;
     }
-    .ok { background: #d1fae5; color: #065f46; }
-    .error { background: #fee2e2; color: #991b1b; }
-    .pending { background: #fef3c7; color: #92400e; }
-    .info { background: #e0f2fe; color: #075985; }
-    .neutral { background: #f1f5f9; color: #475569; }
+    .osd-badge--ok {
+      background: #e8f5ec;
+      color: #155724;
+    }
+    .osd-badge--warn {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+    .osd-badge--err {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .osd-badge--info {
+      background: #e8eef5;
+      color: #0b1f3a;
+    }
   `
 })
 export class StatusBadgeComponent {
-  @Input({ required: true }) estado!: string;
+  @Input() estado = '';
 
-  cssClass = computed(() => {
+  readonly badgeClass = computed(() => {
     const e = (this.estado || '').toUpperCase();
-    if (e.includes('OK') || e === 'APROBADO') return 'ok';
-    if (e.includes('ERROR') || e === 'RECHAZADO') return 'error';
-    if (e === 'VALIDANDO' || e === 'SUBIDO') return 'pending';
-    if (e.includes('VALIDADO')) return 'info';
-    return 'neutral';
+    if (e.includes('APROB') || e.includes('EXITOSO') || e.includes('VALIDADO_OK')) return 'osd-badge--ok';
+    if (e.includes('ERROR') || e.includes('RECHAZ')) return 'osd-badge--err';
+    if (e.includes('PEND') || e.includes('VALID') || e.includes('RECIB')) return 'osd-badge--warn';
+    return 'osd-badge--info';
   });
 }

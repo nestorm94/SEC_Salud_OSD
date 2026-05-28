@@ -66,6 +66,20 @@ export const routes: Routes = [
               import('./modules/administracion/roles/roles-list.component').then((m) => m.RolesListComponent)
           },
           {
+            path: 'lineas-tematicas',
+            loadComponent: () =>
+              import('./modules/administracion/lineas-tematicas/lineas-tematicas-list.component').then(
+                (m) => m.LineasTematicasListComponent
+              )
+          },
+          {
+            path: 'indicadores',
+            loadComponent: () =>
+              import('./modules/administracion/indicadores/indicadores-list.component').then(
+                (m) => m.IndicadoresListComponent
+              )
+          },
+          {
             path: 'dependencias',
             loadComponent: () =>
               import('./modules/administracion/dependencias/dependencias-list.component').then(

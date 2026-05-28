@@ -1,4 +1,5 @@
 import { initPortal, fetchJson, apiUrl } from "../portal/layout.js";
+import { iconButton, iconActionsHtml } from "../shared/icon-actions.js";
 
 let indicadores = [];
 let lineas = [];
@@ -49,7 +50,7 @@ async function cargar() {
       (i) => `<tr class="${i.activo ? "" : "fila-inactiva"}">
       <td>${i.id}</td><td>${esc(i.linea_tematica)}</td><td>${esc(i.codigo)}</td><td>${esc(i.nombre)}</td>
       <td>${i.activo ? "Sí" : "No"}</td>
-      <td class="celda-acciones"><button type="button" class="btn-mini" data-edit="${i.id}">Editar</button></td></tr>`
+      <td class="celda-acciones acciones-celda">${iconActionsHtml(iconButton("edit", "Editar indicador", { attrs: `data-edit="${i.id}"` }))}</td></tr>`
     )
     .join("");
   tb.querySelectorAll("[data-edit]").forEach((b) =>

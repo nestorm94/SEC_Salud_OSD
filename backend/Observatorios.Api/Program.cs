@@ -82,10 +82,13 @@ var apiProjectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..
 
 if (isDevelopment)
 {
-    var publicDir = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", "..", "public"));
-    if (Directory.Exists(publicDir))
-        webRootPath = publicDir;
     repoRoot = Path.GetFullPath(Path.Combine(apiProjectRoot, "..", ".."));
+    var angularDir = Path.Combine(repoRoot, "frontend", "dist", "frontend", "browser");
+    var publicDir = Path.Combine(repoRoot, "public");
+    if (Directory.Exists(angularDir))
+        webRootPath = angularDir;
+    else if (Directory.Exists(publicDir))
+        webRootPath = publicDir;
 }
 else
 {
@@ -195,11 +198,15 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-if (Directory.Exists(app.Environment.WebRootPath ?? ""))
+var webRoot = app.Environment.WebRootPath ?? "";
+var sirveAngularSpa = webRoot.Contains("dist", StringComparison.OrdinalIgnoreCase)
+    && webRoot.Contains("browser", StringComparison.OrdinalIgnoreCase);
+
+if (Directory.Exists(webRoot))
 {
     app.UseDefaultFiles(new DefaultFilesOptions
     {
-        DefaultFileNames = ["login.html", "index.html"]
+        DefaultFileNames = sirveAngularSpa ? ["index.html"] : ["login.html", "index.html"]
     });
     app.UseStaticFiles(new StaticFileOptions
     {
@@ -214,7 +221,6 @@ if (Directory.Exists(app.Environment.WebRootPath ?? ""))
                 ctx.Context.Response.ContentType = "application/javascript; charset=utf-8";
         }
     });
-    app.MapGet("/", () => Results.Redirect("/login.html"));
 }
 
 var uploadsDir = Path.Combine(repoRoot, "uploads");
@@ -270,4 +276,17 @@ Console.WriteLine();
 
 app.MapObservatorioApi(repoRoot, uploadsDir);
 app.MapControllers();
+
+if (sirveAngularSpa)
+{
+    app.MapGet("/", () => Results.Redirect("/login"));
+    app.MapFallbackToFile("index.html");
+    Console.WriteLine("[Observatorios.Api] UI: Angular (frontend/dist). Recargue con Ctrl+Shift+R tras npm run build.");
+}
+else if (Directory.Exists(webRoot))
+{
+    app.MapGet("/", () => Results.Redirect("/login.html"));
+    Console.WriteLine("[Observatorios.Api] UI: portal HTML (public/). Para Angular: npm run build en frontend/ y reinicie la API.");
+}
+
 app.Run();

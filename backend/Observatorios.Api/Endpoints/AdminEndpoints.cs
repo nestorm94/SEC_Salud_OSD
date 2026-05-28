@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Observatorios.Api.Auth;
 using Observatorios.Api.Data;
 using Observatorios.Api.Services;
@@ -25,6 +26,7 @@ public static class AdminEndpoints
                 ultimos_cargues = r.UltimosCargues.Select(u => new
                 {
                     id = u.Id,
+                    origen = u.Origen,
                     dependencia = u.Dependencia,
                     estado = u.Estado,
                     archivo = u.Archivo,
@@ -295,6 +297,61 @@ public static class AdminEndpoints
             return Results.Ok(new { roles = rows.Select(r => new { id = r.Id, nombre = r.Nombre, descripcion = r.Descripcion }) });
         });
 
+        admin.MapGet("/roles/{id:int}", async (int id, RolesRepository repo, CancellationToken ct) =>
+        {
+            var r = await repo.ObtenerAsync(id, ct);
+            return r is null
+                ? Results.NotFound(new { error = "Rol no encontrado." })
+                : Results.Ok(new { id = r.Id, nombre = r.Nombre, descripcion = r.Descripcion });
+        });
+
+        admin.MapPost("/roles", async (RolApiRequest body, RolesRepository repo, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(body.Nombre))
+                return Results.BadRequest(new { error = "El nombre del rol es obligatorio." });
+            try
+            {
+                var id = await repo.CrearAsync(body.Nombre.Trim(), body.Descripcion?.Trim(), ct);
+                return Results.Created($"/api/admin/roles/{id}", new { id, nombre = body.Nombre.Trim() });
+            }
+            catch (SqlException ex) when (ex.Number is 2627 or 2601)
+            {
+                return Results.Conflict(new { error = "Ya existe un rol con ese nombre." });
+            }
+        });
+
+        admin.MapPut("/roles/{id:int}", async (int id, RolApiRequest body, RolesRepository repo, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(body.Nombre))
+                return Results.BadRequest(new { error = "El nombre del rol es obligatorio." });
+            if (await repo.ObtenerAsync(id, ct) is null)
+                return Results.NotFound(new { error = "Rol no encontrado." });
+            try
+            {
+                await repo.ActualizarAsync(id, body.Nombre.Trim(), body.Descripcion?.Trim(), ct);
+                return Results.Ok(new { ok = true });
+            }
+            catch (SqlException ex) when (ex.Number is 2627 or 2601)
+            {
+                return Results.Conflict(new { error = "Ya existe un rol con ese nombre." });
+            }
+        });
+
+        admin.MapDelete("/roles/{id:int}", async (int id, RolesRepository repo, CancellationToken ct) =>
+        {
+            if (await repo.ObtenerAsync(id, ct) is null)
+                return Results.NotFound(new { error = "Rol no encontrado." });
+            try
+            {
+                await repo.EliminarAsync(id, ct);
+                return Results.Ok(new { ok = true });
+            }
+            catch (SqlException ex) when (ex.Number == 50000)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         admin.MapGet("/plantillas", async (PlantillasRepository repo, CancellationToken ct) =>
         {
             var rows = await repo.ListarAsync(ct);
@@ -378,6 +435,7 @@ public static class AdminEndpoints
                 ultimos_cargues = r.UltimosCargues.Select(u => new
                 {
                     id = u.Id,
+                    origen = u.Origen,
                     dependencia = u.Dependencia,
                     estado = u.Estado,
                     archivo = u.Archivo,
@@ -399,6 +457,7 @@ public sealed record CrearAreaTematicaRequest(int DependenciaId, string Codigo, 
 public sealed record ActualizarUsuarioApiRequest(string? Email, int? DependenciaId, int? LineaTematicaId, string? Password, IReadOnlyList<string>? Roles);
 public sealed record ActivarRequest(bool Activo);
 public sealed record AsignarRolesRequest(IReadOnlyList<string> Roles);
+public sealed record RolApiRequest(string Nombre, string? Descripcion);
 public sealed record PlantillaApiRequest(string Codigo, string Nombre, string? Descripcion, int? DependenciaId, bool Activo);
 public sealed record CampoPlantillaApiRequest(string NombreCampo, string TipoDato, bool Obligatorio,
     string? Descripcion, int? Longitud, string? Formato, string? ValoresPermitidos, int Orden);

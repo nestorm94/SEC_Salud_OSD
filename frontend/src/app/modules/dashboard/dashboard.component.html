@@ -1,37 +1,45 @@
-<app-page-header title="Panel principal" subtitle="Resumen del observatorio de salud"></app-page-header>
+<app-page-header title="Panel principal" subtitle="Resumen ejecutivo del observatorio de salud departamental"></app-page-header>
 
 @if (loading()) {
-  <p class="loading">Cargando resumen...</p>
+  <app-loading-state message="Cargando resumen..."></app-loading-state>
 } @else if (error()) {
-  <div class="alert alert--error">{{ error() }}</div>
+  <div class="alert alert--error">
+    <p style="margin: 0 0 0.75rem">{{ error() }}</p>
+    <button type="button" class="btn-secondary" (click)="cargarResumen()">Reintentar</button>
+  </div>
 } @else if (resumen()) {
-  <div class="grid-cards">
+  <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-value">{{ resumen()!.total_archivos }}</div>
       <div class="stat-label">Total archivos</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--warning">
       <div class="stat-value">{{ resumen()!.cargas_pendientes }}</div>
       <div class="stat-label">Cargas pendientes</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--danger">
       <div class="stat-value">{{ resumen()!.cargas_con_error }}</div>
       <div class="stat-label">Cargas con error</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--success">
       <div class="stat-value">{{ resumen()!.cargas_aprobadas }}</div>
       <div class="stat-label">Cargas aprobadas</div>
     </div>
   </div>
 
-  <section class="card" style="margin-top: 1.5rem">
-    <h2>Últimos cargues</h2>
-    @if (resumen()!.ultimos_cargues?.length) {
-      <div class="table-wrap">
-        <table class="data-table">
+  <section class="table-card content-card" style="padding: 0; border: none; box-shadow: var(--osd-shadow-card)">
+    <div class="table-card__toolbar">
+      <h2 class="content-card__title" style="margin: 0">Actividad reciente</h2>
+      <span class="meta">{{ ultimos().length }} registro{{ ultimos().length === 1 ? '' : 's' }} · 10 por página</span>
+    </div>
+    @if (ultimos().length) {
+      <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+      <div class="responsive-table-wrap">
+        <table class="responsive-table data-table">
           <thead>
             <tr>
               <th>ID</th>
+              <th>Origen</th>
               <th>Dependencia</th>
               <th>Archivo</th>
               <th>Estado</th>
@@ -39,20 +47,27 @@
             </tr>
           </thead>
           <tbody>
-            @for (c of resumen()!.ultimos_cargues; track c.id) {
+            @for (c of pag.paginated(); track (c.origen || 'Cargue') + '-' + c.id) {
               <tr>
-                <td>{{ c.id }}</td>
-                <td>{{ c.dependencia }}</td>
-                <td>{{ c.archivo }}</td>
-                <td><app-status-badge [estado]="c.estado"></app-status-badge></td>
-                <td>{{ c.fecha | date: 'short' }}</td>
+                <td data-label="ID">{{ c.id }}</td>
+                <td data-label="Origen">{{ etiquetaOrigen(c.origen) }}</td>
+                <td data-label="Dependencia">{{ c.dependencia }}</td>
+                <td data-label="Archivo">{{ c.archivo }}</td>
+                <td data-label="Estado"><app-status-badge [estado]="c.estado"></app-status-badge></td>
+                <td data-label="Fecha">{{ c.fecha | date: 'short' }}</td>
               </tr>
             }
           </tbody>
         </table>
       </div>
+      <app-table-paginator
+        [page]="pag.page()"
+        [totalPages]="pag.totalPages()"
+        [totalItems]="pag.totalItems()"
+        (pageChange)="pag.setPage($event)"
+      />
     } @else {
-      <p class="empty">Sin cargues recientes</p>
+      <p class="empty">Sin actividad reciente</p>
     }
   </section>
 }

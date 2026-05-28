@@ -1,9 +1,14 @@
 <div class="login-page">
-  <div class="login-card card">
+  <div class="login-card content-card">
     <div class="login-card__header">
-      <div class="login-card__logo">OS</div>
-      <h1>Observatorios Salud</h1>
-      <p>Departamental Casanare</p>
+      <img
+        class="osd-brand-logo osd-brand-logo--login"
+        src="/branding/logo-stacked.png"
+        alt="Observatorio de Salud de Casanare"
+        width="220"
+        height="140"
+      />
+      <p class="login-card__tagline">Plataforma de carga y análisis de información en salud</p>
     </div>
 
     @if (error) {
@@ -25,7 +30,7 @@
           <span class="error">Contraseña obligatoria</span>
         }
       </div>
-      <button type="submit" class="btn btn--primary" [disabled]="loading" style="width:100%">
+      <button type="submit" class="btn-primary" [disabled]="loading" style="width: 100%; margin-top: 0.5rem">
         {{ loading ? 'Ingresando...' : 'Iniciar sesión' }}
       </button>
     </form>

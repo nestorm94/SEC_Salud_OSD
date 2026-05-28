@@ -13,6 +13,7 @@ CREATE OR ALTER VIEW dbo.vw_Dashboard_UltimosCargues
 AS
 SELECT
     c.Id,
+    N'Cargue' AS Origen,
     c.DependenciaId,
     d.Nombre AS Dependencia,
     c.Estado,
@@ -23,7 +24,24 @@ SELECT
 FROM dbo.CargasArchivo c
 INNER JOIN dbo.Dependencias d ON d.Id = c.DependenciaId
 INNER JOIN dbo.Archivos a ON a.Id = c.ArchivoId
-LEFT JOIN dbo.Usuarios u ON u.Id = c.UsuarioId;
+LEFT JOIN dbo.Usuarios u ON u.Id = c.UsuarioId
+
+UNION ALL
+
+SELECT
+    a.Id,
+    N'Archivo' AS Origen,
+    a.DependenciaId,
+    d.Nombre AS Dependencia,
+    a.Estado,
+    a.NombreOriginal AS Archivo,
+    COALESCE(a.FechaValidacion, a.CreadoEn) AS Fecha,
+    a.SubidoPorUsuarioId AS UsuarioId,
+    u.NombreUsuario AS Usuario
+FROM dbo.Archivos a
+INNER JOIN dbo.Dependencias d ON d.Id = a.DependenciaId
+LEFT JOIN dbo.Usuarios u ON u.Id = a.SubidoPorUsuarioId
+WHERE a.Estado IS NULL OR a.Estado <> N'Enviado';
 GO
 
 /* =========================
@@ -87,9 +105,10 @@ BEGIN
            AND (@SubidoPorUsuarioId IS NULL OR c.UsuarioId = @SubidoPorUsuarioId)
         ) AS CargasAprobadas;
 
-    /* 2) Últimos cargues (2do result set) */
-    SELECT TOP (10)
+    /* 2) Actividad reciente: cargues + archivos en validación (2do result set) */
+    SELECT
         Id,
+        Origen,
         Dependencia,
         Estado,
         Archivo,

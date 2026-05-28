@@ -1,0 +1,116 @@
+<app-page-header title="Indicadores" subtitle="Indicadores asociados a cada línea temática">
+  <app-icon-action icon="add" label="Crear indicador" variant="success" (action)="abrirCrear()" />
+</app-page-header>
+
+@if (mensaje()) {
+  <div class="alert alert--success">{{ mensaje() }}</div>
+}
+@if (error() && !modalAbierto()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+<div class="filter-card content-card" style="margin-bottom: 1rem">
+  <div class="form-group">
+    <label for="filtro-linea">Línea temática</label>
+    <select
+      id="filtro-linea"
+      [(ngModel)]="filtroLineaId"
+      (ngModelChange)="onFiltroChange()"
+    >
+      <option [ngValue]="null" class="option-placeholder">Seleccione</option>
+      @for (l of lineas(); track l.id) {
+        <option [ngValue]="l.id">{{ l.nombre }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+@if (loading()) {
+  <app-loading-state></app-loading-state>
+} @else {
+  <div class="table-card">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Línea temática</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (i of pag.paginated(); track i.id) {
+            <tr [class.row-inactive]="i.activo === false">
+              <td data-label="ID">{{ i.id }}</td>
+              <td data-label="Línea temática">{{ i.linea_tematica }}</td>
+              <td data-label="Código"><code>{{ i.codigo }}</code></td>
+              <td data-label="Nombre"><strong>{{ i.nombre }}</strong></td>
+              <td data-label="Estado">
+                <app-status-badge [estado]="i.activo !== false ? 'ACTIVO' : 'INACTIVO'" />
+              </td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action icon="edit" label="Editar indicador" (action)="abrirEditar(i)" />
+                </app-table-actions>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
+    @if (!indicadores().length) {
+      <p class="empty">No hay indicadores registrados</p>
+    }
+  </div>
+}
+
+<app-modal [open]="modalAbierto()" [title]="tituloModal()" (close)="cerrarModal()">
+  @if (error() && modalAbierto()) {
+    <div class="alert alert--error" style="margin-bottom: 1rem">{{ error() }}</div>
+  }
+  <div class="form-group">
+    <label for="ind-linea">Línea temática *</label>
+    <select id="ind-linea" [(ngModel)]="lineaTematicaId" required>
+      <option [ngValue]="0" disabled class="option-placeholder">Seleccione</option>
+      @for (l of lineas(); track l.id) {
+        <option [ngValue]="l.id">{{ l.nombre }}</option>
+      }
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="ind-codigo">Código *</label>
+    <input id="ind-codigo" type="text" [(ngModel)]="codigo" maxlength="50" [disabled]="codigoBloqueado()" />
+  </div>
+  <div class="form-group">
+    <label for="ind-nombre">Nombre *</label>
+    <input id="ind-nombre" type="text" [(ngModel)]="nombre" maxlength="200" />
+  </div>
+  <div class="form-group">
+    <label for="ind-desc">Descripción</label>
+    <textarea id="ind-desc" [(ngModel)]="descripcion" rows="3" maxlength="500"></textarea>
+  </div>
+  @if (editando()) {
+    <div class="form-group form-group--checkbox">
+      <label>
+        <input type="checkbox" [(ngModel)]="activo" />
+        Activo
+      </label>
+    </div>
+  }
+  <div modalFooter>
+    <button type="button" class="btn-secondary" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+    <button type="button" class="btn-primary" (click)="guardar()" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>

@@ -3,14 +3,30 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
+import { IconActionComponent } from '../../../shared/components/icon-action/icon-action.component';
+import { TableActionsComponent } from '../../../shared/components/table-actions/table-actions.component';
 import { PlantillasService } from './plantillas.service';
 import { DependenciasService } from '../dependencias/dependencias.service';
 import { Dependencia, Plantilla } from '../../../shared/models/api.models';
+import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
+import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
 @Component({
   selector: 'app-plantillas-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    StatusBadgeComponent,
+    IconActionComponent,
+    TableActionsComponent,
+    TablePaginatorComponent
+  ],
   templateUrl: './plantillas-list.component.html',
   styleUrl: './plantillas-list.component.scss'
 })
@@ -20,6 +36,7 @@ export class PlantillasListComponent implements OnInit {
   private readonly dependenciasService = inject(DependenciasService);
 
   plantillas = signal<Plantilla[]>([]);
+  readonly pag = tablePagination(this.plantillas);
   dependencias = signal<Dependencia[]>([]);
   loading = signal(true);
   error = signal('');
@@ -43,6 +60,7 @@ export class PlantillasListComponent implements OnInit {
     this.plantillasService.listar().subscribe({
       next: (res) => {
         this.plantillas.set(res.plantillas || []);
+        this.pag.resetPage();
         this.loading.set(false);
       },
       error: () => {

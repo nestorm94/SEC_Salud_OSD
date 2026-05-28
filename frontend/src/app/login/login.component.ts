@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 
 @Component({
@@ -11,13 +11,20 @@ import { AuthService } from '../core/auth/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   loading = false;
   error = '';
+
+  ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('expired') === '1') {
+      this.error = 'Su sesión expiró o no es válida. Inicie sesión nuevamente.';
+    }
+  }
 
   form = this.fb.nonNullable.group({
     usuario: ['', Validators.required],

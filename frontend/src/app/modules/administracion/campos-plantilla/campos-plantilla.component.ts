@@ -3,13 +3,27 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
+import { IconActionComponent } from '../../../shared/components/icon-action/icon-action.component';
+import { TableActionsComponent } from '../../../shared/components/table-actions/table-actions.component';
 import { PlantillasService } from '../plantillas/plantillas.service';
 import { CampoPlantilla } from '../../../shared/models/api.models';
+import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
+import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
 @Component({
   selector: 'app-campos-plantilla',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    PageHeaderComponent,
+    LoadingStateComponent,
+    IconActionComponent,
+    TableActionsComponent,
+    TablePaginatorComponent
+  ],
   templateUrl: './campos-plantilla.component.html',
   styleUrl: './campos-plantilla.component.scss'
 })
@@ -20,6 +34,7 @@ export class CamposPlantillaComponent implements OnInit {
 
   plantillaId = signal(0);
   campos = signal<CampoPlantilla[]>([]);
+  readonly pag = tablePagination(this.campos);
   loading = signal(true);
   error = signal('');
   mostrarForm = signal(false);
@@ -46,6 +61,7 @@ export class CamposPlantillaComponent implements OnInit {
     this.plantillasService.listarCampos(this.plantillaId()).subscribe({
       next: (res) => {
         this.campos.set(res.campos || []);
+        this.pag.resetPage();
         this.loading.set(false);
       },
       error: () => {

@@ -121,6 +121,56 @@ body:not(.portal-tema-claro) .portal-sidebar {
   margin: 1rem 0 0.5rem;
 }
 
+.portal-nav-group {
+  margin-top: 1rem;
+}
+
+.portal-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.portal-nav-group-toggle:hover {
+  background: #f1f5f9;
+}
+
+.portal-nav-chevron {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+}
+
+.portal-nav-group-toggle[aria-expanded="true"] .portal-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.portal-nav-submenu {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+
+.portal-nav-submenu.is-expanded {
+  max-height: 28rem;
+  opacity: 1;
+}
+
+.portal-nav-submenu a {
+  padding-left: 1.25rem;
+  font-size: 0.84rem;
+}
+
 .portal-sidebar nav a {
   display: flex;
   align-items: center;
@@ -293,11 +343,63 @@ body.portal-tema-claro .portal-main {
 .form-acciones {
   grid-column: 1 / -1;
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .celda-acciones {
   white-space: nowrap;
+}
+
+.table-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #0b1f3a;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.icon-btn .material-icons {
+  font-size: 20px;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.icon-btn--success {
+  color: #1f7a3a;
+  border-color: rgba(31, 122, 58, 0.35);
+}
+
+.icon-btn--success:hover:not(:disabled) {
+  background: #e8f5ec;
+}
+
+.icon-btn--danger {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.35);
+}
+
+.icon-btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
 }
 
 .btn-mini {

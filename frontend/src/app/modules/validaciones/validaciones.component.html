@@ -1,12 +1,16 @@
-<app-page-header title="Validaciones" subtitle="Revisión y aprobación de cargas Excel"></app-page-header>
+<app-page-header title="Validaciones" subtitle="Revisión, detalle y aprobación de cargas Excel"></app-page-header>
 
-<div class="filtros card">
-  <label>Filtrar:</label>
-  <select [ngModel]="filtro()" (ngModelChange)="filtro.set($event)">
-    <option value="todas">Todas</option>
-    <option value="pendientes">Pendientes</option>
-    <option value="errores">Con errores</option>
-  </select>
+<div class="filter-card">
+  <div class="form-grid form-grid--3" style="align-items: end">
+    <div class="form-group">
+      <label>Filtrar</label>
+      <select [ngModel]="filtro()" (ngModelChange)="onFiltroChange($event)">
+        <option value="todas">Todas</option>
+        <option value="pendientes">Pendientes</option>
+        <option value="errores">Con errores</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 @if (mensaje()) {
@@ -17,88 +21,150 @@
 }
 
 @if (loading()) {
-  <p class="loading">Cargando...</p>
+  <app-loading-state message="Cargando validaciones..."></app-loading-state>
 } @else {
-  <div class="validaciones-grid">
-    <div class="card table-wrap">
-      <table class="data-table">
+  <div class="table-card">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
         <thead>
           <tr>
             <th>ID</th>
+            <th>Origen</th>
             <th>Archivo</th>
-            <th>Dependencia</th>
+            <th>Dependencia / línea</th>
             <th>Estado</th>
             <th>Errores</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          @for (c of cargasFiltradas(); track c.id) {
-            <tr [class.selected]="cargaSeleccionada()?.id === c.id">
-              <td>{{ c.id }}</td>
-              <td>{{ c.archivo }}</td>
-              <td>{{ c.dependencia }}</td>
-              <td><app-status-badge [estado]="c.estado"></app-status-badge></td>
-              <td>{{ c.total_errores }}</td>
-              <td>
-                <button type="button" class="btn btn--secondary btn--sm" (click)="verErrores(c)">Ver detalle</button>
+          @for (f of filasFiltradas(); track f.origen + '-' + f.id) {
+            <tr [class.selected]="filaSeleccionada()?.id === f.id && filaSeleccionada()?.origen === f.origen">
+              <td data-label="ID">{{ f.id }}</td>
+              <td data-label="Origen">{{ etiquetaOrigen(f) }}</td>
+              <td data-label="Archivo">{{ f.archivo }}</td>
+              <td data-label="Dependencia">{{ f.dependencia }}</td>
+              <td data-label="Estado">
+                <app-status-badge [estado]="f.estadoEtiqueta || f.estado"></app-status-badge>
+              </td>
+              <td data-label="Errores">
+                @if (f.origen === 'carga') {
+                  {{ f.total_errores }}
+                } @else if (f.estado.toLowerCase() === 'rechazado') {
+                  Ver detalle
+                } @else {
+                  —
+                }
+              </td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action
+                    icon="visibility"
+                    label="Ver detalle"
+                    (action)="abrirDetalle(f)"
+                  />
+                  @if (puedeAprobar(f)) {
+                    <app-icon-action
+                      icon="check_circle"
+                      [label]="f.origen === 'archivo' ? 'Enviar y aprobar' : 'Aprobar cargue'"
+                      variant="success"
+                      [disabled]="procesando()"
+                      (action)="aprobar(f)"
+                    />
+                    <app-icon-action
+                      icon="cancel"
+                      label="Rechazar"
+                      variant="danger"
+                      [disabled]="procesando()"
+                      (action)="abrirRechazo(f)"
+                    />
+                  }
+                </app-table-actions>
               </td>
             </tr>
           }
         </tbody>
       </table>
-      @if (!cargasFiltradas().length) {
-        <p class="empty">Sin cargas para el filtro seleccionado</p>
-      }
     </div>
-
-    @if (cargaSeleccionada(); as sel) {
-      <div class="card detalle">
-        <h3>Carga #{{ sel.id }} — {{ sel.archivo }}</h3>
-        <p><app-status-badge [estado]="sel.estado"></app-status-badge></p>
-
-        @if (cargandoErrores()) {
-          <p class="loading">Cargando errores...</p>
-        } @else if (errores().length) {
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fila</th>
-                  <th>Columna</th>
-                  <th>Tipo</th>
-                  <th>Mensaje</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (e of errores(); track e.id) {
-                  <tr>
-                    <td>{{ e.fila }}</td>
-                    <td>{{ e.columna }}</td>
-                    <td>{{ e.tipo }}</td>
-                    <td>{{ e.mensaje }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <p class="empty">Sin errores de validación</p>
-        }
-
-        <div class="form-group" style="margin-top:1rem">
-          <label>Observaciones</label>
-          <textarea [(ngModel)]="observaciones" rows="2" placeholder="Opcional para aprobar; obligatorio para rechazar"></textarea>
-        </div>
-
-        <div class="detalle__actions">
-          @if (puedeAprobar(sel)) {
-            <button type="button" class="btn btn--primary" (click)="aprobar(sel)">Aprobar</button>
-          }
-          <button type="button" class="btn btn--danger" (click)="rechazar(sel)">Rechazar</button>
-          <button type="button" class="btn btn--secondary" (click)="cerrarDetalle()">Cerrar</button>
-        </div>
-      </div>
+    <app-table-paginator
+      [page]="pag.page()"
+      [totalPages]="pag.totalPages()"
+      [totalItems]="pag.totalItems()"
+      (pageChange)="pag.setPage($event)"
+    />
+    @if (!filasFiltradas().length) {
+      <p class="empty">
+        Sin registros para este filtro. Los archivos validados en «Carga de archivos» aparecen aquí antes de
+        enviarlos; los cargues enviados aparecen como «Cargue».
+      </p>
     }
   </div>
 }
+
+<app-modal
+  [open]="modalDetalleAbierto()"
+  [title]="tituloModalDetalle()"
+  [wide]="true"
+  (close)="cerrarModales()"
+>
+  @if (filaSeleccionada(); as sel) {
+    <p class="meta" style="margin-top: 0"><strong>{{ sel.archivo }}</strong></p>
+    <p style="margin-bottom: 1rem">
+      <app-status-badge [estado]="sel.estadoEtiqueta || sel.estado"></app-status-badge>
+      <span class="meta" style="margin-left: 0.5rem">{{ sel.dependencia }} · {{ sel.usuario }}</span>
+    </p>
+
+    @if (cargandoErrores()) {
+      <app-loading-state message="Cargando errores..."></app-loading-state>
+    } @else if (errores().length) {
+      <div class="responsive-table-wrap">
+        <table class="responsive-table data-table">
+          <thead>
+            <tr>
+              <th>Fila</th>
+              <th>Columna</th>
+              <th>Tipo</th>
+              <th>Mensaje</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of errores(); track e.id) {
+              <tr>
+                <td data-label="Fila">{{ e.fila || '—' }}</td>
+                <td data-label="Columna">{{ e.columna }}</td>
+                <td data-label="Tipo">{{ e.tipo }}</td>
+                <td data-label="Mensaje">{{ e.mensaje }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="empty" style="padding: 1.5rem">Sin errores de validación registrados</p>
+    }
+  }
+</app-modal>
+
+<app-modal [open]="modalRechazoAbierto()" [title]="tituloModalRechazo()" (close)="cerrarModales()">
+  @if (filaSeleccionada(); as sel) {
+    <p class="meta" style="margin-top: 0">{{ sel.archivo }}</p>
+    <div class="form-group" style="margin-top: 1rem">
+      <label for="obs-rechazo">Observaciones *</label>
+      <textarea
+        id="obs-rechazo"
+        [(ngModel)]="observaciones"
+        rows="4"
+        placeholder="Indique el motivo del rechazo (obligatorio)"
+      ></textarea>
+    </div>
+  }
+  <div modalFooter>
+    <button type="button" class="btn-secondary" (click)="cerrarModales()" [disabled]="procesando()">
+      Cancelar
+    </button>
+    <button type="button" class="btn-danger" (click)="confirmarRechazo()" [disabled]="procesando()">
+      {{ procesando() ? 'Rechazando…' : 'Confirmar rechazo' }}
+    </button>
+  </div>
+</app-modal>

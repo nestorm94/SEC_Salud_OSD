@@ -4,6 +4,8 @@ export interface UsuarioSesion {
   email?: string;
   dependencia_id?: number;
   dependencia?: string;
+  linea_tematica_id?: number;
+  linea_tematica?: string;
   roles: string[];
 }
 
@@ -27,21 +29,62 @@ export interface DashboardResumen {
 
 export interface UltimoCargue {
   id: number;
+  origen?: string;
   dependencia: string;
   estado: string;
   archivo: string;
   fecha: string;
+  usuario?: string;
+}
+
+export interface LineaTematicaItem {
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export interface IndicadorItem {
+  id: number;
+  linea_tematica_id: number;
+  linea_tematica: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  activo?: boolean;
 }
 
 export interface ArchivoItem {
   id: number;
   dependencia_id: number;
-  dependencia: string;
+  dependencia?: string;
+  linea_tematica_id?: number;
+  linea_tematica?: string;
+  indicador_id?: number;
+  indicador?: string;
   nombre_original: string;
   tipo_mime: string;
   tamano_bytes: number;
   creado_en: string;
   subido_por: string;
+  observaciones?: string;
+  estado?: string;
+  estado_etiqueta?: string;
+  fecha_validacion?: string;
+  fecha_envio?: string;
+}
+
+export interface ValidacionArchivoResponse {
+  archivo_id: number;
+  valido: boolean;
+  mensaje?: string;
+  errores_diccionario?: string[];
+  errores_data?: string[];
+  observaciones?: string[];
+  total_errores_diccionario?: number;
+  total_errores_data?: number;
+  geografia?: Record<string, unknown>;
 }
 
 export interface CargaItem {

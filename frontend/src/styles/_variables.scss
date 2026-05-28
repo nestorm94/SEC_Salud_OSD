@@ -1,0 +1,93 @@
+// Paleta institucional — Observatorio de Salud / ADRES
+$color-primary-dark: #0b1f3a;
+$color-primary: #123a6b;
+$color-primary-light: #1e4d8c;
+$color-accent: #1f7a3a;
+$color-accent-light: #e8f5ec;
+$color-accent-dark: #155724;
+
+// Colores del logo institucional
+$color-brand-red: #e31e24;
+$color-brand-yellow: #f5c400;
+$color-brand-green: #1f7a3a;
+
+$color-bg: #f4f7fa;
+$color-surface: #ffffff;
+$color-border: #dde6f0;
+$color-border-strong: #c5d4e4;
+
+$color-text: #1e293b;
+$color-text-muted: #64748b;
+$color-text-inverse: #ffffff;
+
+$color-success: #1f7a3a;
+$color-warning: #d97706;
+$color-danger: #dc2626;
+$color-info: #0ea5e9;
+
+// Layout
+$header-height: 64px;
+$sidebar-width: 272px;
+$sidebar-width-collapsed: 72px;
+$content-max-width: 1440px;
+$page-padding: 1.5rem;
+$page-padding-mobile: 1rem;
+
+// Tipografía
+$font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.8125rem;
+$font-size-base: 0.9375rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.375rem;
+$font-size-2xl: 1.75rem;
+
+// Espaciado
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.25rem;
+$space-6: 1.5rem;
+$space-8: 2rem;
+$space-10: 2.5rem;
+
+// Bordes y sombras
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-xl: 18px;
+
+$shadow-sm: 0 1px 2px rgba(11, 31, 58, 0.06);
+$shadow-md: 0 4px 16px rgba(11, 31, 58, 0.08);
+$shadow-lg: 0 12px 32px rgba(11, 31, 58, 0.12);
+$shadow-card: 0 2px 8px rgba(11, 31, 58, 0.06), 0 1px 2px rgba(11, 31, 58, 0.04);
+
+// Transiciones
+$transition-fast: 150ms ease;
+$transition-base: 220ms ease;
+
+// CSS custom properties (runtime)
+:root {
+  --osd-primary-dark: #{$color-primary-dark};
+  --osd-primary: #{$color-primary};
+  --osd-primary-light: #{$color-primary-light};
+  --osd-accent: #{$color-accent};
+  --osd-accent-light: #{$color-accent-light};
+  --osd-bg: #{$color-bg};
+  --osd-surface: #{$color-surface};
+  --osd-border: #{$color-border};
+  --osd-text: #{$color-text};
+  --osd-text-muted: #{$color-text-muted};
+  --osd-success: #{$color-success};
+  --osd-warning: #{$color-warning};
+  --osd-danger: #{$color-danger};
+  --osd-brand-red: #{$color-brand-red};
+  --osd-brand-yellow: #{$color-brand-yellow};
+  --osd-brand-green: #{$color-brand-green};
+  --osd-header-height: #{$header-height};
+  --osd-sidebar-width: #{$sidebar-width};
+  --osd-content-max: #{$content-max-width};
+  --osd-radius-md: #{$radius-md};
+  --osd-shadow-card: #{$shadow-card};
+}

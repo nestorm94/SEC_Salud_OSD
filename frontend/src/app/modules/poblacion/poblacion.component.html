@@ -1,29 +1,29 @@
-<app-page-header title="Proyección de población" subtitle="Consulta de vistas demográficas"></app-page-header>
+<app-page-header title="Proyección de población" subtitle="Consulta analítica de vistas demográficas territoriales"></app-page-header>
 
-<div class="tabs">
+<div class="tabs osd-tabs">
   @for (t of tabs; track t.clave) {
-    <button type="button" [class.active]="tabActiva() === t.clave" (click)="cambiarTab(t.clave)">
+    <button type="button" class="tab-btn" [class.active]="tabActiva() === t.clave" (click)="cambiarTab(t.clave)">
       {{ t.label }}
     </button>
   }
 </div>
 
-<div class="card filtros-card">
+<div class="filter-card">
   <div class="filtros-grid">
-    <div class="filtro">
+    <div class="form-group">
       <label>Departamento</label>
       <select [(ngModel)]="filtroDepartamento" (change)="onDepartamentoChange()">
-        <option value="">Todos</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (d of departamentos; track d.codigoDane) {
           <option [value]="d.codigoDane">{{ d.codigoDane }} - {{ d.nombreDepartamento }}</option>
         }
       </select>
     </div>
 
-    <div class="filtro">
+    <div class="form-group">
       <label>Municipio</label>
       <select [(ngModel)]="filtroMunicipio" (change)="onMunicipioChange()" [disabled]="!filtroDepartamento">
-        <option value="">Todos</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (m of municipios; track m.codigoDane) {
           <option [value]="m.codigoDane">{{ m.codigoDane }} - {{ m.nombreMunicipio }}</option>
         }
@@ -33,51 +33,51 @@
       }
     </div>
 
-    <div class="filtro">
+    <div class="form-group">
       <label>Regional</label>
       <select [(ngModel)]="filtroRegional" (change)="onFiltroChange()">
-        <option value="">Todas</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (r of regionales; track r.codigo) {
           <option [value]="r.codigo">{{ r.nombre }}</option>
         }
       </select>
     </div>
 
-    <div class="filtro">
+    <div class="form-group">
       <label>Área</label>
       <select [(ngModel)]="filtroArea" (change)="onFiltroChange()">
-        <option value="">Todas</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (a of areas; track a.codigo) {
           <option [value]="a.codigo">{{ a.nombre }}</option>
         }
       </select>
     </div>
 
-    <div class="filtro">
+    <div class="form-group">
       <label>Sexo</label>
       <select [(ngModel)]="filtroSexo" (change)="onFiltroChange()">
-        <option value="">Todos</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (s of sexos; track s.codigo) {
           <option [value]="s.codigo">{{ s.nombre }}</option>
         }
       </select>
     </div>
 
-    <div class="filtro">
+    <div class="form-group">
       <label>Año</label>
       <select [(ngModel)]="filtroAnio" (change)="onFiltroChange()">
-        <option value="">Todos</option>
+        <option value="" class="option-placeholder">Seleccione</option>
         @for (a of anios; track a.codigo) {
           <option [value]="a.codigo">{{ a.nombre }}</option>
         }
       </select>
     </div>
 
-    <div class="filtro acciones">
+    <div class="form-group">
       <label>&nbsp;</label>
-      <div class="acciones-row">
-        <button type="button" class="btn btn--secondary btn--sm" (click)="limpiarFiltros()">Limpiar</button>
-        <button type="button" class="btn btn--secondary btn--sm" (click)="consultar()">Recargar</button>
+      <div class="actions" style="display: flex; gap: 0.5rem">
+        <button type="button" class="btn-secondary btn-sm" (click)="limpiarFiltros()">Limpiar</button>
+        <button type="button" class="btn-primary btn-sm" (click)="consultar()">Consultar</button>
       </div>
     </div>
   </div>
@@ -88,15 +88,16 @@
 }
 
 @if (loading()) {
-  <p class="loading">Consultando datos...</p>
+  <app-loading-state message="Consultando datos..."></app-loading-state>
 } @else if (datos()) {
-  <div class="card">
+  <div class="table-card content-card">
     <p class="meta">
       Página {{ datos()!.pagina }} de {{ datos()!.totalPaginas }} — {{ datos()!.totalFilas }} filas —
-      Tamaño {{ datos()!.tamanoPagina }}
+      Tamaño de página {{ datos()!.tamanoPagina }}
     </p>
-    <div class="table-wrap">
-      <table class="data-table">
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
         <thead>
           <tr>
             @for (col of datos()!.columnas; track col) {
@@ -108,26 +109,18 @@
           @for (fila of datos()!.filas; track $index) {
             <tr>
               @for (col of datos()!.columnas; track col) {
-                <td>{{ cellValue(fila, col) }}</td>
+                <td [attr.data-label]="col">{{ cellValue(fila, col) }}</td>
               }
             </tr>
           }
         </tbody>
       </table>
     </div>
-    <div class="paginacion">
-      <button type="button" class="btn btn--secondary btn--sm" [disabled]="pagina <= 1" (click)="paginaAnterior()">
-        Anterior
-      </button>
-      <span>Página {{ pagina }}</span>
-      <button
-        type="button"
-        class="btn btn--secondary btn--sm"
-        [disabled]="pagina >= datos()!.totalPaginas"
-        (click)="paginaSiguiente()"
-      >
-        Siguiente
-      </button>
-    </div>
+    <app-table-paginator
+      [page]="pagina"
+      [totalPages]="datos()!.totalPaginas"
+      [totalItems]="datos()!.totalFilas"
+      (pageChange)="irAPagina($event)"
+    />
   </div>
 }

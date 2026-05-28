@@ -1,0 +1,30 @@
+// Tema Angular Material — paleta institucional OSD
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$green-palette
+      ),
+      typography: (
+        plain-family: 'Inter',
+        brand-family: 'Inter'
+      ),
+      density: 0
+    )
+  );
+}
+
+// Ajustes sobre componentes Material (cuando se usen mat-*)
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: #0b1f3a;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}

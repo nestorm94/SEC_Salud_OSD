@@ -1,0 +1,102 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Shell principal
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $color-bg;
+}
+
+.app-layout__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: $sidebar-width;
+
+  @include respond-tablet {
+    margin-left: 0;
+  }
+}
+
+.app-layout__content {
+  flex: 1;
+  padding: $page-padding;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+
+  @include respond-mobile {
+    padding: $page-padding-mobile;
+  }
+}
+
+// Contenedor de página
+.page-container {
+  max-width: $content-max-width;
+  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.page-header {
+  @include flex-between;
+  align-items: flex-start;
+  gap: $space-4;
+  margin-bottom: $space-6;
+  flex-wrap: wrap;
+
+  &__titles {
+    min-width: 0;
+  }
+
+  &__title {
+    @include page-title;
+  }
+
+  &__subtitle {
+    margin: $space-2 0 0;
+    font-size: $font-size-base;
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-3;
+    align-items: center;
+  }
+}
+
+// Breadcrumbs
+.osd-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+  margin-bottom: $space-4;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+
+  a {
+    color: $color-primary;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  &__sep {
+    opacity: 0.45;
+    user-select: none;
+  }
+
+  &__current {
+    color: $color-text;
+    font-weight: 600;
+  }
+}

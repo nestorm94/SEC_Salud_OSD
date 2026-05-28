@@ -187,7 +187,7 @@ export async function cargarLineasTematicas() {
     return [];
   }
 
-  sel.innerHTML = '<option value="">— Seleccione línea temática —</option>';
+  sel.innerHTML = '<option value="">Seleccione</option>';
   for (const l of lineas) {
     const opt = document.createElement("option");
     opt.value = l.id;
@@ -199,10 +199,13 @@ export async function cargarLineasTematicas() {
   const soloSuLinea = !puedeAdministrar() && u?.linea_tematica_id;
 
   if (lineas.length === 1 || soloSuLinea) {
-    sel.value = String(lineas[0].id);
-    sel.disabled = true;
+    const lineaId = soloSuLinea && u?.linea_tematica_id
+      ? u.linea_tematica_id
+      : lineas[0].id;
+    sel.value = String(lineaId);
+    sel.disabled = !!soloSuLinea || lineas.length === 1;
     msgCarga("", "");
-    await cargarIndicadores(lineas[0].id);
+    await cargarIndicadores(lineaId);
   } else {
     sel.disabled = false;
     msgCarga("", "");
@@ -229,9 +232,7 @@ export async function cargarIndicadores(lineaId) {
   if (!res.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
 
   const inds = extraerIndicadores(data);
-  sel.innerHTML = inds.length
-    ? '<option value="">— Seleccione indicador —</option>'
-    : '<option value="">— Sin indicadores en esta línea —</option>';
+  sel.innerHTML = '<option value="">Seleccione</option>';
   for (const i of inds) {
     const opt = document.createElement("option");
     opt.value = i.id;

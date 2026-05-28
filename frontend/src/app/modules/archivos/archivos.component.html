@@ -1,51 +1,330 @@
-<app-page-header title="Archivos" subtitle="Carga de Excel y gestión de archivos">
-  <label class="btn btn--primary">
-    {{ uploading() ? 'Subiendo...' : 'Subir Excel (.xlsx)' }}
-    <input type="file" accept=".xlsx" hidden (change)="onFileSelected($event)" [disabled]="uploading()" />
-  </label>
-</app-page-header>
+<app-page-header
+
+  title="Carga de archivos"
+
+  subtitle="Plantilla OSC: hojas Diccionario_datos y DATA. Seleccione línea, indicador y archivo Excel (.xlsx). Valide y luego envíe."
+
+></app-page-header>
+
+
 
 @if (mensaje()) {
+
   <div class="alert alert--success">{{ mensaje() }}</div>
-}
-@if (error()) {
-  <div class="alert alert--error">{{ error() }}</div>
+
 }
 
-@if (loading()) {
-  <p class="loading">Cargando archivos...</p>
-} @else {
-  <div class="card table-wrap">
-    @if (archivos().length) {
-      <table class="data-table">
+@if (error()) {
+
+  <div class="alert alert--error">{{ error() }}</div>
+
+}
+
+@if (catalogoError()) {
+
+  <div class="alert alert--error">
+
+    {{ catalogoError() }}
+
+    <button type="button" class="btn-secondary btn-sm" style="margin-left: 0.75rem" (click)="cargarCatalogos()">
+
+      Recargar catálogo
+
+    </button>
+
+  </div>
+
+}
+
+
+
+<section class="filter-card content-card">
+
+  <h2 class="content-card__title">Cargar archivo</h2>
+
+
+
+  @if (loadingCatalogos()) {
+
+    <app-loading-state message="Cargando líneas temáticas e indicadores…"></app-loading-state>
+
+  } @else {
+
+    <div class="form-grid filtros-grid">
+
+      <div class="form-group">
+
+        <label for="linea-tematica">Línea temática *</label>
+
+        <select
+          id="linea-tematica"
+          [ngModel]="lineaSeleccionada()"
+          (ngModelChange)="onLineaChange($event)"
+          [disabled]="lineaBloqueada()"
+        >
+          <option [ngValue]="null" class="option-placeholder">Seleccione</option>
+          @for (l of lineas(); track l.id) {
+            <option [ngValue]="l.id">{{ l.nombre }}</option>
+          }
+        </select>
+
+      </div>
+
+
+
+      <div class="form-group">
+
+        <label for="indicador">Indicador *</label>
+
+        <select
+          id="indicador"
+          [ngModel]="indicadorSeleccionado()"
+          (ngModelChange)="onIndicadorChange($event)"
+          [disabled]="!lineaSeleccionada() || !indicadores().length"
+        >
+          <option [ngValue]="null" class="option-placeholder">Seleccione</option>
+          @for (i of indicadores(); track i.id) {
+            <option [ngValue]="i.id">{{ i.nombre }}</option>
+          }
+        </select>
+        @if (lineaSeleccionada() && !indicadores().length) {
+          <small class="hint">No hay indicadores en esta línea temática.</small>
+        }
+
+      </div>
+
+
+
+      <div class="form-group form-group--full">
+
+        <label for="observaciones">Observaciones</label>
+
+        <input id="observaciones" type="text" [(ngModel)]="observaciones" maxlength="1000" placeholder="Opcional" />
+
+      </div>
+
+
+
+      <div class="form-group form-group--full">
+
+        <label for="archivo-excel">Archivo Excel (.xlsx) — plantilla OSC *</label>
+
+        <input id="archivo-excel" type="file" accept=".xlsx" (change)="onArchivoChange($event)" [disabled]="validando()" />
+
+      </div>
+
+    </div>
+
+
+
+    <div class="form-actions">
+
+      <button type="button" class="btn-primary" (click)="validar()" [disabled]="validando() || enviando()">
+
+        {{ validando() ? 'Validando…' : 'Validar archivo' }}
+
+      </button>
+
+      <button
+
+        type="button"
+
+        class="btn-success"
+
+        (click)="enviar()"
+
+        [disabled]="!archivoIdValidado() || enviando() || validando()"
+
+      >
+
+        {{ enviando() ? 'Enviando…' : 'Enviar' }}
+
+      </button>
+
+      <button type="button" class="btn-secondary" (click)="cargarCatalogos()" [disabled]="loadingCatalogos()">
+
+        Recargar catálogo
+
+      </button>
+
+    </div>
+
+  }
+
+</section>
+
+
+
+@if (resultadoValidacion(); as rv) {
+
+  <section class="content-card" style="margin-bottom: 1.5rem">
+
+    <h3 class="content-card__title">Resultado de validación</h3>
+
+    <div class="stat-grid" style="margin-bottom: 1rem">
+
+      <div class="stat-card" [class.stat-card--success]="rv.valido" [class.stat-card--danger]="!rv.valido">
+
+        <div class="stat-value">{{ rv.valido ? 'Válido' : 'Con errores' }}</div>
+
+        <div class="stat-label">Estado</div>
+
+      </div>
+
+      <div class="stat-card stat-card--warning">
+
+        <div class="stat-value">{{ rv.total_errores_diccionario ?? rv.errores_diccionario?.length ?? 0 }}</div>
+
+        <div class="stat-label">Errores Diccionario_datos</div>
+
+      </div>
+
+      <div class="stat-card stat-card--danger">
+
+        <div class="stat-value">{{ rv.total_errores_data ?? rv.errores_data?.length ?? 0 }}</div>
+
+        <div class="stat-label">Errores DATA</div>
+
+      </div>
+
+    </div>
+
+
+
+    @if (rv.errores_diccionario?.length) {
+
+      <h4>Errores — Diccionario_datos</h4>
+
+      <ul class="lista-errores-validacion">
+
+        @for (e of rv.errores_diccionario; track e) {
+
+          <li>{{ e }}</li>
+
+        }
+
+      </ul>
+
+    }
+
+    @if (rv.errores_data?.length) {
+
+      <h4>Errores — DATA</h4>
+
+      <ul class="lista-errores-validacion">
+
+        @for (e of rv.errores_data; track e) {
+
+          <li>{{ e }}</li>
+
+        }
+
+      </ul>
+
+    }
+
+    @if (rv.observaciones?.length) {
+
+      <h4>Observaciones</h4>
+
+      <ul class="lista-errores-validacion lista-observaciones">
+
+        @for (o of rv.observaciones; track o) {
+
+          <li>{{ o }}</li>
+
+        }
+
+      </ul>
+
+    }
+
+  </section>
+
+}
+
+
+
+<section class="table-card">
+
+  <div class="table-card__toolbar">
+
+    <h2 class="content-card__title" style="margin: 0">Archivos cargados</h2>
+
+    <button type="button" class="btn-secondary btn-sm" (click)="cargarLista()">Actualizar lista</button>
+
+  </div>
+
+
+
+  @if (loading()) {
+
+    <app-loading-state message="Cargando archivos…"></app-loading-state>
+
+  } @else if (archivos().length) {
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente o gira el dispositivo para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table">
         <thead>
           <tr>
             <th>Nombre</th>
-            <th>Dependencia</th>
-            <th>Tamaño</th>
-            <th>Subido por</th>
-            <th>Fecha</th>
+            <th>Línea temática</th>
+            <th>Indicador</th>
+            <th>Estado</th>
+            <th>Validación</th>
+            <th>Envío</th>
+            <th>Usuario</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          @for (a of archivos(); track a.id) {
+          @for (a of pagArchivos.paginated(); track a.id) {
             <tr>
-              <td>{{ a.nombre_original }}</td>
-              <td>{{ a.dependencia }}</td>
-              <td>{{ formatBytes(a.tamano_bytes) }}</td>
-              <td>{{ a.subido_por }}</td>
-              <td>{{ a.creado_en | date: 'short' }}</td>
-              <td class="actions">
-                <button type="button" class="btn btn--secondary btn--sm" (click)="descargar(a)">Descargar</button>
-                <button type="button" class="btn btn--danger btn--sm" (click)="eliminar(a)">Eliminar</button>
+              <td data-label="Nombre">{{ a.nombre_original }}</td>
+              <td data-label="Línea temática">{{ a.linea_tematica || '—' }}</td>
+              <td data-label="Indicador">{{ a.indicador || '—' }}</td>
+              <td data-label="Estado">
+                @if (a.estado) {
+                  <app-status-badge [estado]="a.estado"></app-status-badge>
+                } @else {
+                  —
+                }
+              </td>
+              <td data-label="Validación">{{ a.fecha_validacion | date: 'short' }}</td>
+              <td data-label="Envío">{{ a.fecha_envio | date: 'short' }}</td>
+              <td data-label="Usuario">{{ a.subido_por }}</td>
+              <td class="actions" data-label="Acciones">
+                <app-table-actions>
+                  <app-icon-action
+                    icon="download"
+                    label="Descargar archivo"
+                    (action)="descargar(a)"
+                  />
+                  <app-icon-action
+                    icon="delete"
+                    label="Eliminar archivo"
+                    variant="danger"
+                    (action)="eliminar(a)"
+                  />
+                </app-table-actions>
               </td>
             </tr>
           }
         </tbody>
       </table>
-    } @else {
-      <p class="empty">No hay archivos registrados</p>
-    }
-  </div>
-}
+    </div>
+    <app-table-paginator
+      [page]="pagArchivos.page()"
+      [totalPages]="pagArchivos.totalPages()"
+      [totalItems]="pagArchivos.totalItems()"
+      (pageChange)="pagArchivos.setPage($event)"
+    />
+
+  } @else {
+
+    <p class="empty">No hay archivos registrados</p>
+
+  }
+
+</section>
+

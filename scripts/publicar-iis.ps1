@@ -8,7 +8,24 @@ param(
 $ErrorActionPreference = "Stop"
 $repo = Resolve-Path "$PSScriptRoot\.."
 $publicSrc = Join-Path $repo "public"
+$frontendDir = Join-Path $repo "frontend"
+$angularDist = Join-Path $frontendDir "dist\frontend\browser"
 $publishDir = Join-Path $env:TEMP "ObservatorioOSD_publish"
+
+if (Test-Path (Join-Path $frontendDir "package.json")) {
+    Write-Host "Compilando Angular (frontend)..." -ForegroundColor Cyan
+    Push-Location $frontendDir
+    try {
+        if (-not (Test-Path "node_modules")) {
+            npm install --no-audit --no-fund --legacy-peer-deps
+            if ($LASTEXITCODE -ne 0) { throw "npm install falló" }
+        }
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw "npm run build falló" }
+    } finally {
+        Pop-Location
+    }
+}
 
 Write-Host "Compilando y publicando API..." -ForegroundColor Cyan
 dotnet publish $Proyecto -c Release -o $publishDir --no-self-contained
@@ -34,11 +51,17 @@ Write-Host "Carpeta uploads: $uploadsDir" -ForegroundColor Cyan
 
 $www = Join-Path $Destino "wwwroot"
 if (-not (Test-Path $www)) { New-Item -ItemType Directory -Path $www -Force | Out-Null }
-Write-Host "Copiando public/ a wwwroot ..." -ForegroundColor Cyan
-robocopy $publicSrc $www /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
-if ($LASTEXITCODE -ge 8) { throw "robocopy wwwroot falló con código $LASTEXITCODE" }
+if (Test-Path $angularDist) {
+    Write-Host "Copiando Angular dist a wwwroot ..." -ForegroundColor Cyan
+    robocopy $angularDist $www /MIR /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy Angular wwwroot falló con código $LASTEXITCODE" }
+} else {
+    Write-Host "Copiando public/ a wwwroot (sin build Angular) ..." -ForegroundColor Yellow
+    robocopy $publicSrc $www /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "robocopy wwwroot falló con código $LASTEXITCODE" }
+}
 
 Remove-Item $offline -Force -ErrorAction SilentlyContinue
 
 & "$PSScriptRoot\reciclar-sitio-iis.ps1"
-Write-Host "`nListo. Pruebe: http://localhost:8081/index.html" -ForegroundColor Green
+Write-Host "`nListo. Pruebe: http://localhost:8081/ (Angular) o http://localhost:8081/api/ping" -ForegroundColor Green
