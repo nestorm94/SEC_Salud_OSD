@@ -199,8 +199,7 @@ app.Use(async (ctx, next) =>
 });
 
 var webRoot = app.Environment.WebRootPath ?? "";
-var sirveAngularSpa = webRoot.Contains("dist", StringComparison.OrdinalIgnoreCase)
-    && webRoot.Contains("browser", StringComparison.OrdinalIgnoreCase);
+var sirveAngularSpa = EsUiAngular(webRoot);
 
 if (Directory.Exists(webRoot))
 {
@@ -290,3 +289,32 @@ else if (Directory.Exists(webRoot))
 }
 
 app.Run();
+
+static bool EsUiAngular(string webRoot)
+{
+    if (string.IsNullOrWhiteSpace(webRoot) || !Directory.Exists(webRoot))
+        return false;
+
+    if (webRoot.Contains("dist", StringComparison.OrdinalIgnoreCase)
+        && webRoot.Contains("browser", StringComparison.OrdinalIgnoreCase))
+        return true;
+
+    var indexPath = Path.Combine(webRoot, "index.html");
+    if (!File.Exists(indexPath))
+        return false;
+
+    if (File.Exists(Path.Combine(webRoot, "login.html")))
+        return false;
+
+    try
+    {
+        using var sr = new StreamReader(indexPath);
+        var chunk = new char[4096];
+        var read = sr.Read(chunk, 0, chunk.Length);
+        return read > 0 && new string(chunk, 0, read).Contains("<app-root>", StringComparison.OrdinalIgnoreCase);
+    }
+    catch
+    {
+        return false;
+    }
+}
