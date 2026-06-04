@@ -20,6 +20,15 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    "http-network": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://0.0.0.0:5289",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
     "http5290": {
       "commandName": "Project",
       "dotnetRunMessages": true,
