@@ -140,6 +140,19 @@ export interface CatalogoSimpleDto {
   nombre: string;
 }
 
+export interface IndicadorProstataDto {
+  codigoDane: string;
+  territorio: string;
+  codigoTerritorio: string;
+  regional: string;
+  anio: number | null;
+  area: string;
+  muertes: number | null;
+  poblacion: number | null;
+  coeficiente: number | null;
+  tasa: number | null;
+}
+
 export interface Dependencia {
   id: number;
   codigo: string;
@@ -196,4 +209,25 @@ export interface PaginatedQuery {
   ano?: number;
   codigoDepartamento?: string;
   codigoMunicipio?: string;
+}
+
+/** Consulta vistas ASIS (Fase 4). */
+export interface AsisQuery {
+  pagina?: number;
+  tamanoPagina?: number;
+  vigencia?: number;
+  codigoMunicipio?: string;
+  nivelTerritorio?: 'DEPARTAMENTO' | 'MUNICIPIO';
+  idProyeccionDane?: number;
+}
+
+export interface AsisProyeccionDto {
+  id: number;
+  nombre: string;
+  anioPublicacion?: number;
+}
+
+export interface AsisVistasMeta {
+  capaPoblacion: 'legacy' | 'fact';
+  idProyeccionDaneDefault: number;
 }

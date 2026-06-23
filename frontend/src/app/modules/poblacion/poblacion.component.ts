@@ -35,6 +35,7 @@ export class PoblacionComponent implements OnInit {
   areas: CatalogoSimpleDto[] = [];
   sexos: CatalogoSimpleDto[] = [];
   anios: CatalogoSimpleDto[] = [];
+  catalogosError = signal('');
 
   // Filtros (códigos o valores). Vacío = “Todos”.
   filtroDepartamento = '';
@@ -57,25 +58,34 @@ export class PoblacionComponent implements OnInit {
   }
 
   private cargarCatalogos(): void {
+    const errores: string[] = [];
+
+    const onError = (nombre: string) => () => {
+      errores.push(nombre);
+      this.catalogosError.set(
+        `No se pudieron cargar algunos filtros (${errores.join(', ')}). Recargue la página o contacte al administrador.`
+      );
+    };
+
     this.catalogoService.getDepartamentos().subscribe({
       next: ({ departamentos }) => (this.departamentos = departamentos || []),
-      error: () => (this.departamentos = [])
+      error: onError('departamentos')
     });
     this.catalogoService.getRegionales().subscribe({
       next: ({ regionales }) => (this.regionales = regionales || []),
-      error: () => (this.regionales = [])
+      error: onError('regionales')
     });
     this.catalogoService.getAreas().subscribe({
       next: ({ areas }) => (this.areas = areas || []),
-      error: () => (this.areas = [])
+      error: onError('áreas')
     });
     this.catalogoService.getSexos().subscribe({
       next: ({ sexos }) => (this.sexos = sexos || []),
-      error: () => (this.sexos = [])
+      error: onError('sexos')
     });
     this.catalogoService.getAnios().subscribe({
       next: ({ anios }) => (this.anios = anios || []),
-      error: () => (this.anios = [])
+      error: onError('años')
     });
   }
 

@@ -1,0 +1,119 @@
+<app-page-header
+  title="Mortalidad por próstata"
+  subtitle="Tasa de mortalidad y número de muertes — fuente Tasa_mortalidad_Prost"
+></app-page-header>
+
+<div class="filter-card">
+  <div class="filtros-grid">
+    <div class="form-group">
+      <label>Año</label>
+      <select [(ngModel)]="filtroAnio" (change)="aplicarFiltros()">
+        <option value="" class="option-placeholder">Todos</option>
+        @for (a of anios; track a) {
+          <option [value]="a">{{ a }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Regional</label>
+      <select [(ngModel)]="filtroRegional" (change)="aplicarFiltros()">
+        <option value="" class="option-placeholder">Todas</option>
+        @for (r of regionales; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Área</label>
+      <select [(ngModel)]="filtroArea" (change)="aplicarFiltros()">
+        <option value="" class="option-placeholder">Todas</option>
+        @for (a of areas; track a) {
+          <option [value]="a">{{ a }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Territorio</label>
+      <select [(ngModel)]="filtroTerritorio" (change)="aplicarFiltros()">
+        <option value="" class="option-placeholder">Todos</option>
+        @for (t of territorios(); track t) {
+          <option [value]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Código DANE</label>
+      <input type="text" [(ngModel)]="filtroCodigoDane" placeholder="Ej. 85, 85010" (keyup.enter)="aplicarFiltros()" />
+    </div>
+
+    <div class="form-group">
+      <label>&nbsp;</label>
+      <div class="actions" style="display: flex; gap: 0.5rem">
+        <button type="button" class="btn-secondary btn-sm" (click)="limpiarFiltros()">Limpiar</button>
+        <button type="button" class="btn-primary btn-sm" (click)="aplicarFiltros()">Aplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <app-loading-state message="Consultando indicador..."></app-loading-state>
+} @else if (filas().length) {
+  <div class="table-card content-card">
+    <p class="meta">
+      {{ filas().length }} filas — Página {{ pagina }} de {{ totalPaginas() }}
+      @if (fuente()) {
+        — Fuente: {{ fuente() }}
+      }
+    </p>
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap">
+      <table class="responsive-table data-table prostata-table">
+        <thead>
+          <tr>
+            <th>Código DANE</th>
+            <th>Territorio</th>
+            <th>Regional</th>
+            <th>Año</th>
+            <th>Área</th>
+            <th class="num">Muertes</th>
+            <th class="num">Población</th>
+            <th class="num">Coeficiente</th>
+            <th class="num">Tasa</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of filasPagina(); track $index) {
+            <tr>
+              <td data-label="Código DANE">{{ fila.codigoDane }}</td>
+              <td data-label="Territorio">{{ fila.territorio }}</td>
+              <td data-label="Regional">{{ fila.regional }}</td>
+              <td data-label="Año">{{ fila.anio }}</td>
+              <td data-label="Área">{{ fila.area }}</td>
+              <td class="num" data-label="Muertes">{{ formatNum(fila.muertes, 0) }}</td>
+              <td class="num" data-label="Población">{{ formatNum(fila.poblacion, 0) }}</td>
+              <td class="num" data-label="Coeficiente">{{ formatNum(fila.coeficiente, 0) }}</td>
+              <td class="num" data-label="Tasa">{{ formatNum(fila.tasa, 2) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pagina"
+      [totalPages]="totalPaginas()"
+      [totalItems]="filas().length"
+      (pageChange)="irAPagina($event)"
+    />
+  </div>
+} @else {
+  <div class="empty">No hay datos para los filtros seleccionados.</div>
+}

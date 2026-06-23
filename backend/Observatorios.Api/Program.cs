@@ -119,6 +119,7 @@ builder.Services.AddSingleton<RolesRepository>();
 builder.Services.AddSingleton<PlantillasRepository>();
 builder.Services.AddSingleton<DashboardRepository>();
 builder.Services.AddSingleton<PoblacionVistasRepository>();
+builder.Services.AddSingleton<AsisRepository>();
 builder.Services.AddSingleton<CatalogoRepository>();
 builder.Services.AddSingleton<PoblacionCatalogosRepository>();
 builder.Services.AddSingleton<ICatalogoService, CatalogoService>();
@@ -279,7 +280,20 @@ app.MapControllers();
 if (sirveAngularSpa)
 {
     app.MapGet("/", () => Results.Redirect("/login"));
-    app.MapFallbackToFile("index.html");
+    var indexSpa = Path.Combine(webRoot, "index.html");
+    app.MapFallback(async (HttpContext ctx) =>
+    {
+        if (EsRutaApiOSistema(ctx.Request.Path))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            await ctx.Response.WriteAsJsonAsync(new { error = "Recurso API no encontrado. Reinicie la API si acaba de desplegar cambios." });
+            return;
+        }
+        if (File.Exists(indexSpa))
+            await ctx.Response.SendFileAsync(indexSpa);
+        else
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+    });
     Console.WriteLine("[Observatorios.Api] UI: Angular (frontend/dist). Recargue con Ctrl+Shift+R tras npm run build.");
 }
 else if (Directory.Exists(webRoot))
@@ -289,6 +303,11 @@ else if (Directory.Exists(webRoot))
 }
 
 app.Run();
+
+static bool EsRutaApiOSistema(PathString path) =>
+    path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+    || path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase)
+    || path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
 
 static bool EsUiAngular(string webRoot)
 {

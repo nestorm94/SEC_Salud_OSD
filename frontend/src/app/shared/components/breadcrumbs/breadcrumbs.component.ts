@@ -14,6 +14,8 @@ const LABELS: Record<string, string> = {
   archivos: 'Archivos',
   validaciones: 'Validaciones',
   poblacion: 'Proyección población',
+  prostata: 'Mortalidad próstata',
+  asis: 'ASIS Departamental',
   administracion: 'Administración',
   usuarios: 'Usuarios',
   nuevo: 'Nuevo',

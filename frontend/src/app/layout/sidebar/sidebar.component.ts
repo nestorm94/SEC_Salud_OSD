@@ -34,7 +34,9 @@ export class SidebarComponent implements OnInit {
     { label: 'Panel principal', route: '/dashboard', icon: 'dashboard' },
     { label: 'Archivos', route: '/archivos', icon: 'folder_open' },
     { label: 'Validaciones', route: '/validaciones', icon: 'fact_check' },
-    { label: 'Proyección población', route: '/poblacion', icon: 'groups' }
+    { label: 'Proyección población', route: '/poblacion', icon: 'groups' },
+    { label: 'Mortalidad próstata', route: '/prostata', icon: 'medical_services' },
+    { label: 'ASIS Departamental', route: '/asis', icon: 'assessment' }
   ];
 
   readonly menuAdmin: MenuItem[] = [

@@ -25,6 +25,7 @@
   margin-bottom: $space-6;
   padding: $space-5 $space-6;
   background: linear-gradient(180deg, $color-surface 0%, #fafcfe 100%);
+  overflow: visible;
 }
 
 .form-group--full {
@@ -616,6 +617,12 @@ a.icon-btn {
     background: $color-accent-light;
     color: $color-accent-dark;
     border-color: $color-accent;
+  }
+
+  &--warning {
+    background: #fffbeb;
+    color: #92400e;
+    border-color: $color-warning;
   }
 }
 

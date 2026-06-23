@@ -719,6 +719,8 @@ public static class ApiEndpoints
             (string clave, HttpRequest req, PoblacionVistasRepository repo, CancellationToken ct) =>
                 ProyeccionPoblacionExcel(clave, req, repo, ct));
 
+        secured.MapAsisApi();
+
         secured.MapAdminApi(repoRoot);
         secured.MapDashboardApi();
     }

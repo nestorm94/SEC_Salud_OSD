@@ -1,0 +1,132 @@
+<app-page-header
+  title="ASIS Departamental"
+  subtitle="Población, mortalidad, nacimientos y tasas — Casanare"
+></app-page-header>
+
+<div class="tabs osd-tabs osd-tabs--grupo">
+  <button type="button" class="tab-btn" [class.active]="grupoActivo() === 'poblacion'" (click)="cambiarGrupo('poblacion')">
+    Población
+  </button>
+  <button type="button" class="tab-btn" [class.active]="grupoActivo() === 'mortalidad'" (click)="cambiarGrupo('mortalidad')">
+    Mortalidad
+  </button>
+  <button type="button" class="tab-btn" [class.active]="grupoActivo() === 'nacimientos'" (click)="cambiarGrupo('nacimientos')">
+    Nacimientos
+  </button>
+  <button type="button" class="tab-btn" [class.active]="grupoActivo() === 'indicadores'" (click)="cambiarGrupo('indicadores')">
+    Indicadores
+  </button>
+</div>
+
+<div class="tabs osd-tabs">
+  @for (t of tabsDelGrupo(); track t.clave) {
+    <button type="button" class="tab-btn tab-btn--sm" [class.active]="tabActiva() === t.clave" (click)="cambiarTab(t.clave)">
+      {{ t.label }}
+    </button>
+  }
+</div>
+
+<div class="filter-card">
+  <div class="filtros-grid">
+    <div class="form-group">
+      <label>Vigencia (año)</label>
+      <select [(ngModel)]="filtroVigencia" (change)="onFiltroChange()">
+        <option value="" class="option-placeholder">Todas</option>
+        @for (v of vigencias; track v.codigo) {
+          <option [ngValue]="v.codigo">{{ v.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    @if (muestraFiltroProyeccion()) {
+      <div class="form-group">
+        <label>Proyección DANE</label>
+        <select [(ngModel)]="filtroProyeccion" (change)="onFiltroChange()">
+          @for (p of proyecciones; track p.id) {
+            <option [ngValue]="'' + p.id">{{ p.nombre }}@if (p.anioPublicacion) { ({{ p.anioPublicacion }}) }</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (muestraFiltroMunicipio()) {
+      <div class="form-group">
+        <label>Municipio (Casanare)</label>
+        <select [(ngModel)]="filtroMunicipio" (change)="onFiltroChange()">
+          <option value="" class="option-placeholder">Todos</option>
+          @for (m of municipios; track m.codigoDane) {
+            <option [ngValue]="m.codigoDane">{{ m.codigoDane }} - {{ m.nombreMunicipio }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (muestraFiltroNivel()) {
+      <div class="form-group">
+        <label>Nivel territorial</label>
+        <select [(ngModel)]="filtroNivelTerritorio" (change)="onFiltroChange()">
+          <option value="" class="option-placeholder">Todos</option>
+          <option value="DEPARTAMENTO">Departamento</option>
+          <option value="MUNICIPIO">Municipio</option>
+        </select>
+      </div>
+    }
+
+    <div class="form-group">
+      <label>&nbsp;</label>
+      <div class="actions" style="display: flex; gap: 0.5rem">
+        <button type="button" class="btn-secondary btn-sm" (click)="limpiarFiltros()">Limpiar</button>
+        <button type="button" class="btn-primary btn-sm" (click)="consultar()">Consultar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <app-loading-state message="Consultando ASIS..."></app-loading-state>
+} @else if (datos()) {
+  <div class="table-card content-card">
+    <p class="meta">
+      Indicador: <strong>{{ tabActiva() }}</strong> — Página {{ datos()!.pagina }} de {{ datos()!.totalPaginas }} —
+      {{ datos()!.totalFilas }} filas
+    </p>
+    <p class="table-scroll-hint" aria-hidden="true">Desliza horizontalmente para ver todas las columnas</p>
+    <div class="responsive-table-wrap asis-table-wrap">
+      <table class="responsive-table data-table asis-data-table">
+        <colgroup>
+          @for (col of columnasVisibles(); track col) {
+            <col [style.width]="anchoColumna(col)" />
+          }
+        </colgroup>
+        <thead>
+          <tr>
+            @for (col of columnasVisibles(); track col) {
+              <th [class]="claseColumna(col)" [attr.title]="col">{{ col }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (fila of datos()!.filas; track $index) {
+            <tr>
+              @for (col of columnasVisibles(); track col) {
+                <td [class]="claseColumna(col)" [attr.data-label]="col" [attr.title]="cellValue(fila, col)">
+                  {{ cellValue(fila, col) }}
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-paginator
+      [page]="pagina"
+      [totalPages]="datos()!.totalPaginas"
+      [totalItems]="datos()!.totalFilas"
+      (pageChange)="irAPagina($event)"
+    />
+  </div>
+}

@@ -190,25 +190,39 @@ ORDER BY 1;';
 END;
 GO
 
+/* Área: nombre de columna resuelto en tiempo de despliegue (ver scripts/fix-catalogo-areas.ps1). */
+DECLARE @vistaArea nvarchar(256) = dbo.ufn_Proyeccion_VistaDefault();
+DECLARE @colArea sysname;
+IF @vistaArea IS NOT NULL
+    SELECT TOP (1) @colArea = c.name
+    FROM sys.columns c
+    WHERE c.object_id = OBJECT_ID(@vistaArea)
+      AND (c.column_id = 5 OR c.name LIKE N'%rea%' OR c.name LIKE N'%REA%')
+    ORDER BY CASE WHEN c.column_id = 5 THEN 0 ELSE 1 END;
+IF @colArea IS NULL SET @colArea = N'Área';
+
+DECLARE @sqlArea nvarchar(max) = N'
 CREATE OR ALTER PROCEDURE dbo.usp_Catalogo_Areas_Listar
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @vista nvarchar(256) = dbo.ufn_Proyeccion_VistaDefault();
-    IF @vista IS NULL
+    DECLARE @v nvarchar(256) = dbo.ufn_Proyeccion_VistaDefault();
+    IF @v IS NULL
     BEGIN
         SELECT TOP (0) CAST(NULL AS nvarchar(200)) AS Valor;
         RETURN;
     END;
 
-    DECLARE @sql nvarchar(max) = N'
-SELECT DISTINCT LTRIM(RTRIM(CAST([Área] AS nvarchar(200)))) AS Valor
-FROM ' + @vista + N' WITH (NOLOCK)
-WHERE [Área] IS NOT NULL
-  AND LTRIM(RTRIM(CAST([Área] AS nvarchar(200)))) <> N''''
-ORDER BY 1;';
-    EXEC sp_executesql @sql;
-END;
+    DECLARE @dyn nvarchar(max) = N''
+SELECT DISTINCT LTRIM(RTRIM(CAST([' + QUOTENAME(@colArea) + N'] AS nvarchar(200)))) AS Valor
+FROM '' + @v + N'' WITH (NOLOCK)
+WHERE [' + QUOTENAME(@colArea) + N'] IS NOT NULL
+  AND LTRIM(RTRIM(CAST([' + QUOTENAME(@colArea) + N'] AS nvarchar(200)))) <> N''''''''
+ORDER BY 1;'';
+
+    EXEC sp_executesql @dyn;
+END';
+EXEC sp_executesql @sqlArea;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Catalogo_Sexos_Listar

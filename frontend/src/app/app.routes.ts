@@ -35,6 +35,15 @@ export const routes: Routes = [
           import('./modules/poblacion/poblacion.component').then((m) => m.PoblacionComponent)
       },
       {
+        path: 'prostata',
+        loadComponent: () =>
+          import('./modules/prostata/prostata.component').then((m) => m.ProstataComponent)
+      },
+      {
+        path: 'asis',
+        loadComponent: () => import('./modules/asis/asis.component').then((m) => m.AsisComponent)
+      },
+      {
         path: 'administracion',
         canActivate: [adminGuard],
         children: [

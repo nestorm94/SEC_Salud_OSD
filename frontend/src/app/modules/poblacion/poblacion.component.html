@@ -83,6 +83,10 @@
   </div>
 </div>
 
+@if (catalogosError()) {
+  <div class="alert alert--warning">{{ catalogosError() }}</div>
+}
+
 @if (error()) {
   <div class="alert alert--error">{{ error() }}</div>
 }
