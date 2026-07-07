@@ -1,0 +1,293 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-osd-entrega-2026",
+    "name": "Observatorio OSD — Casanare",
+    "description": "Colección API del Observatorio de Salud Departamental Casanare.\n\n1. Ejecutar **Login** primero.\n2. El token se guarda en la variable `token` del entorno.\n3. Documentación: docs/entrega/07-API-ENDPOINTS.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Salud",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ping"
+          }
+        },
+        {
+          "name": "Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Health DB",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/health/db"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.environment.set('token', json.token);",
+                  "  pm.test('Token guardado', () => pm.expect(json.token).to.be.a('string'));",
+                  "} else {",
+                  "  pm.test('Login falló', () => pm.expect.fail(pm.response.text()));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Me (perfil)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" }
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.environment.set('token', pm.response.json().token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/refresh" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Resumen",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/resumen" }
+        },
+        {
+          "name": "Admin dashboard",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/dashboard" }
+        }
+      ]
+    },
+    {
+      "name": "Catálogos",
+      "item": [
+        {
+          "name": "Departamentos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos/departamentos" }
+        },
+        {
+          "name": "Municipios Casanare",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/catalogos/municipios?codigoDepartamento=85",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "catalogos", "municipios"],
+              "query": [{ "key": "codigoDepartamento", "value": "85" }]
+            }
+          }
+        },
+        {
+          "name": "Regionales",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos/regionales" }
+        },
+        {
+          "name": "Áreas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos/areas" }
+        },
+        {
+          "name": "Sexos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos/sexos" }
+        },
+        {
+          "name": "Años",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/catalogos/anios" }
+        }
+      ]
+    },
+    {
+      "name": "Proyección población",
+      "item": [
+        {
+          "name": "Vistas disponibles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/proyeccion-poblacion/vistas" }
+        },
+        {
+          "name": "Nacional Casanare",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/proyeccion-poblacion/nacional-casanare?pagina=1&tamanoPagina=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "proyeccion-poblacion", "nacional-casanare"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "tamanoPagina", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Curso de vida",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/proyeccion-poblacion/curso-vida?pagina=1&tamanoPagina=10"
+          }
+        },
+        {
+          "name": "Quinquenios",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/proyeccion-poblacion/quinquenios?pagina=1&tamanoPagina=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ASIS",
+      "item": [
+        {
+          "name": "Vistas meta",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/asis/vistas" }
+        },
+        {
+          "name": "Vigencias",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/asis/catalogos/vigencias" }
+        },
+        {
+          "name": "Población municipio",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/asis/indicadores/poblacion-municipio?vigencia=2024&pagina=1&tamanoPagina=10"
+          }
+        },
+        {
+          "name": "Mortalidad sexo",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/asis/indicadores/mortalidad-sexo?vigencia=2024&pagina=1&tamanoPagina=10"
+          }
+        },
+        {
+          "name": "Nacimientos total",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/asis/indicadores/nacimientos-total?vigencia=2024&pagina=1&tamanoPagina=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cargas y archivos",
+      "item": [
+        {
+          "name": "Listar archivos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/archivos?pagina=1&tamanoPagina=10" }
+        },
+        {
+          "name": "Listar cargues",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/cargas?pagina=1&tamanoPagina=10" }
+        },
+        {
+          "name": "Pendientes aprobación",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/cargas/pendientes-aprobacion" }
+        },
+        {
+          "name": "Historial cargues",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/cargas/historial?pagina=1&tamanoPagina=10" }
+        },
+        {
+          "name": "Líneas temáticas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/lineas-tematicas" }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Usuarios",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/usuarios" }
+        },
+        {
+          "name": "Roles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/roles" }
+        },
+        {
+          "name": "Dependencias",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/dependencias" }
+        },
+        {
+          "name": "Líneas temáticas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/lineas-tematicas" }
+        },
+        {
+          "name": "Indicadores",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/indicadores" }
+        },
+        {
+          "name": "Plantillas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/plantillas" }
+        },
+        {
+          "name": "Auditoría",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auditoria?pagina=1&tamanoPagina=20" }
+        }
+      ]
+    },
+    {
+      "name": "Público (sin token)",
+      "item": [
+        {
+          "name": "Próstata — Looker",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/public/indicadores/prostata?pagina=1&tamanoPagina=10"
+          }
+        }
+      ]
+    }
+  ]
+}

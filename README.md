@@ -55,6 +55,10 @@ Al arrancar en desarrollo, la API aplica `scripts/schema-bootstrap.sql` (idempot
 
 **Secretos:** ver [docs/CONFIGURACION-SECRETOS.md](docs/CONFIGURACION-SECRETOS.md).
 
+## Documentación de entrega final
+
+Paquete completo para la Secretaría de Salud en **[docs/entrega/00-INDICE-ENTREGA.md](docs/entrega/00-INDICE-ENTREGA.md)** — memoria descriptiva, manuales de usuario/administrador/técnico, arquitectura, base de datos, API, seguridad, pruebas y acta de entrega.
+
 ## Estructura del proyecto
 
 | Carpeta | Contenido |
