@@ -25,3 +25,8 @@ appsettings.*.local.json
 # OS
 Thumbs.db
 .DS_Store
+
+# Temporales de desarrollo (no commitear)
+temp_login.json
+temp_*.txt
+scripts/_asis_unpivot_*.txt

@@ -120,6 +120,7 @@ builder.Services.AddSingleton<PlantillasRepository>();
 builder.Services.AddSingleton<DashboardRepository>();
 builder.Services.AddSingleton<PoblacionVistasRepository>();
 builder.Services.AddSingleton<AsisRepository>();
+builder.Services.AddSingleton<AsisExcelExportService>();
 builder.Services.AddSingleton<CatalogoRepository>();
 builder.Services.AddSingleton<PoblacionCatalogosRepository>();
 builder.Services.AddSingleton<ICatalogoService, CatalogoService>();

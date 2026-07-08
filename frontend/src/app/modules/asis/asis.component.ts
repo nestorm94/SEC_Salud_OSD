@@ -32,6 +32,7 @@ export class AsisComponent implements OnInit {
   tabActiva = signal<VistaAsis>('poblacion-total');
   datos = signal<ProyeccionResponse | null>(null);
   loading = signal(false);
+  descargando = signal(false);
   error = signal('');
 
   pagina = 1;
@@ -59,6 +60,7 @@ export class AsisComponent implements OnInit {
     { clave: 'piramide-poblacional', label: 'Pirámide', grupo: 'poblacion' },
     { clave: 'mortalidad-total', label: 'Total', grupo: 'mortalidad' },
     { clave: 'mortalidad-municipio', label: 'Municipio', grupo: 'mortalidad' },
+    { clave: 'mortalidad-detalle', label: 'Detalle', grupo: 'mortalidad' },
     { clave: 'mortalidad-sexo', label: 'Sexo', grupo: 'mortalidad' },
     { clave: 'mortalidad-area', label: 'Área', grupo: 'mortalidad' },
     { clave: 'mortalidad-grupo-edad', label: 'Grupo edad', grupo: 'mortalidad' },
@@ -97,6 +99,29 @@ export class AsisComponent implements OnInit {
     () => this.capaPoblacion() === 'fact' && this.grupoActivo() === 'poblacion'
   );
 
+  readonly muestraDescargaExcel = computed(() => {
+    const g = this.grupoActivo();
+    const tab = this.tabActiva();
+    return g === 'nacimientos' || g === 'mortalidad'
+      || tab.startsWith('nacimientos-') || tab.startsWith('mortalidad-');
+  });
+
+  readonly etiquetaDescargaExcel = computed(() => {
+    if (this.descargando()) return 'Generando Excel…';
+    return this.esModuloMortalidad()
+      ? 'Descargar defunciones (Excel)'
+      : 'Descargar nacimientos (Excel)';
+  });
+
+  /** Expuesto al template para el banner de exportación. */
+  readonly esModuloMortalidad = computed(() =>
+    this.grupoActivo() === 'mortalidad' || this.tabActiva().startsWith('mortalidad-')
+  );
+
+  private moduloExportacion(): 'nacimientos' | 'mortalidad' {
+    return this.esModuloMortalidad() ? 'mortalidad' : 'nacimientos';
+  }
+
   /** Columnas técnicas / metadata que no se muestran en la tabla. */
   private readonly columnasOcultas = new Set([
     'id_proyeccion_dane',
@@ -111,6 +136,7 @@ export class AsisComponent implements OnInit {
     'area_proyeccion',
     'sexo_dim',
     'codigo_grupo_edad_dim',
+    'codigo_grupo_edad',
     'codigo_curso_vida_dim',
     'id_grupo_edad_madre',
     'codigo_grupo_edad_madre',
@@ -203,6 +229,35 @@ export class AsisComponent implements OnInit {
     if (p === this.pagina) return;
     this.pagina = p;
     this.consultar();
+  }
+
+  descargarExcel(): void {
+    if (!this.muestraDescargaExcel()) return;
+    const grupo = this.moduloExportacion();
+
+    this.descargando.set(true);
+    this.error.set('');
+
+    this.asisService
+      .descargarExcel(grupo, {
+        vigencia: this.filtroVigencia ? Number(this.filtroVigencia) : undefined,
+        codigoMunicipio: this.codigoMunicipioFiltro()
+      })
+      .subscribe({
+        next: (blob) => {
+          const prefijo = grupo === 'nacimientos' ? 'Nacimientos-Casanare' : 'Defunciones-Casanare';
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${prefijo}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          this.descargando.set(false);
+        },
+        error: () => {
+          this.error.set('No se pudo generar el archivo Excel. Reinicie la API si acaba de desplegar cambios.');
+          this.descargando.set(false);
+        }
+      });
   }
 
   ngOnInit(): void {

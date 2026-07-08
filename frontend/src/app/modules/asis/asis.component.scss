@@ -7,6 +7,26 @@
   padding: 0.35rem 0.75rem;
 }
 
+.asis-download-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #e8f4fd;
+  border: 1px solid #9ec5e8;
+  border-radius: 0.5rem;
+}
+
+.asis-download-banner__text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #1a4d73;
+  flex: 1 1 12rem;
+}
+
 .asis-table-wrap {
   .asis-data-table {
     table-layout: fixed;

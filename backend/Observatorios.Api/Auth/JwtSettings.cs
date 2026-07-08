@@ -7,5 +7,5 @@ public sealed class JwtSettings
     public string Key { get; set; } = "";
     public string Issuer { get; set; } = "Observatorios.Api";
     public string Audience { get; set; } = "Observatorios.Front";
-    public int ExpireMinutes { get; set; } = 480;
+    public int ExpireMinutes { get; set; } = 720;
 }

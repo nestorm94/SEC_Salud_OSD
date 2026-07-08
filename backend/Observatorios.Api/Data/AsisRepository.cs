@@ -57,6 +57,9 @@ public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
             "codigo_municipio = @CodigoMunicipio"),
         ["mortalidad-curso-vida"] = new("dbo.vw_ASIS_Mortalidad_CursoVida", null, "vigencia DESC, id_curso_vida",
             "codigo_municipio = @CodigoMunicipio"),
+        ["mortalidad-detalle"] = new("dbo.vw_ASIS_Mortalidad_Detalle", null,
+            "vigencia DESC, codigo_municipio, grupo_etareo_quinquenios_dane, nombre_curso_vida, sexo",
+            "codigo_municipio = @CodigoMunicipio"),
         ["tasa-bruta-mortalidad"] = new("dbo.vw_ASIS_Tasa_Bruta_Mortalidad", null,
             "vigencia DESC, nivel_territorio, codigo_municipio", "codigo_municipio = @CodigoMunicipio",
             FiltroNivelTerritorio: true),
@@ -229,6 +232,30 @@ public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
         var result = new VistaPoblacionPaginada(clave, p, tam, total, totalPaginas, columnas, filas);
         cache.Set(cacheKey, result, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
         return result;
+    }
+
+    /// <summary>Filas completas para exportación Excel (sin paginación UI ni caché).</summary>
+    public async Task<IReadOnlyList<Dictionary<string, object?>>> ConsultarFilasExportacionAsync(
+        string clave, int? vigencia = null, string? codigoMunicipio = null, CancellationToken ct = default)
+    {
+        if (!Vistas.TryGetValue(clave, out var vista))
+            throw new ArgumentException($"Indicador ASIS no reconocido: {clave}", nameof(clave));
+
+        var sqlFrom = ResolveSqlFrom(vista);
+        var filtraProyeccion = UsaProyeccionDane(vista);
+        var idProyeccion = filtraProyeccion ? _idProyeccionDefault : (int?)null;
+
+        await using var con = new SqlConnection(_cs);
+        await con.OpenAsync(ct);
+
+        var (whereSql, parameters) = BuildWhere(vista, vigencia, codigoMunicipio, null, idProyeccion);
+        var total = await CountAsync(con, sqlFrom, whereSql, parameters, ct);
+        var tam = (int)Math.Min(total, 500_000);
+        if (tam == 0)
+            return Array.Empty<Dictionary<string, object?>>();
+
+        var (_, filas) = await FetchPageAsync(con, sqlFrom, vista.OrderBy, whereSql, parameters, 0, tam, ct);
+        return filas;
     }
 
     private string ResolveSqlFrom(VistaDef vista) =>

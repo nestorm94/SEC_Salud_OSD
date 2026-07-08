@@ -22,17 +22,28 @@ public sealed class AuthService(
 
         var roles = await usuarios.GetRolesAsync(user.Id, ct);
         var areas = await usuarios.GetAreasTematicasIdsAsync(user.Id, ct);
-        var token = GenerarToken(user.Id, user.NombreUsuario, user.DependenciaId, user.LineaTematicaId, roles, areas);
-        return new LoginResult(
-            token,
-            user.Id,
-            user.NombreUsuario,
-            user.Email,
-            user.DependenciaId,
-            user.DependenciaNombre,
-            user.LineaTematicaId,
-            user.LineaTematicaNombre,
-            roles);
+        return CrearLoginResult(user.Id, user.NombreUsuario, user.Email, user.DependenciaId, user.DependenciaNombre,
+            user.LineaTematicaId, user.LineaTematicaNombre, roles, areas);
+    }
+
+    /// <summary>Emite un JWT nuevo para el usuario activo (renovación de sesión sin contraseña).</summary>
+    public async Task<LoginResult?> RefreshAsync(int userId, CancellationToken ct)
+    {
+        var user = await usuarios.GetByIdAsync(userId, ct);
+        if (user is null || !user.Activo) return null;
+
+        var areas = await usuarios.GetAreasTematicasIdsAsync(userId, ct);
+        return CrearLoginResult(user.Id, user.NombreUsuario, user.Email, user.DependenciaId, user.DependenciaNombre,
+            user.LineaTematicaId, user.LineaTematicaNombre, user.Roles, areas);
+    }
+
+    private LoginResult CrearLoginResult(
+        int userId, string nombreUsuario, string? email, int? dependenciaId, string? dependenciaNombre,
+        int? lineaTematicaId, string? lineaTematicaNombre, IReadOnlyList<string> roles, IReadOnlyList<int> areas)
+    {
+        var token = GenerarToken(userId, nombreUsuario, dependenciaId, lineaTematicaId, roles, areas);
+        return new LoginResult(token, userId, nombreUsuario, email, dependenciaId, dependenciaNombre,
+            lineaTematicaId, lineaTematicaNombre, roles);
     }
 
     private string GenerarToken(int userId, string nombreUsuario, int? dependenciaId, int? lineaTematicaId, IReadOnlyList<string> roles, IReadOnlyList<int> areas)

@@ -1,7 +1,18 @@
 <app-page-header
   title="ASIS Departamental"
   subtitle="Población, mortalidad, nacimientos y tasas — Casanare"
-></app-page-header>
+>
+  @if (muestraDescargaExcel()) {
+    <button
+      type="button"
+      class="btn-primary btn-sm"
+      (click)="descargarExcel()"
+      [disabled]="descargando()"
+    >
+      {{ etiquetaDescargaExcel() }}
+    </button>
+  }
+</app-page-header>
 
 <div class="tabs osd-tabs osd-tabs--grupo">
   <button type="button" class="tab-btn" [class.active]="grupoActivo() === 'poblacion'" (click)="cambiarGrupo('poblacion')">
@@ -17,6 +28,26 @@
     Indicadores
   </button>
 </div>
+
+@if (muestraDescargaExcel()) {
+  <div class="asis-download-banner">
+    <p class="asis-download-banner__text">
+      @if (esModuloMortalidad()) {
+        Exportar defunciones al formato Excel DANE (hojas Sexo, Curso de vida, Quinquenio, Área).
+      } @else {
+        Exportar nacimientos al formato Excel DANE (varias hojas por dimensión).
+      }
+    </p>
+    <button
+      type="button"
+      class="btn-primary btn-sm"
+      (click)="descargarExcel()"
+      [disabled]="descargando()"
+    >
+      {{ etiquetaDescargaExcel() }}
+    </button>
+  </div>
+}
 
 <div class="tabs osd-tabs">
   @for (t of tabsDelGrupo(); track t.clave) {
@@ -74,7 +105,7 @@
 
     <div class="form-group">
       <label>&nbsp;</label>
-      <div class="actions" style="display: flex; gap: 0.5rem">
+      <div class="actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap">
         <button type="button" class="btn-secondary btn-sm" (click)="limpiarFiltros()">Limpiar</button>
         <button type="button" class="btn-primary btn-sm" (click)="consultar()">Consultar</button>
       </div>

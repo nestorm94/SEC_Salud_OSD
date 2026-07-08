@@ -431,6 +431,37 @@ GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.n
     dc.id_curso_vida, dc.codigo, dc.nombre_curso_vida, f.anio;
 GO
 
+CREATE OR ALTER VIEW dbo.vw_ASIS_Mortalidad_Detalle
+AS
+SELECT
+    f.codigo_departamento,
+    de.nombre_departamento,
+    f.codigo_municipio,
+    COALESCE(mu.nombre_municipio, N'SIN MUNICIPIO DANE') AS nombre_municipio,
+    f.anio AS vigencia,
+    ds.sexo,
+    da.area_normalizada AS area_residencia,
+    ge.etiqueta_rango AS grupo_etareo_quinquenios_dane,
+    dc.nombre_curso_vida,
+    f.numero_defunciones AS defunciones,
+    ds.id_sexo,
+    da.id_area,
+    ge.id_grupo_edad,
+    dc.id_curso_vida,
+    ge.codigo AS codigo_grupo_edad,
+    dc.codigo AS codigo_curso_vida_dim,
+    N'fact_defunciones_casanare_normalizada' AS fuente_datos,
+    N'Detalle por sexo, area, grupo etareo y curso de vida' AS criterio_agregacion
+FROM dbo.fact_defunciones_casanare_normalizada AS f
+INNER JOIN dbo.dim_departamento AS de ON de.cod_departamento = f.codigo_departamento
+LEFT JOIN dbo.dim_municipio AS mu ON mu.codigo_dane = f.codigo_municipio AND mu.cod_departamento = f.codigo_departamento
+INNER JOIN dbo.dim_sexo AS ds ON ds.id_sexo = f.id_sexo
+INNER JOIN dbo.dim_area_residencia AS da ON da.id_area = f.id_area
+INNER JOIN dbo.dim_grupo_edad AS ge ON ge.id_grupo_edad = f.id_grupo_edad
+INNER JOIN dbo.dim_curso_vida AS dc ON dc.id_curso_vida = f.id_curso_vida
+WHERE f.codigo_departamento = N'85';
+GO
+
 '@
 
 $indicadores = @'

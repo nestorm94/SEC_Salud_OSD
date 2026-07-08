@@ -17,6 +17,7 @@ export type VistaAsis =
   | 'mortalidad-area'
   | 'mortalidad-grupo-edad'
   | 'mortalidad-curso-vida'
+  | 'mortalidad-detalle'
   | 'nacimientos-total'
   | 'nacimientos-municipio'
   | 'nacimientos-sexo'
@@ -63,5 +64,15 @@ export class AsisService {
     if (query.idProyeccionDane != null) params = params.set('idProyeccionDane', query.idProyeccionDane);
 
     return this.http.get<ProyeccionResponse>(`${environment.apiUrl}/asis/indicadores/${vista}`, { params });
+  }
+
+  descargarExcel(modulo: 'nacimientos' | 'mortalidad', query: AsisQuery = {}) {
+    let params = new HttpParams();
+    if (query.vigencia != null) params = params.set('vigencia', query.vigencia);
+    if (query.codigoMunicipio) params = params.set('codigoMunicipio', query.codigoMunicipio);
+    return this.http.get(`${environment.apiUrl}/asis/export/${modulo}/excel`, {
+      params,
+      responseType: 'blob'
+    });
   }
 }

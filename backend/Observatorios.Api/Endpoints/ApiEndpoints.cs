@@ -30,21 +30,7 @@ public static class ApiEndpoints
             var result = await auth.LoginAsync(body.Usuario, body.Password, ct);
             return result is null
                 ? Results.Json(new { error = "Credenciales inválidas." }, statusCode: 401)
-                : Results.Ok(new
-                {
-                    token = result.Token,
-                    usuario = new
-                    {
-                        id = result.UsuarioId,
-                        nombre = result.NombreUsuario,
-                        email = result.Email,
-                        dependencia_id = result.DependenciaId,
-                        dependencia = result.DependenciaNombre,
-                        linea_tematica_id = result.LineaTematicaId,
-                        linea_tematica = result.LineaTematicaNombre,
-                        roles = result.Roles
-                    }
-                });
+                : Results.Ok(ToAuthLoginResponse(result));
         });
 
         var secured = api.MapGroup("").RequireAuthorization();
@@ -70,6 +56,17 @@ public static class ApiEndpoints
                     roles
                 }
             });
+        });
+
+        secured.MapPost("/auth/refresh", async (HttpContext http, AuthService auth, CancellationToken ct) =>
+        {
+            var ctx = http.GetUserContext();
+            if (ctx is null) return Results.Unauthorized();
+
+            var result = await auth.RefreshAsync(ctx.UsuarioId, ct);
+            return result is null
+                ? Results.Json(new { error = "Sesión no válida." }, statusCode: 401)
+                : Results.Ok(ToAuthLoginResponse(result));
         });
 
         secured.MapPost("/dependencias", async (
@@ -1014,6 +1011,22 @@ public static class ApiEndpoints
             return Results.Json(new { error = ex.Message }, statusCode: 502);
         }
     }
+
+    private static object ToAuthLoginResponse(LoginResult result) => new
+    {
+        token = result.Token,
+        usuario = new
+        {
+            id = result.UsuarioId,
+            nombre = result.NombreUsuario,
+            email = result.Email,
+            dependencia_id = result.DependenciaId,
+            dependencia = result.DependenciaNombre,
+            linea_tematica_id = result.LineaTematicaId,
+            linea_tematica = result.LineaTematicaNombre,
+            roles = result.Roles
+        }
+    };
 }
 
 public sealed record EnviarArchivoRequest(

@@ -63,6 +63,42 @@ export class AuthService {
     );
   }
 
+  /** Renueva el JWT mientras la sesión sigue activa (sin pedir contraseña). */
+  refreshToken() {
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/refresh`, {}).pipe(
+      tap((res) => {
+        localStorage.setItem(TOKEN_KEY, res.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(res.usuario));
+        this._usuario.set(res.usuario);
+      })
+    );
+  }
+
+  /** Milisegundos restantes antes de expirar el token; null si no hay token o no se puede leer. */
+  getTokenRemainingMs(): number | null {
+    const exp = this.getTokenExpirationEpochMs();
+    return exp === null ? null : exp - Date.now();
+  }
+
+  isTokenExpired(): boolean {
+    const remaining = this.getTokenRemainingMs();
+    return remaining === null || remaining <= 0;
+  }
+
+  private getTokenExpirationEpochMs(): number | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64)) as { exp?: number };
+      return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+    } catch {
+      return null;
+    }
+  }
+
   private checkAdmin(user: UsuarioSesion | null): boolean {
     if (!user?.roles?.length) return false;
     return user.roles.some((r) => {

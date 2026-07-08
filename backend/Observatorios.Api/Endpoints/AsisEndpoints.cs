@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Observatorios.Api.Data;
+using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Endpoints;
 
@@ -20,7 +21,7 @@ public static class AsisEndpoints
                 grupos = new[]
                 {
                     new { id = "poblacion", label = "Población", claves = new[] { "poblacion-total", "poblacion-municipio", "poblacion-sexo", "poblacion-area", "poblacion-grupo-edad", "poblacion-curso-vida", "piramide-poblacional" } },
-                    new { id = "mortalidad", label = "Mortalidad", claves = new[] { "mortalidad-total", "mortalidad-municipio", "mortalidad-sexo", "mortalidad-area", "mortalidad-grupo-edad", "mortalidad-curso-vida" } },
+                    new { id = "mortalidad", label = "Mortalidad", claves = new[] { "mortalidad-total", "mortalidad-municipio", "mortalidad-detalle", "mortalidad-sexo", "mortalidad-area", "mortalidad-grupo-edad", "mortalidad-curso-vida" } },
                     new { id = "nacimientos", label = "Nacimientos", claves = new[] { "nacimientos-total", "nacimientos-municipio", "nacimientos-detalle", "nacimientos-sexo", "nacimientos-area", "nacimientos-grupo-edad", "nacimientos-nivel-educativo", "nacimientos-pertenencia-etnica", "nacimientos-peso-al-nacer", "nacimientos-semanas-gestacion" } },
                     new { id = "indicadores", label = "Indicadores", claves = new[] { "tasa-bruta-mortalidad", "serie-mortalidad", "comparativo-poblacion-mortalidad" } }
                 }
@@ -48,6 +49,9 @@ public static class AsisEndpoints
                 vigencias = años.Select(y => new { codigo = y.ToString(), nombre = y.ToString() })
             });
         });
+
+        asis.MapGet("/export/nacimientos/excel", ExportNacimientosExcel);
+        asis.MapGet("/export/mortalidad/excel", ExportMortalidadExcel);
 
         var consulta = asis.MapGroup("/indicadores");
         consulta.MapGet("/{clave:regex(^(" + clavesRegex + ")$)}", ConsultarAsis);
@@ -116,5 +120,45 @@ public static class AsisEndpoints
         if (c.All(char.IsDigit) && c.Length is >= 1 and <= 5)
             return c.PadLeft(5, '0');
         return c;
+    }
+
+    private static async Task<IResult> ExportNacimientosExcel(
+        HttpRequest req, AsisExcelExportService export, CancellationToken ct)
+    {
+        int? vigencia = int.TryParse(req.Query["vigencia"], out var vq) ? vq
+            : int.TryParse(req.Query["ano"], out var aq) ? aq : null;
+        var codigoMunicipio = NormalizarCodigoMunicipio(req.Query["codigoMunicipio"].FirstOrDefault());
+
+        try
+        {
+            var bytes = await export.ExportNacimientosAsync(vigencia, codigoMunicipio, ct);
+            var nombre = $"Nacimientos-Casanare-{DateTime.Now:yyyyMMdd-HHmm}.xlsx";
+            return Results.File(bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombre);
+        }
+        catch (SqlException ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 502);
+        }
+    }
+
+    private static async Task<IResult> ExportMortalidadExcel(
+        HttpRequest req, AsisExcelExportService export, CancellationToken ct)
+    {
+        int? vigencia = int.TryParse(req.Query["vigencia"], out var vq) ? vq
+            : int.TryParse(req.Query["ano"], out var aq) ? aq : null;
+        var codigoMunicipio = NormalizarCodigoMunicipio(req.Query["codigoMunicipio"].FirstOrDefault());
+
+        try
+        {
+            var bytes = await export.ExportMortalidadAsync(vigencia, codigoMunicipio, ct);
+            var nombre = $"Defunciones-Casanare-{DateTime.Now:yyyyMMdd-HHmm}.xlsx";
+            return Results.File(bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombre);
+        }
+        catch (SqlException ex)
+        {
+            return Results.Json(new { error = ex.Message }, statusCode: 502);
+        }
     }
 }
