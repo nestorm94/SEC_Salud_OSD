@@ -93,7 +93,8 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 
 ```
 Smoke test 2026-07-08: dotnet test 13/13, health/ping OK, login+refresh OK, export Excel ASIS OK.
-Casos manuales pendientes (A2, A6, A8, AS3, C*, V*, P*) marcados ⏸ en matriz.
+Casos manuales pendientes (C1–C7, V1–V3, AD2–AD5) marcados ⏸ en matriz.
+A8 validado con usuario operador `prueba.aseg` (no hay coordinador en BD de prueba).
 Pendiente firma de recepción por Secretaría de Salud.
 ```
 

@@ -41,14 +41,14 @@ dotnet test backend\Observatorios.Api.Tests\Observatorios.Api.Tests.csproj
 
 | # | Caso | Pasos | Resultado esperado | Evidencia |
 |---|------|-------|-------------------|-----------|
-| A1 | Login correcto | admin + contraseña válida | Redirige a dashboard | ✅ API `POST /api/auth/login` |
-| A2 | Login incorrecto | Contraseña errónea | Mensaje error, no entra | ⏸ Pendiente manual |
+| A1 | Login correcto | admin + contraseña válida | Redirige a dashboard | ✅ UI → `/dashboard` |
+| A2 | Login incorrecto | Contraseña errónea | Mensaje error, no entra | ✅ «Credenciales inválidas» + HTTP 401 |
 | A3 | Ruta protegida | Ir a `/dashboard` sin login | Redirige a `/login` | ✅ Guard Angular |
 | A4 | Token en peticiones | Consultar archivos | Header Authorization presente | ✅ Interceptor |
 | A5 | Renovación sesión | Trabajar > 1 h activo | No expulsa inesperadamente | ✅ `POST /api/auth/refresh` |
-| A6 | Cierre sesión | Botón cerrar sesión | Vuelve a login, limpia token | ⏸ Pendiente manual |
+| A6 | Cierre sesión | Botón cerrar sesión | Vuelve a login, limpia token | ✅ `localStorage` sin token |
 | A7 | Admin ve menú admin | Login admin | Submenú Administración visible | ✅ `imagenes/07-admin-usuarios.png` |
-| A8 | Usuario operador | Login coordinador | No ve administración | ⏸ Pendiente manual |
+| A8 | Usuario operador | Login coordinador | No ve administración | ✅ `prueba.aseg` sin menú Admin |
 
 ---
 
@@ -73,7 +73,7 @@ dotnet test backend\Observatorios.Api.Tests\Observatorios.Api.Tests.csproj
 | V1 | Cola pendientes | Login validador | Lista pendientes | |
 | V2 | Aprobar cargue | Aprobar con confirmación | Estado aprobado | |
 | V3 | Rechazar cargue | Rechazar + observaciones | Estado rechazado | |
-| V4 | Operador no aprueba | Login operador | Sin botón aprobar | |
+| V4 | Operador no aprueba | Login operador | Sin botón aprobar | ✅ `prueba.aseg` sin menú Admin; API admin → 403 |
 
 ---
 
@@ -81,11 +81,11 @@ dotnet test backend\Observatorios.Api.Tests\Observatorios.Api.Tests.csproj
 
 | # | Caso | Pasos | Resultado esperado | Evidencia |
 |---|------|-------|-------------------|-----------|
-| P1 | Cargar catálogos | Abrir población | Deptos, municipios, años | |
-| P2 | Filtrar municipio | Seleccionar municipio | Datos filtrados | |
-| P3 | Paginación | Navegar páginas | 10 registros por página | |
-| P4 | Exportar Excel | Descargar Excel | Archivo .xlsx válido | |
-| P5 | Casanare por defecto | Sin seleccionar depto | Casanare (85) | |
+| P1 | Cargar catálogos | Abrir población | Deptos, municipios, años | ✅ 34 departamentos |
+| P2 | Filtrar municipio | Seleccionar municipio | Datos filtrados | ✅ `imagenes/05-poblacion.png` |
+| P3 | Paginación | Navegar páginas | 10 registros por página | ✅ UI paginador |
+| P4 | Exportar Excel | Descargar Excel | Archivo .xlsx válido | ✅ `proyeccion-poblacion/.../excel` |
+| P5 | Casanare por defecto | Sin seleccionar depto | Casanare (85) | ✅ `imagenes/05-poblacion.png` |
 
 ---
 
@@ -95,7 +95,7 @@ dotnet test backend\Observatorios.Api.Tests\Observatorios.Api.Tests.csproj
 |---|------|-------|-------------------|-----------|
 | AS1 | Catálogo vistas | Abrir ASIS | Grupos población/mortalidad/nacimientos | ✅ `GET /api/asis/vistas` |
 | AS2 | Filtro vigencia | Seleccionar año | Datos del año | ✅ `imagenes/06-asis.png` |
-| AS3 | Filtro municipio | Código 85015 | Datos municipio | ⏸ Pendiente manual |
+| AS3 | Filtro municipio | Código 85015 | Datos municipio | ✅ API `poblacion-total?codigoMunicipio=85015` |
 | AS4 | Población total | Tab total | Filas con datos | ✅ `imagenes/06-asis.png` |
 | AS5 | Mortalidad sexo | Tab sexo | Defunciones por sexo | ✅ `imagenes/06-asis.png` |
 | AS6 | Export nacimientos | Descargar Excel | Archivo generado | ✅ 28 KB xlsx |
@@ -107,12 +107,12 @@ dotnet test backend\Observatorios.Api.Tests\Observatorios.Api.Tests.csproj
 
 | # | Caso | Pasos | Resultado esperado | Evidencia |
 |---|------|-------|-------------------|-----------|
-| AD1 | Listar usuarios | Admin → usuarios | Tabla paginada | |
-| AD2 | Crear usuario | Nuevo usuario | Aparece en lista | |
-| AD3 | Editar usuario | Cambiar email | Guardado OK | |
-| AD4 | Inactivar usuario | Desactivar | No puede login | |
-| AD5 | CRUD roles | Crear/editar rol | Persistido | |
-| AD6 | Líneas temáticas | Listar | 5 líneas seed | |
+| AD1 | Listar usuarios | Admin → usuarios | Tabla paginada | ✅ 6 usuarios API + captura |
+| AD2 | Crear usuario | Nuevo usuario | Aparece en lista | ⏸ Pendiente manual |
+| AD3 | Editar usuario | Cambiar email | Guardado OK | ⏸ Pendiente manual |
+| AD4 | Inactivar usuario | Desactivar | No puede login | ⏸ Pendiente manual |
+| AD5 | CRUD roles | Crear/editar rol | Persistido | ⏸ Pendiente manual |
+| AD6 | Líneas temáticas | Listar | 5 líneas seed | ✅ 5 líneas `LT-*` |
 
 ---
 
@@ -143,15 +143,17 @@ Ver [postman/README.md](postman/README.md).
 
 | Fecha | Ejecutor | Ambiente | Versión/commit | Resultado global |
 |-------|----------|----------|----------------|------------------|
-| 2026-07-08 | Equipo desarrollo | Dev + IIS :5289 / :8081 | post-commit JWT+ASIS | ✅ Smoke OK |
-| | | Producción Casanare | | ⏸ Pendiente |
+| 2026-07-08 | Equipo desarrollo | Dev + IIS :5289 / :8081 | `79a5bd5` | ✅ Smoke + auth + ASIS OK |
+| 2026-07-08 | Equipo desarrollo | UI Angular :4200 | manual A2/A6/A8 | ✅ Sesión y roles OK |
 
 **Observaciones:**
 
 ```
 Smoke automatizado 2026-07-08: dotnet test 13/13 OK. Export Excel ASIS verificado.
-Casos ⏸ requieren validación manual en sesión UI (operador, rechazo login, filtros municipio).
-Vista vw_ASIS_Mortalidad_Detalle desplegada en ObservatorioDB_ASIS_Test (11 887 filas).
+Validación UI: login erróneo, logout, operador prueba.aseg sin administración.
+Vista vw_ASIS_Mortalidad_Detalle en ObservatorioDB_ASIS_Test (11 887 filas).
+Pendientes: cargues Excel (C1–C7), flujo validador (V1–V3), CRUD admin (AD2–AD5).
+No existe usuario COORDINADOR_DEPENDENCIA en BD; A8 validado con RESPONSABLE_TEMATICO.
 ```
 
 ---
