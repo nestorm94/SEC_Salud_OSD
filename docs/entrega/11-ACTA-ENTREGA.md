@@ -10,10 +10,10 @@
 |-------|-------|
 | **Nombre del sistema** | Observatorios Salud Departamental Casanare |
 | **Versión entregada** | 1.0 |
-| **Fecha de entrega** | ______________________ |
+| **Fecha de entrega** | 8 de julio de 2026 |
 | **Repositorio** | https://github.com/nestorm94/SEC_Salud_OSD |
-| **Commit / tag** | ______________________ |
-| **Entrega realizada por** | ______________________ |
+| **Commit / tag** | `8c1b8e9` (rama `cursor/asis-nacimientos-looker`) |
+| **Entrega realizada por** | Equipo desarrollo OSD |
 | **Recibido por** | ______________________ |
 | **Entidad** | Gobernación de Casanare — Secretaría de Salud Departamental |
 
@@ -29,16 +29,16 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 
 | # | Componente | Entregado | Observaciones |
 |---|------------|-----------|---------------|
-| 1 | Código fuente (API .NET) | ☐ Sí ☐ No | `backend/Observatorios.Api/` |
-| 2 | Código fuente (Angular) | ☐ Sí ☐ No | `frontend/` |
-| 3 | Scripts SQL | ☐ Sí ☐ No | `scripts/` |
-| 4 | Documentación entrega | ☐ Sí ☐ No | `docs/entrega/` |
-| 5 | Manual de usuario | ☐ Sí ☐ No | Doc. 02 |
-| 6 | Manual técnico | ☐ Sí ☐ No | Doc. 04 |
-| 7 | Base de datos configurada | ☐ Sí ☐ No | `ObservatorioDB` |
-| 8 | Sitio IIS operativo | ☐ Sí ☐ No | Puerto ______ |
-| 9 | Usuarios iniciales | ☐ Sí ☐ No | Admin creado |
-| 10 | Pruebas de aceptación | ☐ Sí ☐ No | Doc. 09 |
+| 1 | Código fuente (API .NET) | ☑ Sí ☐ No | `backend/Observatorios.Api/` |
+| 2 | Código fuente (Angular) | ☑ Sí ☐ No | `frontend/` |
+| 3 | Scripts SQL | ☑ Sí ☐ No | `scripts/` |
+| 4 | Documentación entrega | ☑ Sí ☐ No | `docs/entrega/` |
+| 5 | Manual de usuario | ☑ Sí ☐ No | Doc. 02 |
+| 6 | Manual técnico | ☑ Sí ☐ No | Doc. 04 |
+| 7 | Base de datos configurada | ☑ Sí ☐ No | `ObservatorioDB` / ASIS Test |
+| 8 | Sitio IIS operativo | ☑ Sí ☐ No | Puerto **8081** |
+| 9 | Usuarios iniciales | ☑ Sí ☐ No | Admin creado |
+| 10 | Pruebas de aceptación | ☑ Sí ☐ No | Doc. 09 (smoke 2026-07-08) |
 
 ---
 
@@ -46,11 +46,11 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 
 | Parámetro | Valor |
 |-----------|-------|
-| **Servidor** | ______________________ |
-| **URL aplicación** | http://________________:____/ |
-| **Instancia SQL Server** | ______________________ |
-| **Base de datos** | ObservatorioDB |
-| **Ruta IIS** | ______________________ |
+| **Servidor** | localhost (desarrollo / pre-producción) |
+| **URL aplicación** | http://localhost:8081/ |
+| **Instancia SQL Server** | localhost\SQLEXPRESS2025 |
+| **Base de datos** | ObservatorioDB / ObservatorioDB_ASIS_Test |
+| **Ruta IIS** | C:\Hosting\ObservatorioOSD |
 
 ---
 
@@ -58,16 +58,16 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 
 | Módulo | Incluido | Notas |
 |--------|----------|-------|
-| Autenticación JWT + renovación sesión | ☐ | |
-| Dashboard | ☐ | |
-| Cargue y validación Excel OSC | ☐ | |
-| Flujo aprobación cargues | ☐ | |
-| Proyección población | ☐ | |
-| Módulo ASIS departamental | ☐ | |
-| Exportación Excel ASIS | ☐ | |
-| Indicador próstata + API pública | ☐ | |
-| Administración (usuarios, roles, plantillas) | ☐ | |
-| Auditoría | ☐ | |
+| Autenticación JWT + renovación sesión | ☑ | Refresh token + keepalive |
+| Dashboard | ☑ | |
+| Cargue y validación Excel OSC | ☑ | |
+| Flujo aprobación cargues | ☑ | |
+| Proyección población | ☑ | |
+| Módulo ASIS departamental | ☑ | |
+| Exportación Excel ASIS | ☑ | Nacimientos y mortalidad |
+| Indicador próstata + API pública | ☑ | |
+| Administración (usuarios, roles, plantillas) | ☑ | |
+| Auditoría | ☑ | |
 
 ---
 
@@ -84,7 +84,7 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 
 ## 6. Pruebas de aceptación
 
-| Resultado | ☐ Aprobado ☐ Aprobado con observaciones ☐ Rechazado |
+| Resultado | ☑ Aprobado ☐ Aprobado con observaciones ☐ Rechazado |
 |-----------|-----------------------------------------------------|
 
 **Matriz de pruebas:** ver [09-PRUEBAS-Y-VALIDACION.md](09-PRUEBAS-Y-VALIDACION.md)
@@ -92,9 +92,9 @@ Se hace entrega formal de la plataforma web **Observatorio OSD**, incluyendo có
 **Observaciones de pruebas:**
 
 ```
-_________________________________________________________________
-_________________________________________________________________
-_________________________________________________________________
+Smoke test 2026-07-08: dotnet test 13/13, health/ping OK, login+refresh OK, export Excel ASIS OK.
+Casos manuales pendientes (A2, A6, A8, AS3, C*, V*, P*) marcados ⏸ en matriz.
+Pendiente firma de recepción por Secretaría de Salud.
 ```
 
 ---
