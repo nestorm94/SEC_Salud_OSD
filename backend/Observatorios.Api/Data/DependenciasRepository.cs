@@ -3,41 +3,54 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Repositorio de dependencias institucionales del OSD Casanare (secretarías, entidades)
+/// que agrupan usuarios y cargas de datos.
+/// </summary>
 public sealed class DependenciasRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Registra una nueva dependencia con código único.</summary>
+    /// <returns>Id de la dependencia creada.</returns>
     public async Task<int> CrearAsync(string codigo, string nombre, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Dependencia_Crear */
         await using var cmd = Sp(con, "dbo.usp_Dependencia_Crear");
         cmd.Parameters.AddWithValue("@Codigo", codigo.Trim());
         cmd.Parameters.AddWithValue("@Nombre", nombre.Trim());
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Lista dependencias activas o todas según el filtro.</summary>
     public async Task<IReadOnlyList<DependenciaRow>> ListarAsync(bool soloActivas = true, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Dependencia_Listar */
         await using var cmd = Sp(con, "dbo.usp_Dependencia_Listar");
         cmd.Parameters.AddWithValue("@SoloActivas", soloActivas);
         await using var r = await cmd.ExecuteReaderAsync(ct);
         return await LeerDependenciasAsync(r, ct);
     }
 
+    /// <summary>Busca por código o crea la dependencia si no existe (útil en seeds).</summary>
     public async Task<int> ObtenerOCrearPorCodigoAsync(string codigo, string nombre, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Dependencia_ObtenerOCrear */
         await using var cmd = Sp(con, "dbo.usp_Dependencia_ObtenerOCrear");
         cmd.Parameters.AddWithValue("@Codigo", codigo.Trim());
         cmd.Parameters.AddWithValue("@Nombre", nombre.Trim());
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Obtiene una dependencia por identificador.</summary>
     public async Task<DependenciaRow?> GetAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Dependencia_ObtenerPorId */
         await using var cmd = Sp(con, "dbo.usp_Dependencia_ObtenerPorId");
         cmd.Parameters.AddWithValue("@Id", id);
         await using var r = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
@@ -66,4 +79,5 @@ public sealed class DependenciasRepository(IConfiguration config)
         new(name, con) { CommandType = CommandType.StoredProcedure };
 }
 
+/// <summary>Dependencia institucional registrada en el OSD.</summary>
 public sealed record DependenciaRow(int Id, string Codigo, string Nombre, bool Activo, DateTime CreadoEn);

@@ -12,6 +12,10 @@ import { mapHttpErrorMessage } from '../../../core/utils/http-error.util';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Listado administrativo de usuarios del OSD.
+ * Permite activar/desactivar cuentas y navegar al formulario de edición.
+ */
 @Component({
   selector: 'app-usuarios-list',
   standalone: true,
@@ -40,6 +44,10 @@ export class UsuariosListComponent implements OnInit {
     this.cargar();
   }
 
+  /**
+   * Alterna el estado activo/inactivo de un usuario.
+   * @param u Registro del usuario en la tabla.
+   */
   toggleActivo(u: UsuarioAdmin): void {
     this.usuariosService.setActivo(u.id, !u.activo).subscribe({
       next: () => (u.activo = !u.activo),
@@ -47,6 +55,10 @@ export class UsuariosListComponent implements OnInit {
     });
   }
 
+  /**
+   * Desactiva un usuario tras confirmación del administrador.
+   * @param u Usuario a desactivar.
+   */
   eliminar(u: UsuarioAdmin): void {
     if (!confirm(`¿Desactivar el usuario "${u.nombre_usuario}"?`)) return;
     this.usuariosService.eliminar(u.id).subscribe({
@@ -60,6 +72,7 @@ export class UsuariosListComponent implements OnInit {
     });
   }
 
+  /** Carga la lista paginada de usuarios desde la API. */
   private cargar(): void {
     this.loading.set(true);
     this.usuariosService.listar().subscribe({

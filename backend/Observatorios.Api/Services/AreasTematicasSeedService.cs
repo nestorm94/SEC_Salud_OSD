@@ -18,6 +18,7 @@ public sealed class AreasTematicasSeedService(
         "areas-tematicas-osc-v2.xlsx"
     ];
 
+    /// <summary>Importa desde data/ si existe el Excel de áreas temáticas OSC V.2.</summary>
     public async Task<SeedResult> ImportarSiExisteAsync(string repoRoot, CancellationToken ct = default)
     {
         var dataDir = Path.Combine(repoRoot, "data");
@@ -34,6 +35,7 @@ public sealed class AreasTematicasSeedService(
         return await ImportarDesdeArchivoAsync(path, ct);
     }
 
+    /// <summary>Importa dependencias y áreas desde una ruta de archivo Excel específica.</summary>
     public async Task<SeedResult> ImportarDesdeArchivoAsync(string path, CancellationToken ct = default)
     {
         using var wb = new XLWorkbook(path);

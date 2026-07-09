@@ -12,6 +12,10 @@ import { mapHttpErrorMessage } from '../../../core/utils/http-error.util';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración de roles de seguridad del OSD.
+ * CRUD mediante modal sobre el catálogo de roles asignables a usuarios.
+ */
 @Component({
   selector: 'app-roles-list',
   standalone: true,
@@ -48,6 +52,7 @@ export class RolesListComponent implements OnInit {
     this.cargar();
   }
 
+  /** Recarga el listado paginado de roles. */
   cargar(): void {
     this.loading.set(true);
     this.rolesService.listar().subscribe({
@@ -63,6 +68,7 @@ export class RolesListComponent implements OnInit {
     });
   }
 
+  /** Abre el modal en modo creación con campos vacíos. */
   abrirCrear(): void {
     this.rolEditando.set(null);
     this.nombre = '';
@@ -71,6 +77,10 @@ export class RolesListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /**
+   * Abre el modal en modo edición con datos del rol seleccionado.
+   * @param rol Rol a modificar.
+   */
   abrirEditar(rol: Rol): void {
     this.rolEditando.set(rol);
     this.nombre = rol.nombre;
@@ -79,11 +89,13 @@ export class RolesListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /** Cierra el modal y limpia el rol en edición. */
   cerrarModal(): void {
     this.modalAbierto.set(false);
     this.rolEditando.set(null);
   }
 
+  /** Valida y persiste el rol (crear o actualizar según contexto del modal). */
   guardar(): void {
     if (!this.nombre.trim()) {
       this.error.set('El nombre del rol es obligatorio.');
@@ -112,6 +124,10 @@ export class RolesListComponent implements OnInit {
     }
   }
 
+  /**
+   * Elimina un rol tras confirmación.
+   * @param rol Rol a eliminar del catálogo.
+   */
   eliminar(rol: Rol): void {
     if (!confirm(`¿Eliminar el rol "${rol.nombre}"?`)) return;
     this.error.set('');
@@ -126,6 +142,7 @@ export class RolesListComponent implements OnInit {
     });
   }
 
+  /** @returns Título del modal según modo crear o editar. */
   tituloModal(): string {
     return this.rolEditando() ? `Editar rol #${this.rolEditando()!.id}` : 'Nuevo rol';
   }

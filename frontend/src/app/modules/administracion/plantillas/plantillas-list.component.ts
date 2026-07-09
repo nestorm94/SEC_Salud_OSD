@@ -13,6 +13,10 @@ import { Dependencia, Plantilla } from '../../../shared/models/api.models';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración de plantillas Excel OSC del OSD.
+ * Listado paginado con enlace a gestión de campos y formulario de creación.
+ */
 @Component({
   selector: 'app-plantillas-list',
   standalone: true,
@@ -55,6 +59,7 @@ export class PlantillasListComponent implements OnInit {
     this.cargar();
   }
 
+  /** Recarga el listado paginado de plantillas. */
   cargar(): void {
     this.loading.set(true);
     this.plantillasService.listar().subscribe({
@@ -70,6 +75,10 @@ export class PlantillasListComponent implements OnInit {
     });
   }
 
+  /**
+   * Crea una plantilla nueva a partir del formulario reactivo.
+   * Resetea el formulario y oculta el panel de creación en éxito.
+   */
   crear(): void {
     if (this.form.invalid) return;
     const v = this.form.getRawValue();

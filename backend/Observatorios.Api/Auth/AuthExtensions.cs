@@ -6,10 +6,21 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Observatorios.Api.Auth;
 
+/// <summary>
+/// Extensiones para registrar autenticación JWT y políticas de autorización del OSD,
+/// y para extraer el contexto de usuario desde el HttpContext.
+/// </summary>
 public static class AuthExtensions
 {
+    /// <summary>Nombre de la política que exige rol administrador.</summary>
     public const string PolicyAdmin = "Administrador";
 
+    /// <summary>
+    /// Configura JWT Bearer, validación de tokens y política de administrador.
+    /// </summary>
+    /// <param name="services">Colección de servicios de la API.</param>
+    /// <param name="config">Configuración con sección Jwt.</param>
+    /// <returns>La misma colección para encadenar registro.</returns>
     public static IServiceCollection AddObservatorioAuth(this IServiceCollection services, IConfiguration config)
     {
         var jwt = config.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
@@ -54,6 +65,11 @@ public static class AuthExtensions
         return services;
     }
 
+    /// <summary>
+    /// Construye el contexto de usuario autenticado a partir de los claims del JWT.
+    /// </summary>
+    /// <param name="http">Contexto HTTP de la petición actual.</param>
+    /// <returns>Contexto con id, roles y ámbitos territoriales; null si no hay sesión válida.</returns>
     public static UserContext? GetUserContext(this HttpContext http)
     {
         if (http.User.Identity?.IsAuthenticated != true) return null;

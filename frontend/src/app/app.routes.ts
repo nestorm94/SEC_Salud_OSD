@@ -3,6 +3,12 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
+/**
+ * Definición de rutas del Observatorio de Salud Departamental (OSD).
+ * - `/login`: acceso público.
+ * - Rutas hijas bajo `MainLayoutComponent`: requieren autenticación (`authGuard`).
+ * - `/administracion/*`: además requieren rol administrador (`adminGuard`).
+ */
 export const routes: Routes = [
   {
     path: 'login',

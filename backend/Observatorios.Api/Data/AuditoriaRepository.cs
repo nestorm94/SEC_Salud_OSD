@@ -3,15 +3,29 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Registro y consulta de trazabilidad de acciones administrativas del OSD
+/// (creación de usuarios, cambios de configuración, etc.).
+/// </summary>
 public sealed class AuditoriaRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")!;
 
+    /// <summary>
+    /// Persiste un evento de auditoría en dbo.Auditoria.
+    /// </summary>
+    /// <param name="usuarioId">Usuario que ejecutó la acción; null si es sistema.</param>
+    /// <param name="accion">Código de acción (ej. CREAR_USUARIO).</param>
+    /// <param name="entidad">Tipo de entidad afectada.</param>
+    /// <param name="entidadId">Identificador de la entidad.</param>
+    /// <param name="detalle">Texto adicional o JSON.</param>
+    /// <param name="ip">Dirección IP de origen.</param>
     public async Task RegistrarAsync(
         int? usuarioId, string accion, string? entidad, string? entidadId, string? detalle, string? ip,
         CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Auditoria_Registrar */
         await using var cmd = Sp(con, "dbo.usp_Auditoria_Registrar");
         cmd.Parameters.AddWithValue("@UsuarioId", (object?)usuarioId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Accion", accion);
@@ -22,9 +36,12 @@ public sealed class AuditoriaRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Lista los eventos de auditoría más recientes.</summary>
+    /// <param name="top">Cantidad máxima de filas (default 200).</param>
     public async Task<IReadOnlyList<AuditoriaRow>> ListarAsync(int top = 200, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_Auditoria_Listar */
         await using var cmd = Sp(con, "dbo.usp_Auditoria_Listar");
         cmd.Parameters.AddWithValue("@Top", top);
         await using var r = await cmd.ExecuteReaderAsync(ct);
@@ -50,6 +67,7 @@ public sealed class AuditoriaRepository(IConfiguration config)
         new(name, con) { CommandType = CommandType.StoredProcedure };
 }
 
+/// <summary>Evento de auditoría registrado en el sistema.</summary>
 public sealed record AuditoriaRow(
     long Id, DateTime Fecha, string? Usuario, string Accion,
     string? Entidad, string? EntidadId, string? Detalle);

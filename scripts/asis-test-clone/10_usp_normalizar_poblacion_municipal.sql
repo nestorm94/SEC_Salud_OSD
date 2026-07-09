@@ -1,6 +1,25 @@
 /*
-Normaliza poblacion MUNICIPIO desde PPED-AreaSexoEdadMun-2018-2042_VP.
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 10_usp_normalizar_poblacion_municipal.sql
+================================================================================
+ PROPÓSITO:
+   Procedimiento que normaliza población a nivel MUNICIPIO desde la tabla DANE
+   PPED-AreaSexoEdadMun-2018-2042_VP hacia fact_poblacion_proyeccion.
+   Despivotea edades por sexo, área y municipio (códigos DP/MPIO).
+
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS:
+   - 07_fact_poblacion_proyeccion.sql
+   - 14_proyeccion_dane_versionamiento.sql
+   - Tabla fuente: dbo.[PPED-AreaSexoEdadMun-2018-2042_VP]
+   - dim_departamento, dim_municipio, dim_sexo, fn_ASIS_Resolver_IdArea
+
+ ORDEN DE EJECUCIÓN:
+   Después de 09 (departamental). Invocado por 11 o directamente.
+   Incluye todos los municipios de la fuente (Casanare = DP 85 entre otros).
+================================================================================
 */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -44,6 +63,7 @@ BEGIN
         RETURN;
     END
 
+    /* Columnas año (pos. 5) y área geográfica (pos. 6) en la tabla municipal */
     DECLARE @colAno sysname, @colArea sysname;
     SELECT @colAno = name FROM sys.columns WHERE object_id = @oid AND column_id = 5;
     SELECT @colArea = name FROM sys.columns WHERE object_id = @oid AND column_id = 6;
@@ -62,6 +82,12 @@ BEGIN
 
     DECLARE @sql nvarchar(max);
 
+    /*
+      INSERT-SELECT dinámico: población municipal MASCULINO por edad simple.
+      Fuente: PPED-AreaSexoEdadMun-2018-2042_VP.
+      Deriva cod_dep (DP), cod_dane (MPIO 5 dígitos) y cod_mun (últimos 3).
+      JOIN dim_departamento y dim_municipio por códigos DANE.
+    */
     SET @sql = N'
     INSERT INTO dbo.fact_poblacion_proyeccion (
         id_proyeccion_dane, nivel_territorial, tipo_registro, id_departamento, id_municipio,
@@ -93,6 +119,7 @@ BEGIN
         WHERE UPPER(LTRIM(RTRIM(CAST(' + QUOTENAME(@colArea) + N' AS nvarchar(300))))) <> N''TOTAL''
     ) AS s
     UNPIVOT (poblacion FOR edad_col IN (' + @homCols + N')) AS u
+    /* JOIN geográfico: departamento por cod_dep; municipio por codigo_dane completo */
     LEFT JOIN dbo.dim_departamento AS d ON d.cod_departamento = u.cod_dep
     LEFT JOIN dbo.dim_municipio AS m ON m.codigo_dane = u.cod_dane
     WHERE u.poblacion IS NOT NULL AND u.poblacion <> 0
@@ -102,6 +129,10 @@ BEGIN
         N'@idSexoH int, @fuente varchar(150), @idProy int',
         @idSexoH = @idSexoH, @fuente = @fuente, @idProy = @id_proyeccion_dane;
 
+    /*
+      INSERT-SELECT dinámico: población municipal FEMENINO por edad simple.
+      Misma estructura que hombres; UNPIVOT columnas Mujeres_*.
+    */
     SET @sql = N'
     INSERT INTO dbo.fact_poblacion_proyeccion (
         id_proyeccion_dane, nivel_territorial, tipo_registro, id_departamento, id_municipio,

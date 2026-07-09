@@ -1,3 +1,4 @@
+/** Perfil del usuario autenticado devuelto por la API de autenticación del OSD. */
 export interface UsuarioSesion {
   id: number;
   nombre: string;
@@ -9,16 +10,19 @@ export interface UsuarioSesion {
   roles: string[];
 }
 
+/** Respuesta exitosa del endpoint de login o refresh de token. */
 export interface LoginResponse {
   token: string;
   usuario: UsuarioSesion;
 }
 
+/** Credenciales enviadas al formulario de inicio de sesión. */
 export interface LoginRequest {
   usuario: string;
   password: string;
 }
 
+/** Métricas agregadas mostradas en el panel principal del dashboard. */
 export interface DashboardResumen {
   total_archivos: number;
   cargas_pendientes: number;
@@ -27,6 +31,7 @@ export interface DashboardResumen {
   ultimos_cargues: UltimoCargue[];
 }
 
+/** Registro resumido de un cargue o prevalidación reciente. */
 export interface UltimoCargue {
   id: number;
   origen?: string;
@@ -37,6 +42,7 @@ export interface UltimoCargue {
   usuario?: string;
 }
 
+/** Línea temática de indicadores de salud (ej. mortalidad, morbilidad). */
 export interface LineaTematicaItem {
   id: number;
   codigo: string;
@@ -45,6 +51,7 @@ export interface LineaTematicaItem {
   activo?: boolean;
 }
 
+/** Indicador asociado a una línea temática para carga de archivos OSC. */
 export interface IndicadorItem {
   id: number;
   linea_tematica_id: number;
@@ -55,6 +62,7 @@ export interface IndicadorItem {
   activo?: boolean;
 }
 
+/** Archivo Excel subido por una dependencia para prevalidación o cargue. */
 export interface ArchivoItem {
   id: number;
   dependencia_id: number;
@@ -75,6 +83,7 @@ export interface ArchivoItem {
   fecha_envio?: string;
 }
 
+/** Resultado de la prevalidación estructural y de datos de un archivo OSC. */
 export interface ValidacionArchivoResponse {
   archivo_id: number;
   valido: boolean;
@@ -87,6 +96,7 @@ export interface ValidacionArchivoResponse {
   geografia?: Record<string, unknown>;
 }
 
+/** Cargue masivo procesado en el backend tras aprobar un archivo. */
 export interface CargaItem {
   id: number;
   dependencia_id: number;
@@ -99,6 +109,7 @@ export interface CargaItem {
   total_errores: number;
 }
 
+/** Error de validación en una fila/columna de un cargue. */
 export interface CargaError {
   id: number;
   fila: number;
@@ -107,12 +118,14 @@ export interface CargaError {
   tipo: string;
 }
 
+/** Detalle de errores de un cargue para el modal de validaciones. */
 export interface CargaErroresResponse {
   carga_id: number;
   estado: string;
   errores: CargaError[];
 }
 
+/** Respuesta paginada genérica de vistas de proyección poblacional o ASIS. */
 export interface ProyeccionResponse {
   clave: string;
   pagina: number;
@@ -123,11 +136,13 @@ export interface ProyeccionResponse {
   filas: Record<string, unknown>[];
 }
 
+/** Departamento del catálogo DANE. */
 export interface DepartamentoDto {
   codigoDane: string;
   nombreDepartamento: string;
 }
 
+/** Municipio del catálogo DANE con regional de salud. */
 export interface MunicipioDto {
   codigoDane: string;
   codigoDepartamento: string;
@@ -135,11 +150,13 @@ export interface MunicipioDto {
   regional: string;
 }
 
+/** Elemento simple de catálogo con código y etiqueta visible. */
 export interface CatalogoSimpleDto {
   codigo: string;
   nombre: string;
 }
 
+/** Fila del indicador de mortalidad por cáncer de próstata. */
 export interface IndicadorProstataDto {
   codigoDane: string;
   territorio: string;
@@ -153,6 +170,7 @@ export interface IndicadorProstataDto {
   tasa: number | null;
 }
 
+/** Entidad organizacional que reporta datos al observatorio. */
 export interface Dependencia {
   id: number;
   codigo: string;
@@ -160,6 +178,7 @@ export interface Dependencia {
   activo: boolean;
 }
 
+/** Usuario del módulo de administración (CRUD completo). */
 export interface UsuarioAdmin {
   id: number;
   nombre_usuario: string;
@@ -170,12 +189,14 @@ export interface UsuarioAdmin {
   roles: string[];
 }
 
+/** Rol de seguridad asignable a usuarios del OSD. */
 export interface Rol {
   id: number;
   nombre: string;
   descripcion?: string;
 }
 
+/** Plantilla Excel OSC asociada a una dependencia. */
 export interface Plantilla {
   id: number;
   codigo: string;
@@ -187,6 +208,7 @@ export interface Plantilla {
   total_campos: number;
 }
 
+/** Definición de columna/campo dentro de una plantilla OSC. */
 export interface CampoPlantilla {
   id: number;
   nombre_campo: string;
@@ -199,6 +221,7 @@ export interface CampoPlantilla {
   orden: number;
 }
 
+/** Parámetros de consulta para vistas de proyección poblacional paginadas. */
 export interface PaginatedQuery {
   pagina?: number;
   tamanoPagina?: number;
@@ -211,7 +234,7 @@ export interface PaginatedQuery {
   codigoMunicipio?: string;
 }
 
-/** Consulta vistas ASIS (Fase 4). */
+/** Parámetros de consulta para vistas ASIS (Fase 4 del observatorio). */
 export interface AsisQuery {
   pagina?: number;
   tamanoPagina?: number;
@@ -221,12 +244,14 @@ export interface AsisQuery {
   idProyeccionDane?: number;
 }
 
+/** Proyección DANE disponible para filtros de población ASIS. */
 export interface AsisProyeccionDto {
   id: number;
   nombre: string;
   anioPublicacion?: number;
 }
 
+/** Metadatos de configuración de las vistas ASIS expuestas por la API. */
 export interface AsisVistasMeta {
   capaPoblacion: 'legacy' | 'fact';
   idProyeccionDaneDefault: number;

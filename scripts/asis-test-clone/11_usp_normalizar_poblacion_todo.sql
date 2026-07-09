@@ -1,10 +1,29 @@
 /*
-Orquestador normalizacion poblacion con version DANE.
-Opcion A: recarga completa de la misma id_proyeccion_dane (DELETE + INSERT).
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 11_usp_normalizar_poblacion_todo.sql
+================================================================================
+ PROPÓSITO:
+   Orquestador de normalización de población: crea o reutiliza una versión DANE,
+   recarga fact_poblacion_proyeccion y ejecuta los tres SP por nivel territorial.
 
-Ejemplo:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\11_usp_normalizar_poblacion_todo.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS:
+   - 07_fact_poblacion_proyeccion.sql
+   - 14_proyeccion_dane_versionamiento.sql (usp_ASIS_CrearProyeccionDANE)
+   - 08_usp_normalizar_poblacion_nacional.sql
+   - 09_usp_normalizar_poblacion_departamental.sql
+   - 10_usp_normalizar_poblacion_municipal.sql
+   - Tablas fuente DANE cargadas en staging
+
+ ORDEN DE EJECUCIÓN:
+   11 (este script, tras 07-10 y 14). Validar con 12_validacion_fact_poblacion.sql.
+   Opción A: recarga completa de la misma id_proyeccion_dane (DELETE + INSERT).
+
+ Ejemplo:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\11_usp_normalizar_poblacion_todo.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -37,6 +56,7 @@ BEGIN
 
     DECLARE @id_proyeccion_dane int;
 
+    /* Paso 1: registrar o obtener versión de proyección DANE */
     EXEC dbo.usp_ASIS_CrearProyeccionDANE
         @nombre_proyeccion = @nombre_proyeccion,
         @anio_publicacion = @anio_publicacion,
@@ -47,7 +67,7 @@ BEGIN
     PRINT N'=== usp_ASIS_Normalizar_Poblacion_Todo id_proyeccion_dane='
         + CAST(@id_proyeccion_dane AS nvarchar(20)) + N' ===';
 
-    /* Opcion A: recarga misma proyeccion (no afecta otras vigencias) */
+    /* Opción A: recarga misma proyeccion (no afecta otras vigencias) */
     DECLARE @filasPrevias int = (
         SELECT COUNT(*) FROM dbo.fact_poblacion_proyeccion
         WHERE id_proyeccion_dane = @id_proyeccion_dane
@@ -60,10 +80,12 @@ BEGIN
             + N' filas previas de la misma proyeccion.';
     END
 
+    /* Paso 2: normalizar por nivel — nacional, departamental, municipal */
     EXEC dbo.usp_ASIS_Normalizar_Poblacion_Nacional @id_proyeccion_dane = @id_proyeccion_dane;
     EXEC dbo.usp_ASIS_Normalizar_Poblacion_Departamental @id_proyeccion_dane = @id_proyeccion_dane;
     EXEC dbo.usp_ASIS_Normalizar_Poblacion_Municipal @id_proyeccion_dane = @id_proyeccion_dane;
 
+    /* Resumen de carga */
     SELECT @id_proyeccion_dane AS id_proyeccion_dane,
            @nombre_proyeccion AS nombre_proyeccion,
            @anio_publicacion AS anio_publicacion,

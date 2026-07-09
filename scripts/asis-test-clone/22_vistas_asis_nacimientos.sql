@@ -1,7 +1,26 @@
 /*
-Vistas ASIS nacimientos (paralelas a mortalidad).
+================================================================================
+ 22_vistas_asis_nacimientos.sql
+================================================================================
+ PROPÓSITO:
+   Crea vistas analíticas ASIS de nacimientos (prefijo vw_ASIS_Nacimientos_*)
+   agregadas por territorio y dimensiones sociodemográficas/perinatales.
+   Todas filtran Casanare (código DANE departamento 85).
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\22_vistas_asis_nacimientos.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test u ObservatorioDB.
+
+ DEPENDENCIAS:
+   - 21_usp_normalizar_nacimientos_casanare.sql (fact_nacimientos_casanare_normalizada)
+   - Catálogos: dim_departamento, dim_municipio, dim_sexo, dim_area_residencia,
+     dim_grupo_edad_madre, dim_nivel_educativo, dim_pertenencia_etnica,
+     dim_peso_al_nacer, dim_semanas_gestacion
+
+ ORDEN DE EJECUCIÓN:
+   Después de 21. Paralelo a vistas de mortalidad (25, fase7).
+
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\22_vistas_asis_nacimientos.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -17,6 +36,7 @@ GO
 PRINT N'=== 22 - Vistas ASIS nacimientos ===';
 GO
 
+/* Vista: total departamental de nacimientos por vigencia (Casanare 85) */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_Total
 AS
 SELECT
@@ -28,10 +48,12 @@ SELECT
     N'Casanare codigo_departamento=85' AS criterio_agregacion
 FROM dbo.fact_nacimientos_casanare_normalizada AS f
 INNER JOIN dbo.dim_departamento AS de ON de.cod_departamento = f.codigo_departamento
+/* Filtro geográfico: solo departamento Casanare (DANE 85) */
 WHERE f.codigo_departamento = N'85'
 GROUP BY f.codigo_departamento, de.nombre_departamento, f.anio;
 GO
 
+/* Vista: nacimientos agregados por municipio y vigencia */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_Municipio
 AS
 SELECT
@@ -46,12 +68,14 @@ SELECT
     N'Agregado por codigo_municipio' AS criterio_agregacion
 FROM dbo.fact_nacimientos_casanare_normalizada AS f
 INNER JOIN dbo.dim_departamento AS de ON de.cod_departamento = f.codigo_departamento
+/* JOIN municipio: código DANE 5 dígitos + departamento 85 */
 LEFT JOIN dbo.dim_municipio AS mu
     ON mu.codigo_dane = f.codigo_municipio AND mu.cod_departamento = f.codigo_departamento
 WHERE f.codigo_departamento = N'85'
 GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.nombre_municipio, f.anio;
 GO
 
+/* Vista: nacimientos por sexo del nacido vivo */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_Sexo
 AS
 SELECT
@@ -68,6 +92,7 @@ WHERE f.codigo_departamento = N'85'
 GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.nombre_municipio, ds.id_sexo, ds.sexo, f.anio;
 GO
 
+/* Vista: nacimientos por área de residencia (urbano/rural) */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_Area
 AS
 SELECT
@@ -84,6 +109,7 @@ WHERE f.codigo_departamento = N'85'
 GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.nombre_municipio, da.id_area, da.area_normalizada, f.anio;
 GO
 
+/* Vista: nacimientos por quinquenio de edad de la madre (DANE) */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_GrupoEdad
 AS
 SELECT
@@ -102,6 +128,7 @@ GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.n
     gm.id_grupo_edad_madre, gm.codigo, gm.etiqueta_rango, f.anio;
 GO
 
+/* Vista: detalle fila a fila con todas las dimensiones descriptivas */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_Detalle
 AS
 SELECT
@@ -139,6 +166,7 @@ LEFT JOIN dbo.dim_semanas_gestacion AS sg ON sg.id_semanas_gestacion = f.id_sema
 WHERE f.codigo_departamento = N'85';
 GO
 
+/* Vista: nacimientos por nivel educativo de la madre */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_NivelEducativo
 AS
 SELECT
@@ -156,6 +184,7 @@ GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.n
     ne.id_nivel_educativo, ne.codigo, ne.etiqueta_dane, f.anio;
 GO
 
+/* Vista: nacimientos por pertenencia étnica de la madre */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_PertenenciaEtnica
 AS
 SELECT
@@ -173,6 +202,7 @@ GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.n
     pe.id_pertenencia_etnica, pe.codigo, pe.etiqueta_dane, f.anio;
 GO
 
+/* Vista: nacimientos por categoría de peso al nacer */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_PesoAlNacer
 AS
 SELECT
@@ -190,6 +220,7 @@ GROUP BY f.codigo_departamento, de.nombre_departamento, f.codigo_municipio, mu.n
     p.id_peso_al_nacer, p.codigo, p.etiqueta_rango, p.categoria_normalizada, f.anio;
 GO
 
+/* Vista: nacimientos por categoría de semanas de gestación */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Nacimientos_SemanasGestacion
 AS
 SELECT

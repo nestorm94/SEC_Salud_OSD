@@ -3,9 +3,14 @@ import { inject } from '@angular/core';
 import { catchError, finalize, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 
+/** Petición de refresh compartida para evitar renovaciones simultáneas ante varios 401. */
 let refreshRequest: ReturnType<AuthService['refreshToken']> | null = null;
 
-/** Ante 401 intenta renovar el token una vez; si falla, cierra sesión. */
+/**
+ * Interceptor de errores HTTP del OSD.
+ * Ante respuestas 401 (no autorizado), intenta renovar el token una vez y reintentar la petición;
+ * si la renovación falla, cierra la sesión del usuario.
+ */
 export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
 
@@ -21,6 +26,7 @@ export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
+      // Una sola renovación en vuelo: las demás peticiones 401 esperan el mismo Observable.
       refreshRequest ??= auth.refreshToken().pipe(
         finalize(() => {
           refreshRequest = null;

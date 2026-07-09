@@ -5,7 +5,10 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Observatorios.Api.Data;
 
-/// <summary>Consultas paginadas sobre vistas <c>vw_ASIS_*</c> (Fase 3 ASIS).</summary>
+/// <summary>
+/// Repositorio ASIS del OSD: consultas paginadas sobre vistas vw_ASIS_* de población,
+/// mortalidad, nacimientos e indicadores derivados para Casanare.
+/// </summary>
 public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
 {
     private readonly string _cs = config.GetConnectionString("Default")
@@ -88,14 +91,19 @@ public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
             "codigo_municipio = @CodigoMunicipio"),
     };
 
+    /// <summary>Indica si las vistas de población usan capa fact (vw_*_Fact).</summary>
     public bool UsarCapaFact => _usarCapaFact;
+    /// <summary>Id de proyección DANE por defecto cuando el cliente no envía filtro.</summary>
     public int IdProyeccionDaneDefault => _idProyeccionDefault;
 
+    /// <summary>Claves de indicadores ASIS expuestos en la API.</summary>
     public static IReadOnlyCollection<string> ClavesValidas => Vistas.Keys.ToArray();
 
+    /// <summary>Indica si la clave admite filtro por código de municipio.</summary>
     public static bool SoportaFiltroMunicipio(string clave) =>
         Vistas.TryGetValue(clave, out var v) && !string.IsNullOrEmpty(v.MunicipioWhere);
 
+    /// <summary>Catálogo de proyecciones DANE desde dbo.dim_proyeccion_dane.</summary>
     public async Task<IReadOnlyList<ProyeccionDaneDto>> ListarProyeccionesAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(CacheProyecciones, out IReadOnlyList<ProyeccionDaneDto>? cached) && cached is not null)
@@ -131,6 +139,7 @@ public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
         return list;
     }
 
+    /// <summary>Años de vigencia disponibles en vistas ASIS (población, mortalidad, nacimientos).</summary>
     public async Task<IReadOnlyList<int>> ListarVigenciasAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(CacheVigencias, out IReadOnlyList<int>? cached) && cached is not null)
@@ -196,6 +205,9 @@ public sealed class AsisRepository(IConfiguration config, IMemoryCache cache)
         "categoria_normalizada",
     };
 
+    /// <summary>
+    /// Consulta paginada de un indicador ASIS con filtros de vigencia, municipio y proyección DANE.
+    /// </summary>
     public async Task<VistaPoblacionPaginada> ConsultarPaginadoAsync(
         string clave, int pagina, int tamanoPagina,
         int? vigencia = null, string? codigoMunicipio = null, string? nivelTerritorio = null,

@@ -9,6 +9,10 @@ import { PoblacionService, VistaPoblacion } from './poblacion.service';
 import { CatalogoSimpleDto, DepartamentoDto, MunicipioDto, ProyeccionResponse } from '../../shared/models/api.models';
 import { CatalogoService } from '../../core/services/catalogo.service';
 
+/**
+ * Consulta de proyección poblacional del OSD con tres vistas tabulares
+ * y filtros territoriales/demográficos con paginación server-side.
+ */
 @Component({
   selector: 'app-poblacion',
   standalone: true,
@@ -28,7 +32,6 @@ export class PoblacionComponent implements OnInit {
   pagina = 1;
   readonly tamanoPagina = TABLE_PAGE_SIZE;
 
-  // Catálogos dinámicos
   departamentos: DepartamentoDto[] = [];
   municipios: MunicipioDto[] = [];
   regionales: CatalogoSimpleDto[] = [];
@@ -37,7 +40,7 @@ export class PoblacionComponent implements OnInit {
   anios: CatalogoSimpleDto[] = [];
   catalogosError = signal('');
 
-  // Filtros (códigos o valores). Vacío = “Todos”.
+  /** Valores vacíos en filtros significan "Todos" en la consulta a la API. */
   filtroDepartamento = '';
   filtroMunicipio = '';
   filtroRegional = '';
@@ -51,12 +54,17 @@ export class PoblacionComponent implements OnInit {
     { clave: 'quinquenios', label: 'Quinquenios' }
   ];
 
+  /**
+   * Cambia la vista activa y reinicia la paginación.
+   * @param clave Identificador de la pestaña seleccionada.
+   */
   cambiarTab(clave: VistaPoblacion): void {
     this.tabActiva.set(clave);
     this.pagina = 1;
     this.consultar();
   }
 
+  /** Carga catálogos de filtros en paralelo; acumula errores parciales sin bloquear la consulta. */
   private cargarCatalogos(): void {
     const errores: string[] = [];
 
@@ -89,6 +97,10 @@ export class PoblacionComponent implements OnInit {
     });
   }
 
+  /**
+   * Al cambiar departamento, recarga municipios dependientes y consulta de nuevo.
+   * Limpia municipio seleccionado para evitar combinaciones inválidas.
+   */
   onDepartamentoChange(): void {
     this.filtroMunicipio = '';
     this.municipios = [];
@@ -102,16 +114,19 @@ export class PoblacionComponent implements OnInit {
     this.consultar();
   }
 
+  /** Reconsulta al cambiar municipio, reiniciando en página 1. */
   onMunicipioChange(): void {
     this.pagina = 1;
     this.consultar();
   }
 
+  /** Reconsulta al cambiar cualquier filtro demográfico o territorial. */
   onFiltroChange(): void {
     this.pagina = 1;
     this.consultar();
   }
 
+  /** Restablece todos los filtros y vuelve a la primera página. */
   limpiarFiltros(): void {
     this.filtroDepartamento = '';
     this.filtroMunicipio = '';
@@ -124,6 +139,10 @@ export class PoblacionComponent implements OnInit {
     this.consultar();
   }
 
+  /**
+   * Ejecuta la consulta paginada contra la API con los filtros actuales.
+   * Los parámetros vacíos se omiten para que el servidor devuelva el universo completo.
+   */
   consultar(): void {
     this.loading.set(true);
     this.error.set('');
@@ -150,6 +169,7 @@ export class PoblacionComponent implements OnInit {
       });
   }
 
+  /** Navega a la página anterior si existe. */
   paginaAnterior(): void {
     if (this.pagina > 1) {
       this.pagina--;
@@ -157,6 +177,7 @@ export class PoblacionComponent implements OnInit {
     }
   }
 
+  /** Navega a la página siguiente según totalPaginas devuelto por la API. */
   paginaSiguiente(): void {
     const d = this.datos();
     if (d && this.pagina < d.totalPaginas) {
@@ -165,6 +186,10 @@ export class PoblacionComponent implements OnInit {
     }
   }
 
+  /**
+   * Salta a una página específica.
+   * @param p Número de página destino (1-based).
+   */
   irAPagina(p: number): void {
     if (p === this.pagina) return;
     this.pagina = p;
@@ -176,6 +201,12 @@ export class PoblacionComponent implements OnInit {
     this.consultar();
   }
 
+  /**
+   * Obtiene el valor de celda tolerando diferencias de mayúsculas en nombres de columna.
+   * @param fila Registro devuelto por la API.
+   * @param col Nombre de columna esperado en la plantilla.
+   * @returns Representación en cadena del valor o vacío.
+   */
   cellValue(fila: Record<string, unknown>, col: string): string {
     const v = fila[col] ?? fila[col.toLowerCase()];
     return v != null ? String(v) : '';

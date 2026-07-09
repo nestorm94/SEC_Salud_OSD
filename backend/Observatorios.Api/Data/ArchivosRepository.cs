@@ -4,11 +4,17 @@ using Observatorios.Api.Models;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Gestión de archivos Excel OSC subidos al OSD: metadatos, estados de validación
+/// y rutas en disco relativas al repositorio.
+/// </summary>
 public sealed class ArchivosRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default en appsettings.json");
 
+    /// <summary>Registra un archivo subido en dbo.Archivos.</summary>
+    /// <returns>Id del archivo creado.</returns>
     public async Task<int> InsertAsync(ArchivoInsert row, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -27,6 +33,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Guarda resultado de validación OSC (estado y errores JSON).</summary>
     public async Task ActualizarResultadoValidacionAsync(int id, string estado, string? erroresJson, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -37,6 +44,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Marca el archivo como enviado al flujo de cargas.</summary>
     public async Task MarcarEnviadoAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -46,6 +54,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Obtiene estado y metadatos mínimos para transiciones de flujo.</summary>
     public async Task<ArchivoEstadoRow?> GetEstadoAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -55,6 +64,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         return await r.ReadAsync(ct) ? LeerEstado(r) : null;
     }
 
+    /// <summary>Lista archivos con filtros por dependencia, línea o usuario que subió.</summary>
     public async Task<IReadOnlyList<ArchivoListaRow>> ListAsync(
         int? dependenciaIdFiltro,
         int? lineaTematicaIdFiltro = null,
@@ -70,6 +80,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         return await LeerListaAsync(r, ct);
     }
 
+    /// <summary>Obtiene detalle completo del archivo incluyendo errores de validación.</summary>
     public async Task<ArchivoFullRow?> GetAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -79,6 +90,7 @@ public sealed class ArchivosRepository(IConfiguration config)
         return await r.ReadAsync(ct) ? LeerFull(r) : null;
     }
 
+    /// <summary>Elimina el registro en BD; retorna false si no existía.</summary>
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);

@@ -2,7 +2,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Services;
 
-/// <summary>Datos iniciales de líneas temáticas e indicadores del observatorio.</summary>
+/// <summary>Inserta líneas temáticas e indicadores base del catálogo OSD si faltan en BD.</summary>
 public sealed class LineaTematicaSeedService(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
@@ -54,6 +54,7 @@ public sealed class LineaTematicaSeedService(IConfiguration config)
         ])
     ];
 
+    /// <summary>Ejecuta seed idempotente de líneas e indicadores; retorna conteos creados.</summary>
     public async Task<(int Lineas, int Indicadores)> EnsureSeedAsync(CancellationToken ct = default)
     {
         await using var con = new SqlConnection(_cs);

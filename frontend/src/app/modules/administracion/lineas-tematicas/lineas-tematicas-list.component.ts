@@ -13,6 +13,10 @@ import { mapHttpErrorMessage } from '../../../core/utils/http-error.util';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración de líneas temáticas del OSD.
+ * Permite crear y editar categorías que agrupan indicadores reportables.
+ */
 @Component({
   selector: 'app-lineas-tematicas-list',
   standalone: true,
@@ -50,6 +54,7 @@ export class LineasTematicasListComponent implements OnInit {
     this.cargar();
   }
 
+  /** Recarga el catálogo paginado de líneas temáticas. */
   cargar(): void {
     this.loading.set(true);
     this.service.listar().subscribe({
@@ -65,6 +70,7 @@ export class LineasTematicasListComponent implements OnInit {
     });
   }
 
+  /** Abre modal de creación con valores por defecto. */
   abrirCrear(): void {
     this.editando.set(null);
     this.codigo = '';
@@ -75,6 +81,10 @@ export class LineasTematicasListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /**
+   * Abre modal de edición con datos de la línea seleccionada.
+   * @param linea Registro a modificar.
+   */
   abrirEditar(linea: LineaTematicaItem): void {
     this.editando.set(linea);
     this.codigo = linea.codigo;
@@ -85,11 +95,13 @@ export class LineasTematicasListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /** Cierra el modal y descarta el registro en edición. */
   cerrarModal(): void {
     this.modalAbierto.set(false);
     this.editando.set(null);
   }
 
+  /** Valida campos obligatorios y persiste la línea temática. */
   guardar(): void {
     if (!this.codigo.trim() || !this.nombre.trim()) {
       this.error.set('Código y nombre son obligatorios.');
@@ -123,10 +135,15 @@ export class LineasTematicasListComponent implements OnInit {
     }
   }
 
+  /** @returns Título del modal según modo crear o editar. */
   tituloModal(): string {
     return this.editando() ? `Editar línea #${this.editando()!.id}` : 'Nueva línea temática';
   }
 
+  /**
+   * En edición el código no puede cambiarse (identificador estable).
+   * @returns true si el campo código debe estar deshabilitado.
+   */
   codigoBloqueado(): boolean {
     return !!this.editando();
   }

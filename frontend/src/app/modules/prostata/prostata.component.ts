@@ -8,6 +8,10 @@ import { TABLE_PAGE_SIZE, paginateSlice, computeTotalPages } from '../../shared/
 import { IndicadorProstataDto } from '../../shared/models/api.models';
 import { ProstataService } from './prostata.service';
 
+/**
+ * Visualización del indicador de mortalidad por cáncer de próstata en Casanare.
+ * Carga el dataset completo una vez y aplica filtros y paginación en el cliente.
+ */
 @Component({
   selector: 'app-prostata',
   standalone: true,
@@ -36,6 +40,7 @@ export class ProstataComponent implements OnInit {
   readonly areas = ['Total', 'Urbana', 'Rural disperso'];
   readonly anios = Array.from({ length: 2025 - 2005 + 1 }, (_, i) => String(2025 - i));
 
+  /** Territorios únicos derivados de los datos cargados, ordenados alfabéticamente. */
   readonly territorios = computed(() => {
     const seen = new Set<string>();
     const list: string[] = [];
@@ -49,6 +54,7 @@ export class ProstataComponent implements OnInit {
     return list.sort((a, b) => a.localeCompare(b, 'es'));
   });
 
+  /** Filtrado client-side: todas las condiciones activas deben cumplirse (AND). */
   readonly filas = computed(() => {
     const anio = this.filtroAnio ? Number(this.filtroAnio) : null;
     const regional = this.filtroRegional.trim();
@@ -73,6 +79,7 @@ export class ProstataComponent implements OnInit {
     this.cargarDatos();
   }
 
+  /** Obtiene hasta 20 000 registros del indicador para filtrar localmente. */
   cargarDatos(): void {
     this.loading.set(true);
     this.error.set('');
@@ -92,10 +99,12 @@ export class ProstataComponent implements OnInit {
     });
   }
 
+  /** Reinicia la paginación al aplicar filtros (los computed recalculan automáticamente). */
   aplicarFiltros(): void {
     this.pagina = 1;
   }
 
+  /** Limpia todos los filtros y vuelve a la primera página. */
   limpiarFiltros(): void {
     this.filtroAnio = '';
     this.filtroRegional = '';
@@ -105,11 +114,21 @@ export class ProstataComponent implements OnInit {
     this.pagina = 1;
   }
 
+  /**
+   * Cambia la página visible sin nueva petición HTTP.
+   * @param p Número de página destino.
+   */
   irAPagina(p: number): void {
     if (p === this.pagina) return;
     this.pagina = p;
   }
 
+  /**
+   * Formatea números con locale colombiano.
+   * @param v Valor numérico o nulo.
+   * @param decimales Cantidad de decimales a mostrar.
+   * @returns Cadena formateada o vacía si no hay valor.
+   */
   formatNum(v: number | null | undefined, decimales = 0): string {
     if (v == null || Number.isNaN(v)) return '';
     return new Intl.NumberFormat('es-CO', {

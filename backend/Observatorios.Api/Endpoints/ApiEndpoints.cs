@@ -9,8 +9,18 @@ using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Endpoints;
 
+/// <summary>
+/// Registro de endpoints REST del OSD Casanare: autenticación, cargas Excel,
+/// archivos OSC, catálogos, proyección de población y dashboard.
+/// </summary>
 public static class ApiEndpoints
 {
+    /// <summary>
+    /// Mapea todas las rutas /api del observatorio sobre la aplicación web.
+    /// </summary>
+    /// <param name="app">Aplicación ASP.NET Core.</param>
+    /// <param name="repoRoot">Raíz del repositorio (archivos estáticos y uploads).</param>
+    /// <param name="uploadsDir">Directorio absoluto de archivos subidos.</param>
     public static void MapObservatorioApi(this WebApplication app, string repoRoot, string uploadsDir)
     {
         var api = app.MapGroup("/api");
@@ -722,6 +732,7 @@ public static class ApiEndpoints
         secured.MapDashboardApi();
     }
 
+    /// <summary>Procesa carga multipart de Excel y delega en CargaArchivoService.</summary>
     private static async Task<IResult> SubirExcelCarga(
         HttpRequest req,
         string repoRoot,
@@ -793,6 +804,7 @@ public static class ApiEndpoints
         }
     }
 
+    /// <summary>Valida archivo OSC subido sin enviarlo al flujo de cargas.</summary>
     private static async Task<IResult> ValidarArchivo(
         HttpRequest req,
         string repoRoot,

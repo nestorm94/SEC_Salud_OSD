@@ -6,6 +6,11 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { apiErrorInterceptor } from './core/interceptors/api-error.interceptor';
 
+/**
+ * Configuración raíz de la aplicación Angular del OSD.
+ * Registra enrutamiento, cliente HTTP con interceptores de autenticación y manejo de errores 401,
+ * detección de cambios optimizada y animaciones asíncronas.
+ */
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),

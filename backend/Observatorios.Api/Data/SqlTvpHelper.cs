@@ -7,6 +7,7 @@ namespace Observatorios.Api.Data;
 /// <summary>Tablas valor para TVP de SQL Server (fase 5).</summary>
 internal static class SqlTvpHelper
 {
+    /// <summary>Construye DataTable para TVP dbo.Tvp_CampoDiccionario.</summary>
     public static DataTable CampoDiccionario(IReadOnlyList<CampoDiccionarioDto> campos)
     {
         var dt = new DataTable();

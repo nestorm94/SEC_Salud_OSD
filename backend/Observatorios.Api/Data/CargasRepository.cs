@@ -4,11 +4,16 @@ using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Persistencia del flujo de cargas Excel: estados, diccionario, datos validados,
+/// errores e historial en dbo.CargasArchivo mediante SP y TVP.
+/// </summary>
 public sealed class CargasRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Crea registro de carga vinculado a un archivo subido.</summary>
     public async Task<int> CrearCargaAsync(
         int archivoId, int dependenciaId, int usuarioId, string estadoInicial, CancellationToken ct = default)
     {
@@ -21,6 +26,7 @@ public sealed class CargasRepository(IConfiguration config)
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Actualiza estado y observaciones de la carga.</summary>
     public async Task ActualizarEstadoAsync(int cargaId, string estado, string? observaciones, CancellationToken ct)
     {
         await using var con = await AbrirAsync(ct);
@@ -31,6 +37,7 @@ public sealed class CargasRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Persiste campos del diccionario OSC de la carga (TVP Tvp_CampoDiccionario).</summary>
     public async Task<int> GuardarDiccionarioAsync(int cargaId, IReadOnlyList<CampoDiccionarioDto> campos, CancellationToken ct)
     {
         await using var con = await AbrirAsync(ct);
@@ -43,6 +50,7 @@ public sealed class CargasRepository(IConfiguration config)
         return outId.Value is int i ? i : Convert.ToInt32(outId.Value);
     }
 
+    /// <summary>Inserta filas de datos validados en bloque (TVP Tvp_DatosCargados).</summary>
     public async Task GuardarDatosAsync(int cargaId, IReadOnlyList<DatosFilaDto> filas, CancellationToken ct)
     {
         if (filas.Count == 0) return;
@@ -53,6 +61,7 @@ public sealed class CargasRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Registra errores de validación por fila/columna (TVP Tvp_ErrorValidacion).</summary>
     public async Task GuardarErroresAsync(int cargaId, IReadOnlyList<ValidationErrorDto> errores, CancellationToken ct)
     {
         if (errores.Count == 0) return;
@@ -63,6 +72,7 @@ public sealed class CargasRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Agrega entrada al historial de transiciones de la carga.</summary>
     public async Task RegistrarHistorialAsync(int cargaId, int? usuarioId, string accion, string? detalle, CancellationToken ct)
     {
         await using var con = await AbrirAsync(ct);
@@ -74,6 +84,7 @@ public sealed class CargasRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Obtiene detalle de una carga con ruta del archivo y dependencia.</summary>
     public async Task<CargaDetalleRow?> GetCargaAsync(int cargaId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -84,6 +95,7 @@ public sealed class CargasRepository(IConfiguration config)
         return LeerCargaDetalle(r);
     }
 
+    /// <summary>Lista cargas filtradas por dependencia.</summary>
     public async Task<IReadOnlyList<CargaListaRow>> ListarAsync(int? dependenciaIdFiltro, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -93,6 +105,7 @@ public sealed class CargasRepository(IConfiguration config)
         return await LeerCargasListaAsync(r, ct);
     }
 
+    /// <summary>Lista cargas realizadas por un usuario específico.</summary>
     public async Task<IReadOnlyList<CargaListaRow>> ListarPorUsuarioAsync(
         int usuarioId, int? dependenciaIdFiltro, CancellationToken ct = default)
     {
@@ -104,6 +117,7 @@ public sealed class CargasRepository(IConfiguration config)
         return await LeerCargasListaAsync(r, ct);
     }
 
+    /// <summary>Lista errores de validación de una carga.</summary>
     public async Task<IReadOnlyList<ErrorValidacionRow>> ListarErroresAsync(int cargaId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -113,6 +127,7 @@ public sealed class CargasRepository(IConfiguration config)
         return await LeerErroresAsync(r, ct);
     }
 
+    /// <summary>Historial de acciones sobre cargas (aprobación, rechazo, revalidación).</summary>
     public async Task<IReadOnlyList<HistorialRow>> ListarHistorialAsync(
         int? cargaId, int? dependenciaIdFiltro, CancellationToken ct = default)
     {
@@ -135,6 +150,7 @@ public sealed class CargasRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Elimina datos y errores previos antes de una revalidación.</summary>
     public async Task LimpiarResultadosValidacionAsync(int cargaId, CancellationToken ct)
     {
         await using var con = await AbrirAsync(ct);

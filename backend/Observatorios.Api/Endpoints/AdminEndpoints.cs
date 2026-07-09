@@ -6,8 +6,13 @@ using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Endpoints;
 
+/// <summary>
+/// Endpoints de administración del OSD (usuarios, roles, plantillas, líneas temáticas)
+/// restringidos a la política de administrador.
+/// </summary>
 public static class AdminEndpoints
 {
+    /// <summary>Registra rutas /api/admin con autorización de administrador.</summary>
     public static void MapAdminApi(this RouteGroupBuilder secured, string repoRoot)
     {
         var admin = secured.MapGroup("/admin").RequireAuthorization(AuthExtensions.PolicyAdmin);
@@ -418,6 +423,7 @@ public static class AdminEndpoints
         });
     }
 
+    /// <summary>Resumen del dashboard accesible a usuarios autenticados (no solo admin).</summary>
     public static void MapDashboardApi(this RouteGroupBuilder secured)
     {
         secured.MapGet("/dashboard/resumen", async (DashboardRepository repo, HttpContext http, CancellationToken ct) =>

@@ -9,10 +9,10 @@
 | Campo | Valor |
 |-------|-------|
 | **Nombre del sistema** | Observatorios Salud Departamental Casanare |
-| **Versión entregada** | 1.0 |
-| **Fecha de entrega** | 8 de julio de 2026 |
+| **Versión entregada** | 1.0.1 |
+| **Fecha de entrega** | 9 de julio de 2026 |
 | **Repositorio** | https://github.com/nestorm94/SEC_Salud_OSD |
-| **Commit / tag** | `8c1b8e9` (rama `cursor/asis-nacimientos-looker`) |
+| **Commit / tag** | `main` — tag **`v1.0.0`** (funcional) / **`v1.0.1`** (código documentado) |
 | **Entrega realizada por** | Equipo desarrollo OSD |
 | **Recibido por** | ______________________ |
 | **Entidad** | Gobernación de Casanare — Secretaría de Salud Departamental |

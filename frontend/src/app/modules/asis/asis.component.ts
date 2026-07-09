@@ -17,6 +17,10 @@ interface TabAsis {
   grupo: GrupoAsis;
 }
 
+/**
+ * Módulo ASIS del OSD: consulta tabular de población, mortalidad, nacimientos e indicadores
+ * para Casanare, con filtros por vigencia/municipio, paginación server-side y exportación Excel.
+ */
 @Component({
   selector: 'app-asis',
   standalone: true,
@@ -157,12 +161,21 @@ export class AsisComponent implements OnInit {
     return cols.filter((c) => !this.columnasOcultas.has(c.trim().toLowerCase()));
   });
 
+  /**
+   * Cambia el grupo de pestañas (población, mortalidad, nacimientos, indicadores)
+   * y activa la primera vista del grupo.
+   * @param grupo Identificador del grupo seleccionado.
+   */
   cambiarGrupo(grupo: GrupoAsis): void {
     this.grupoActivo.set(grupo);
     const primero = this.tabs.find((t) => t.grupo === grupo);
     if (primero) this.cambiarTab(primero.clave);
   }
 
+  /**
+   * Cambia la vista ASIS activa, sincroniza el grupo y dispara consulta paginada.
+   * @param clave Clave de la vista (ej. mortalidad-detalle).
+   */
   cambiarTab(clave: VistaAsis): void {
     this.tabActiva.set(clave);
     const tab = this.tabs.find((t) => t.clave === clave);
@@ -171,11 +184,13 @@ export class AsisComponent implements OnInit {
     this.consultar();
   }
 
+  /** Reconsulta al modificar filtros, reiniciando en página 1. */
   onFiltroChange(): void {
     this.pagina = 1;
     this.consultar();
   }
 
+  /** Restablece filtros ASIS y aplica proyección DANE por defecto si aplica. */
   limpiarFiltros(): void {
     this.filtroMunicipio = '';
     this.filtroVigencia = '';
@@ -185,6 +200,10 @@ export class AsisComponent implements OnInit {
     this.consultar();
   }
 
+  /**
+   * Consulta la vista ASIS activa con filtros y paginación.
+   * Normaliza nivel de territorio y omite idProyeccionDane fuera de capa fact/población.
+   */
   consultar(): void {
     this.loading.set(true);
     this.error.set('');
@@ -225,12 +244,20 @@ export class AsisComponent implements OnInit {
       });
   }
 
+  /**
+   * Navega a otra página de resultados (paginación server-side).
+   * @param p Número de página destino.
+   */
   irAPagina(p: number): void {
     if (p === this.pagina) return;
     this.pagina = p;
     this.consultar();
   }
 
+  /**
+   * Descarga Excel de nacimientos o defunciones según el módulo activo.
+   * Aplica los mismos filtros de vigencia y municipio de la consulta en pantalla.
+   */
   descargarExcel(): void {
     if (!this.muestraDescargaExcel()) return;
     const grupo = this.moduloExportacion();
@@ -322,6 +349,12 @@ export class AsisComponent implements OnInit {
     };
   }
 
+  /**
+   * Obtiene valor de celda con formato numérico localizado cuando aplica.
+   * @param fila Registro de la API.
+   * @param col Nombre de columna.
+   * @returns Texto a mostrar en la celda.
+   */
   cellValue(fila: Record<string, unknown>, col: string): string {
     const v = fila[col] ?? fila[col.toLowerCase()];
     if (v == null) return '';
@@ -329,7 +362,11 @@ export class AsisComponent implements OnInit {
     return String(v);
   }
 
-  /** Ancho sugerido por columna (colgroup). */
+  /**
+   * Ancho sugerido por columna para el colgroup de la tabla ASIS.
+   * @param col Nombre de columna.
+   * @returns Ancho CSS (rem).
+   */
   anchoColumna(col: string): string {
     const key = col.trim().toLowerCase();
     const anchos: Record<string, string> = {
@@ -368,7 +405,11 @@ export class AsisComponent implements OnInit {
     return '6.5rem';
   }
 
-  /** Clase de alineación: código / número / texto. */
+  /**
+   * Clase CSS de alineación según tipo semántico de la columna.
+   * @param col Nombre de columna.
+   * @returns Clase col--code, col--num o col--text.
+   */
   claseColumna(col: string): string {
     const key = col.trim().toLowerCase();
     if (

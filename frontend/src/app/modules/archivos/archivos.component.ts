@@ -34,6 +34,11 @@ import { mapHttpErrorMessage } from '../../core/utils/http-error.util';
 
 
 
+/**
+ * Módulo de carga y prevalidación de archivos OSC del OSD.
+ * Permite seleccionar línea temática e indicador, validar Excel, enviar a procesamiento
+ * y gestionar el historial de archivos de la dependencia del usuario.
+ */
 @Component({
 
   selector: 'app-archivos',
@@ -115,7 +120,6 @@ export class ArchivosComponent implements OnInit {
 
 
   ngOnInit(): void {
-
     this.cargarCatalogos();
 
     this.cargarLista();
@@ -124,8 +128,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Carga líneas temáticas y preselecciona la del usuario no administrador
+   * o la única disponible cuando el catálogo tiene un solo elemento.
+   */
   cargarCatalogos(): void {
-
     this.loadingCatalogos.set(true);
 
     this.catalogoError.set('');
@@ -182,8 +189,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Maneja el cambio de línea temática en el selector.
+   * @param lineaId Identificador numérico o cadena vacía para limpiar selección.
+   */
   onLineaChange(lineaId: number | string | null): void {
-
     const id = lineaId === '' || lineaId == null ? null : Number(lineaId);
 
     this.seleccionarLinea(id);
@@ -192,8 +202,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Fija la línea activa y recarga indicadores dependientes.
+   * @param lineaId ID de línea temática o null para limpiar.
+   */
   seleccionarLinea(lineaId: number | null): void {
-
     this.lineaSeleccionada.set(lineaId);
 
     this.indicadorSeleccionado.set(null);
@@ -222,6 +235,10 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Actualiza el indicador seleccionado y limpia el estado de prevalidación.
+   * @param indicadorId ID del indicador o vacío para limpiar.
+   */
   onIndicadorChange(indicadorId: number | string | null): void {
 
     this.indicadorSeleccionado.set(
@@ -236,6 +253,10 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Captura el archivo elegido en el input file y reinicia validación previa.
+   * @param event Evento change del input de archivos.
+   */
   onArchivoChange(event: Event): void {
 
     const input = event.target as HTMLInputElement;
@@ -248,8 +269,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Envía el archivo seleccionado a prevalidación en el servidor.
+   * Requiere línea, indicador y archivo .xlsx; actualiza estado de validación y lista.
+   */
   validar(): void {
-
     const lineaId = this.lineaSeleccionada();
 
     const indicadorId = this.indicadorSeleccionado();
@@ -350,8 +374,10 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Envía a procesamiento un archivo que pasó la prevalidación exitosamente.
+   */
   enviar(): void {
-
     const archivoId = this.archivoIdValidado();
 
     if (!archivoId) {
@@ -402,8 +428,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Limpia el resultado de la última prevalidación.
+   * @param limpiarMensaje Si es false, conserva el mensaje informativo actual.
+   */
   resetValidacion(limpiarMensaje = true): void {
-
     this.archivoIdValidado.set(null);
 
     this.resultadoValidacion.set(null);
@@ -414,8 +443,8 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /** Recarga el historial de archivos y reinicia la paginación de la tabla. */
   cargarLista(): void {
-
     this.loading.set(true);
 
     this.archivosService.listar().subscribe({
@@ -443,8 +472,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Descarga el archivo original mediante blob y enlace temporal.
+   * @param item Registro del archivo a descargar.
+   */
   descargar(item: ArchivoItem): void {
-
     this.archivosService.descargar(item.id).subscribe({
 
       next: (res) => {
@@ -473,8 +505,11 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Elimina un archivo tras confirmación del usuario.
+   * @param item Registro del archivo a eliminar.
+   */
   eliminar(item: ArchivoItem): void {
-
     if (!confirm(`¿Eliminar "${item.nombre_original}"?`)) return;
 
     this.archivosService.eliminar(item.id).subscribe({
@@ -495,8 +530,12 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Formatea el tamaño del archivo para mostrar en la tabla.
+   * @param bytes Tamaño en bytes.
+   * @returns Cadena legible en B, KB o MB.
+   */
   formatBytes(bytes: number): string {
-
     if (bytes < 1024) return `${bytes} B`;
 
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -507,8 +546,12 @@ export class ArchivosComponent implements OnInit {
 
 
 
+  /**
+   * Indica si el selector de línea temática debe estar deshabilitado
+   * (usuario no admin con línea asignada y catálogo reducido).
+   * @returns true si la línea no puede cambiarse.
+   */
   lineaBloqueada(): boolean {
-
     const u = this.auth.getUsuario();
 
     return !this.auth.isAdminUser() && !!u?.linea_tematica_id && this.lineas().length <= 1;

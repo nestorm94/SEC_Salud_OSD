@@ -9,6 +9,10 @@ import { Dependencia } from '../../../shared/models/api.models';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración de dependencias organizacionales del OSD.
+ * Listado paginado y formulario inline para registrar nuevas dependencias.
+ */
 @Component({
   selector: 'app-dependencias-list',
   standalone: true,
@@ -43,6 +47,7 @@ export class DependenciasListComponent implements OnInit {
     this.cargar();
   }
 
+  /** Recarga el listado paginado de dependencias. */
   cargar(): void {
     this.loading.set(true);
     this.dependenciasService.listar().subscribe({
@@ -58,6 +63,10 @@ export class DependenciasListComponent implements OnInit {
     });
   }
 
+  /**
+   * Valida y registra una nueva dependencia.
+   * Oculta el formulario y refresca la tabla en éxito.
+   */
   crear(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

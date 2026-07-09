@@ -8,6 +8,10 @@ import { DependenciasService } from '../dependencias/dependencias.service';
 import { RolesService } from '../roles/roles.service';
 import { Dependencia, Rol } from '../../../shared/models/api.models';
 
+/**
+ * Formulario de creación y edición de usuarios del OSD.
+ * En edición deshabilita el nombre de usuario y hace opcional la contraseña.
+ */
 @Component({
   selector: 'app-usuario-form',
   standalone: true,
@@ -65,6 +69,10 @@ export class UsuarioFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Alterna la selección de un rol en el checklist.
+   * @param nombre Nombre del rol a marcar o desmarcar.
+   */
   toggleRol(nombre: string): void {
     const idx = this.rolesSeleccionados.indexOf(nombre);
     if (idx >= 0) {
@@ -74,10 +82,19 @@ export class UsuarioFormComponent implements OnInit {
     }
   }
 
+  /**
+   * Indica si un rol está seleccionado actualmente.
+   * @param nombre Nombre del rol.
+   * @returns true si el rol está en la lista seleccionada.
+   */
   tieneRol(nombre: string): boolean {
     return this.rolesSeleccionados.includes(nombre);
   }
 
+  /**
+   * Persiste el usuario (crear o actualizar) y redirige al listado.
+   * Asigna rol Operador por defecto en creación si no se seleccionó ninguno.
+   */
   guardar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

@@ -8,10 +8,18 @@ using Observatorios.Api.Data;
 
 namespace Observatorios.Api.Services;
 
+/// <summary>
+/// Autenticación del OSD: valida credenciales contra dbo.Usuarios y emite JWT
+/// con roles, dependencia y línea temática en los claims.
+/// </summary>
 public sealed class AuthService(
     UsuariosRepository usuarios,
     IOptions<JwtSettings> jwtOptions)
 {
+    /// <summary>
+    /// Valida usuario/contraseña (o email) y retorna token JWT con perfil completo.
+    /// </summary>
+    /// <returns>Resultado con token y datos de usuario; null si credenciales inválidas.</returns>
     public async Task<LoginResult?> LoginAsync(string nombreUsuario, string password, CancellationToken ct)
     {
         var key = nombreUsuario.Trim();
@@ -81,6 +89,7 @@ public sealed class AuthService(
     }
 }
 
+/// <summary>Respuesta de login o refresh con token JWT y perfil del usuario.</summary>
 public sealed record LoginResult(
     string Token,
     int UsuarioId,

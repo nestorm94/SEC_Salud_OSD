@@ -3,13 +3,19 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Áreas temáticas por dependencia del OSD; segmentan responsabilidades de carga
+/// dentro de una entidad institucional.
+/// </summary>
 public sealed class AreaTematicaRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")!;
 
+    /// <summary>Lista áreas de una dependencia o todas si el filtro es null.</summary>
     public async Task<IReadOnlyList<AreaTematicaRow>> ListarAsync(int? dependenciaId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_AreaTematica_Listar */
         await using var cmd = Sp(con, "dbo.usp_AreaTematica_Listar");
         cmd.Parameters.AddWithValue("@DependenciaId", (object?)dependenciaId ?? DBNull.Value);
         await using var r = await cmd.ExecuteReaderAsync(ct);
@@ -19,9 +25,12 @@ public sealed class AreaTematicaRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Crea un área temática bajo una dependencia.</summary>
+    /// <returns>Id del área creada.</returns>
     public async Task<int> CrearAsync(int dependenciaId, string codigo, string nombre, string? descripcion, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
+        /* SP usp_AreaTematica_Crear */
         await using var cmd = Sp(con, "dbo.usp_AreaTematica_Crear");
         cmd.Parameters.AddWithValue("@DependenciaId", dependenciaId);
         cmd.Parameters.AddWithValue("@Codigo", codigo);
@@ -41,4 +50,5 @@ public sealed class AreaTematicaRepository(IConfiguration config)
         new(name, con) { CommandType = CommandType.StoredProcedure };
 }
 
+/// <summary>Área temática asociada a una dependencia del OSD.</summary>
 public sealed record AreaTematicaRow(int Id, int DependenciaId, string DependenciaNombre, string Codigo, string Nombre, bool Activo);

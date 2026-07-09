@@ -1,6 +1,25 @@
 /*
-Normaliza poblacion DEPARTAMENTO desde Poblacion_por_Departamento.
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 09_usp_normalizar_poblacion_departamental.sql
+================================================================================
+ PROPÓSITO:
+   Procedimiento que normaliza población a nivel DEPARTAMENTO desde
+   Poblacion_por_Departamento hacia fact_poblacion_proyeccion.
+   Carga totales por sexo (Hombres/Mujeres) y área geográfica por departamento.
+
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS:
+   - 07_fact_poblacion_proyeccion.sql
+   - 14_proyeccion_dane_versionamiento.sql
+   - Tabla fuente: dbo.Poblacion_por_Departamento
+   - dim_departamento, dim_sexo, fn_ASIS_Resolver_IdArea
+
+ ORDEN DE EJECUCIÓN:
+   Después de 08 (nacional). Invocado por 11 o directamente con @id_proyeccion_dane.
+   Nota: incluye todos los departamentos de la fuente (no filtra Casanare 85).
+================================================================================
 */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -43,6 +62,13 @@ BEGIN
     DELETE FROM dbo.fact_poblacion_proyeccion
     WHERE fuente_tabla = @fuente AND id_proyeccion_dane = @id_proyeccion_dane;
 
+    /*
+      INSERT-SELECT: totales departamentales por sexo y área.
+      Fuente: Poblacion_por_Departamento.
+      JOIN dim_departamento por cod_departamento (CODIGO_DANE normalizado a 2 dígitos).
+      CROSS APPLY duplica fila en Mujeres y Hombres.
+      Filtro: excluir AREA_GEOGRAFICA = 'TOTAL'; requiere id_area resuelto.
+    */
     INSERT INTO dbo.fact_poblacion_proyeccion (
         id_proyeccion_dane, nivel_territorial, tipo_registro, id_departamento, id_municipio,
         cod_departamento, cod_municipio, codigo_dane, anio, id_area, id_sexo,
@@ -65,8 +91,10 @@ BEGIN
         CAST(v.poblacion AS bigint),
         @fuente
     FROM dbo.Poblacion_por_Departamento AS p
+    /* JOIN geográfico: homologar código DANE departamento (2 dígitos) */
     LEFT JOIN dbo.dim_departamento AS d
         ON d.cod_departamento = RIGHT(N'00' + LTRIM(RTRIM(CAST(p.CODIGO_DANE AS varchar(10)))), 2)
+    /* Desdoblar Total_Mujeres y Total_Hombres en filas separadas */
     CROSS APPLY (VALUES
         (@idSexoM, p.Total_Mujeres),
         (@idSexoH, p.Total_Hombres)

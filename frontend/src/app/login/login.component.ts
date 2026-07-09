@@ -4,6 +4,10 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 
+/**
+ * Pantalla de acceso al Observatorio de Salud Departamental (OSD).
+ * Autentica credenciales contra la API y redirige al dashboard tras login exitoso.
+ */
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -20,6 +24,7 @@ export class LoginComponent implements OnInit {
   loading = false;
   error = '';
 
+  /** Muestra aviso de sesión expirada si el guard redirigió con queryParam `expired=1`. */
   ngOnInit(): void {
     if (this.route.snapshot.queryParamMap.get('expired') === '1') {
       this.error = 'Su sesión expiró o no es válida. Inicie sesión nuevamente.';
@@ -31,6 +36,10 @@ export class LoginComponent implements OnInit {
     password: ['', Validators.required]
   });
 
+  /**
+   * Envía el formulario de login al AuthService.
+   * Navega a `/dashboard` en éxito o muestra mensaje de error del servidor.
+   */
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

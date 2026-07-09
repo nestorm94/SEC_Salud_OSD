@@ -4,12 +4,16 @@ using Observatorios.Api.Models;
 
 namespace Observatorios.Api.Data;
 
-/// <summary>Catálogos de proyección vía <c>usp_Catalogo_*</c>.</summary>
+/// <summary>
+/// Catálogos DANE para filtros de proyección de población (departamentos, municipios,
+/// regionales, áreas, sexos y años) vía usp_Catalogo_*.
+/// </summary>
 public sealed class PoblacionCatalogosRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default en appsettings.json");
 
+    /// <summary>Obtiene todos los catálogos de proyección en una sola llamada paralela.</summary>
     public async Task<CatalogosProyeccionDto> ObtenerCatalogosProyeccionAsync(CancellationToken ct = default)
     {
         var deptTask = ObtenerDepartamentosAsync(ct);
@@ -23,6 +27,7 @@ public sealed class PoblacionCatalogosRepository(IConfiguration config)
             await areasTask, await sexosTask, await aniosTask);
     }
 
+    /// <summary>Lista departamentos desde usp_Catalogo_Departamentos_Listar.</summary>
     public async Task<IReadOnlyList<DepartamentoDto>> ObtenerDepartamentosAsync(CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -34,6 +39,7 @@ public sealed class PoblacionCatalogosRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Lista municipios, opcionalmente filtrados por departamento.</summary>
     public async Task<IReadOnlyList<MunicipioDto>> ObtenerMunicipiosAsync(
         string? codigoDepartamento = null, CancellationToken ct = default)
     {
@@ -47,15 +53,19 @@ public sealed class PoblacionCatalogosRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Regionales de salud disponibles para filtros.</summary>
     public Task<IReadOnlyList<CatalogoSimpleDto>> ObtenerRegionalesAsync(CancellationToken ct) =>
         EjecutarCatalogoSimpleAsync("dbo.usp_Catalogo_Regionales_Listar", ct);
 
+    /// <summary>Áreas geográficas (urbana/rural) para filtros.</summary>
     public Task<IReadOnlyList<CatalogoSimpleDto>> ObtenerAreasAsync(CancellationToken ct) =>
         EjecutarCatalogoSimpleAsync("dbo.usp_Catalogo_Areas_Listar", ct);
 
+    /// <summary>Sexos o categorías de población para filtros.</summary>
     public Task<IReadOnlyList<CatalogoSimpleDto>> ObtenerSexosAsync(CancellationToken ct) =>
         EjecutarCatalogoSimpleAsync("dbo.usp_Catalogo_Sexos_Listar", ct);
 
+    /// <summary>Años disponibles en las series de proyección.</summary>
     public async Task<IReadOnlyList<CatalogoSimpleDto>> ObtenerAniosAsync(CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);

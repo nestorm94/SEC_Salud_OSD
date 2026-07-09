@@ -18,6 +18,7 @@ public sealed class ExcelValidationService
         "Longitud", "Formato", "Valores_Permitidos", "Tabla_Referencia", "Campo_Referencia"
     ];
 
+    /// <summary>Valida diccionario y datos del Excel contra reglas OSC y catálogos DANE.</summary>
     public ExcelValidationResult Validar(Stream excelStream, CatalogoValidacionContext? catalogos = null)
     {
         var errores = new List<ValidationErrorDto>();

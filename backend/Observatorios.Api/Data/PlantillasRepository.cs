@@ -3,11 +3,16 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Plantillas de carga Excel configurables por dependencia: definición de campos
+/// obligatorios, tipos y dominios para validación.
+/// </summary>
 public sealed class PlantillasRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Lista plantillas con conteo de campos.</summary>
     public async Task<IReadOnlyList<PlantillaRow>> ListarAsync(CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -26,6 +31,7 @@ public sealed class PlantillasRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Crea una plantilla de carga.</summary>
     public async Task<int> CrearAsync(PlantillaUpsert req, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -38,6 +44,7 @@ public sealed class PlantillasRepository(IConfiguration config)
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Actualiza metadatos de plantilla existente.</summary>
     public async Task ActualizarAsync(int id, PlantillaUpsert req, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -51,6 +58,7 @@ public sealed class PlantillasRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Lista campos definidos en una plantilla.</summary>
     public async Task<IReadOnlyList<CampoPlantillaRow>> ListarCamposAsync(int plantillaId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -68,6 +76,7 @@ public sealed class PlantillasRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Agrega un campo a la plantilla.</summary>
     public async Task<int> CrearCampoAsync(int plantillaId, CampoPlantillaUpsert req, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -84,6 +93,7 @@ public sealed class PlantillasRepository(IConfiguration config)
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Elimina un campo de plantilla por id.</summary>
     public async Task EliminarCampoAsync(int campoId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);

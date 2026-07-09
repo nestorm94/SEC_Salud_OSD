@@ -8,6 +8,7 @@ internal static class SqlScriptRunner
 {
     private static readonly int[] IgnoredSqlNumbers = [2714, 1913, 2705];
 
+    /// <summary>Ejecuta un archivo .sql dividido por GO contra la conexión abierta.</summary>
     public static async Task ExecuteFileAsync(
         SqlConnection con,
         string filePath,

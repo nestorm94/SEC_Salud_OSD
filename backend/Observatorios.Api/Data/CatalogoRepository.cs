@@ -4,12 +4,15 @@ using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Data;
 
-/// <summary>Catálogo dim para validación Excel (reutiliza <c>usp_Catalogo_*</c> de fase 4).</summary>
+/// <summary>
+/// Carga catálogos DANE en memoria para validar códigos DIVIPOLA en cargas Excel.
+/// </summary>
 public sealed class CatalogoRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Construye contexto con departamentos y municipios desde usp_Catalogo_*.</summary>
     public async Task<CatalogoValidacionContext> CargarContextoAsync(CancellationToken ct = default)
     {
         var ctx = new CatalogoValidacionContext();

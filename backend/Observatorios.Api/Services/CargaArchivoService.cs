@@ -5,6 +5,10 @@ using Observatorios.Api.Models;
 
 namespace Observatorios.Api.Services;
 
+/// <summary>
+/// Orquesta el procesamiento completo de una carga Excel: validación OSC,
+/// persistencia de diccionario/datos/errores y transición de estados.
+/// </summary>
 public sealed class CargaArchivoService(
     ArchivosRepository archivos,
     CargasRepository cargas,
@@ -15,6 +19,9 @@ public sealed class CargaArchivoService(
     IndicadorRepository indicadores,
     AuditoriaRepository auditoria)
 {
+    /// <summary>
+    /// Procesa un Excel subido: crea archivo, valida plantilla OSC y registra la carga.
+    /// </summary>
     public async Task<CargaProcesoResult> ProcesarExcelAsync(
         Stream excelStream,
         string nombreOriginal,
@@ -93,6 +100,7 @@ public sealed class CargaArchivoService(
     }
 
     /// <summary>Procesa un archivo ya registrado (tras validación previa y envío).</summary>
+    /// <summary>Procesa un archivo ya registrado (re-envío o validación por validador).</summary>
     public async Task<CargaProcesoResult> ProcesarArchivoExistenteAsync(
         int archivoId,
         Stream excelStream,
@@ -182,6 +190,7 @@ public sealed class CargaArchivoService(
         return new CargaProcesoResult(cargaId, archivoId, CargaEstados.ValidadoExitoso, true, 0);
     }
 
+    /// <summary>Marca la carga como aprobada y registra historial.</summary>
     public async Task AprobarCargaAsync(
         int cargaId,
         UserContext user,
@@ -202,6 +211,7 @@ public sealed class CargaArchivoService(
         await cargas.RegistrarHistorialAsync(cargaId, user.UsuarioId, "APROBADO", observaciones, ct);
     }
 
+    /// <summary>Re-ejecuta validación sobre una carga existente y actualiza errores.</summary>
     public async Task<CargaProcesoResult> RevalidarAsync(
         int cargaId,
         Stream excelStream,

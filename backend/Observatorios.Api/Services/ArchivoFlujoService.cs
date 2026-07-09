@@ -5,13 +5,17 @@ using Observatorios.Api.Models;
 
 namespace Observatorios.Api.Services;
 
-/// <summary>Flujo en dos pasos: validar archivo → enviar definitivamente.</summary>
+/// <summary>
+/// Flujo en dos pasos del OSD: validar archivo OSC contra plantilla y enviarlo
+/// al módulo de cargas para aprobación.
+/// </summary>
 public sealed class ArchivoFlujoService(
     ArchivosRepository archivos,
     ArchivoPrevalidacionService prevalidacion,
     CargaArchivoService cargaService,
     IndicadorRepository indicadores)
 {
+    /// <summary>Valida plantilla OSC, persiste archivo y retorna errores por hoja.</summary>
     public async Task<ValidarArchivoResponse> ValidarAsync(
         Stream stream,
         string nombreOriginal,
@@ -74,6 +78,7 @@ public sealed class ArchivoFlujoService(
             resultado.Geografia);
     }
 
+    /// <summary>Envía un archivo previamente validado al flujo de cargas.</summary>
     public async Task<EnviarArchivoResponse> EnviarAsync(int archivoId, UserContext user, string repoRoot, CancellationToken ct)
     {
         if (!AuthorizationService.PuedeSubirCargue(user))
@@ -202,6 +207,7 @@ public sealed class ArchivoFlujoService(
             aprobado);
     }
 
+    /// <summary>Rechaza un archivo en validación y registra el motivo.</summary>
     public async Task RechazarValidacionAsync(int archivoId, UserContext user, string? motivo, CancellationToken ct)
     {
         if (!AuthorizationService.PuedeValidarCargue(user))

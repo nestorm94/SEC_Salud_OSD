@@ -5,6 +5,9 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Services;
 
+/// <summary>
+/// Implementación de validación DIVIPOLA cargando dim_departamento y dim_municipio desde SQL Server.
+/// </summary>
 public sealed class GeografiaValidacionService(IConfiguration config) : IGeografiaValidacionService
 {
     private readonly string _cs = config.GetConnectionString("Default")
@@ -12,6 +15,7 @@ public sealed class GeografiaValidacionService(IConfiguration config) : IGeograf
 
     private readonly Lazy<GeografiaCatalogoContext> _ctx = new(() => CargarCatalogo(config).GetAwaiter().GetResult());
 
+    /// <summary>Retorna el catálogo geográfico precargado en memoria.</summary>
     public GeografiaCatalogoContext ObtenerContexto() => _ctx.Value;
 
     public bool ValidarCodigoMunicipio(string codigoDane)

@@ -11,6 +11,10 @@ import { CampoPlantilla } from '../../../shared/models/api.models';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración del esquema de campos de una plantilla OSC.
+ * Permite definir columnas, tipos de dato y reglas de validación por plantilla.
+ */
 @Component({
   selector: 'app-campos-plantilla',
   standalone: true,
@@ -56,6 +60,7 @@ export class CamposPlantillaComponent implements OnInit {
     this.cargar();
   }
 
+  /** Carga los campos de la plantilla indicada en la ruta. */
   cargar(): void {
     this.loading.set(true);
     this.plantillasService.listarCampos(this.plantillaId()).subscribe({
@@ -71,6 +76,10 @@ export class CamposPlantillaComponent implements OnInit {
     });
   }
 
+  /**
+   * Añade un campo al esquema de la plantilla.
+   * Sugiere el siguiente orden basado en la cantidad actual de campos.
+   */
   crear(): void {
     if (this.form.invalid) return;
     const v = this.form.getRawValue();
@@ -95,6 +104,10 @@ export class CamposPlantillaComponent implements OnInit {
       });
   }
 
+  /**
+   * Elimina un campo del esquema tras confirmación.
+   * @param campo Registro del campo a eliminar.
+   */
   eliminar(campo: CampoPlantilla): void {
     if (!confirm(`¿Eliminar campo "${campo.nombre_campo}"?`)) return;
     this.plantillasService.eliminarCampo(campo.id).subscribe({

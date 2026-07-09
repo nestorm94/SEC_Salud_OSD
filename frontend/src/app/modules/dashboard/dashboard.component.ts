@@ -10,6 +10,9 @@ import { DashboardResumen } from '../../shared/models/api.models';
 import { mapHttpErrorMessage } from '../../core/utils/http-error.util';
 import { tablePagination } from '../../shared/utils/table-pagination.state';
 
+/**
+ * Panel principal del OSD con indicadores de cargas y listado paginado de actividad reciente.
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -38,6 +41,7 @@ export class DashboardComponent implements OnInit {
     this.cargarResumen();
   }
 
+  /** Obtiene el resumen del dashboard y reinicia la paginación de la tabla. */
   cargarResumen(): void {
     this.loading.set(true);
     this.error.set('');
@@ -54,6 +58,11 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * Traduce el origen técnico del registro a etiqueta legible en la UI.
+   * @param origen Valor devuelto por la API ("Archivo" u otro).
+   * @returns Etiqueta "Prevalidación" o "Cargue".
+   */
   etiquetaOrigen(origen?: string): string {
     return origen === 'Archivo' ? 'Prevalidación' : 'Cargue';
   }

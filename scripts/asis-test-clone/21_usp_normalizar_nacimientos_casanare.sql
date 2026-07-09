@@ -1,8 +1,26 @@
 /*
-Normaliza staging -> fact_nacimientos_casanare_normalizada.
-Ejecutar despues de cargar nacimientos_casanare_staging (script load-nacimientos-csv.ps1).
+================================================================================
+ 21_usp_normalizar_nacimientos_casanare.sql
+================================================================================
+ PROPÓSITO:
+   Normaliza datos de staging (nacimientos_casanare_staging) hacia la tabla hecho
+   fact_nacimientos_casanare_normalizada, resolviendo dimensiones vía catálogos
+   y tablas de mapeo (área, edad madre, educación, etnia, peso, gestación).
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\21_usp_normalizar_nacimientos_casanare.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test u ObservatorioDB (validación al inicio).
+
+ DEPENDENCIAS:
+   - 20_fact_nacimientos_estructura.sql (tabla fact + dimensiones)
+   - 19_catalogo_nacimientos_peso_semanas.sql, 24_catalogos_nacimientos_educacion_etnia.sql
+   - Carga previa: load-nacimientos-csv.ps1 -> nacimientos_casanare_staging
+   - usp_sync_catalogos_nacimientos_staging
+
+ ORDEN DE EJECUCIÓN:
+   Después de cargar staging (script 20 y catálogos). Antes de 22_vistas_asis_nacimientos.sql.
+
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\21_usp_normalizar_nacimientos_casanare.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -16,7 +34,7 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_normalizar_nacimientos_casanare
-    @reemplazar bit = 1
+    @reemplazar bit = 1   /* 1 = TRUNCATE fact antes de insertar */
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -33,12 +51,15 @@ BEGIN
     IF @reemplazar = 1
         TRUNCATE TABLE dbo.fact_nacimientos_casanare_normalizada;
 
+    /* Sincronizar catálogos desde valores nuevos en staging */
     EXEC dbo.usp_sync_catalogos_nacimientos_staging;
 
+    /* Valores por defecto cuando no hay homologación */
     DECLARE @idAreaSinInfo int = (SELECT id_area FROM dbo.dim_area_residencia WHERE codigo_area = N'SIN INFORMACION');
     DECLARE @idNivelSin int = (SELECT TOP 1 id_nivel_educativo FROM dbo.dim_nivel_educativo WHERE etiqueta_dane LIKE N'SIN INFORM%');
     DECLARE @idEtniaNr int = (SELECT TOP 1 id_pertenencia_etnica FROM dbo.dim_pertenencia_etnica WHERE etiqueta_dane LIKE N'NO REPORTADO%');
 
+    /* CTE src: lee staging, normaliza códigos y filtra filas válidas */
     ;WITH src AS (
         SELECT
             RIGHT(N'00' + LTRIM(RTRIM(s.codigo_departamento)), 2) AS codigo_departamento,
@@ -58,6 +79,7 @@ BEGIN
           AND s.nacimientos IS NOT NULL
           AND s.nacimientos > 0
     ),
+    /* CTE resolved: homologa cada dimensión vía map_*_fuente o dim_* con fallbacks */
     resolved AS (
         SELECT
             src.codigo_departamento,
@@ -72,9 +94,11 @@ BEGIN
             src.anio,
             src.numero_nacimientos
         FROM src
+        /* JOIN sexo: solo valores DANE válidos */
         INNER JOIN dbo.dim_sexo AS sx
             ON sx.sexo = src.sexo
            AND sx.sexo IN (N'FEMENINO', N'MASCULINO', N'INDETERMINADO')
+        /* Área residencia: mapeo por nombre o por código */
         LEFT JOIN dbo.map_area_residencia_fuente AS ma
             ON ma.fuente_tabla = N'nacimientos_casanare'
            AND ma.columna_origen = N'nombre_area_residencia'
@@ -83,6 +107,7 @@ BEGIN
         LEFT JOIN dbo.dim_area_residencia AS ma2
             ON ma2.codigo_area = LTRIM(RTRIM(src.codigo_area_residencia))
            AND ma2.estado = 1
+        /* Grupo edad madre: mapeo fuente, etiqueta exacta, patrón "De X", 60+, no reportado */
         LEFT JOIN dbo.map_grupo_edad_madre_fuente AS mg
             ON mg.fuente_tabla = N'nacimientos_casanare'
            AND mg.columna_origen = N'grupo_etareo_quinquenios_dane'
@@ -99,6 +124,7 @@ BEGIN
         LEFT JOIN dbo.dim_grupo_edad_madre AS mg5
             ON UPPER(LTRIM(RTRIM(src.grupo_etareo_quinquenios_dane))) IN (N'NO REPORTADO', N'NO REPORTADA')
            AND mg5.codigo = N'QM98'
+        /* Nivel educativo madre */
         LEFT JOIN dbo.map_nivel_educativo_fuente AS mne
             ON mne.fuente_tabla = N'nacimientos_casanare'
            AND mne.columna_origen = N'nivel_educativo'
@@ -109,6 +135,7 @@ BEGIN
         LEFT JOIN dbo.dim_nivel_educativo AS mne3
             ON src.nivel_educativo LIKE mne3.codigo_dane + N' %'
            AND mne3.codigo_dane NOT IN (N'SIN', N'NR')
+        /* Pertenencia étnica madre */
         LEFT JOIN dbo.map_pertenencia_etnica_fuente AS mpe
             ON mpe.fuente_tabla = N'nacimientos_casanare'
            AND mpe.columna_origen = N'pertenencia_etnica'
@@ -119,6 +146,7 @@ BEGIN
         LEFT JOIN dbo.dim_pertenencia_etnica AS mpe3
             ON src.pertenencia_etnica LIKE mpe3.codigo_dane + N' %'
            AND mpe3.codigo_dane NOT IN (N'NR')
+        /* Peso al nacer y semanas gestación */
         LEFT JOIN dbo.map_peso_al_nacer_fuente AS mp
             ON mp.fuente_tabla = N'nacimientos_casanare'
            AND mp.columna_origen = N'peso_al_nacer'
@@ -130,6 +158,7 @@ BEGIN
            AND ms.valor_origen = src.semanas_gestacion
            AND ms.vigente = 1
     )
+    /* INSERT: persiste filas con grupo edad madre resuelto (obligatorio) */
     INSERT INTO dbo.fact_nacimientos_casanare_normalizada (
         codigo_departamento, codigo_municipio, id_sexo, id_area, id_grupo_edad_madre,
         id_nivel_educativo, id_pertenencia_etnica,
@@ -153,6 +182,7 @@ BEGIN
 
     DECLARE @ins int = @@ROWCOUNT;
     DECLARE @staging int = (SELECT COUNT(*) FROM dbo.nacimientos_casanare_staging WHERE vigencia IS NOT NULL);
+    /* Diagnóstico: filas staging sin área mapeada */
     DECLARE @sin_area int = (
         SELECT COUNT(*) FROM dbo.nacimientos_casanare_staging AS s
         WHERE s.vigencia IS NOT NULL AND s.nacimientos > 0

@@ -19,6 +19,9 @@ public sealed class ObservatorioDbSchema(
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default en appsettings.json");
 
+    /// <summary>
+    /// Aplica scripts de esquema y seed mínimo; garantiza usuario administrador inicial.
+    /// </summary>
     public async Task EnsureAllAsync(CancellationToken ct = default)
     {
         if (config.GetValue("Observatorio:SkipSchemaBootstrap", false))

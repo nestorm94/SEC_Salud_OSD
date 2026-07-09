@@ -14,6 +14,10 @@ import { mapHttpErrorMessage } from '../../../core/utils/http-error.util';
 import { TablePaginatorComponent } from '../../../shared/components/table-paginator/table-paginator.component';
 import { tablePagination } from '../../../shared/utils/table-pagination.state';
 
+/**
+ * Administración de indicadores del OSD.
+ * Lista indicadores filtrables por línea temática y permite CRUD mediante modal.
+ */
 @Component({
   selector: 'app-indicadores-list',
   standalone: true,
@@ -64,6 +68,7 @@ export class IndicadoresListComponent implements OnInit {
     });
   }
 
+  /** Recarga indicadores aplicando el filtro de línea temática activo. */
   cargarIndicadores(): void {
     this.loading.set(true);
     this.indicadoresService.listar(this.filtroLineaId).subscribe({
@@ -79,10 +84,12 @@ export class IndicadoresListComponent implements OnInit {
     });
   }
 
+  /** Reconsulta al cambiar el filtro de línea en el selector superior. */
   onFiltroChange(): void {
     this.cargarIndicadores();
   }
 
+  /** Abre modal de creación preseleccionando la línea del filtro actual. */
   abrirCrear(): void {
     this.editando.set(null);
     this.codigo = '';
@@ -94,6 +101,10 @@ export class IndicadoresListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /**
+   * Abre modal de edición con datos del indicador.
+   * @param ind Registro a modificar.
+   */
   abrirEditar(ind: IndicadorItem): void {
     this.editando.set(ind);
     this.lineaTematicaId = ind.linea_tematica_id;
@@ -105,11 +116,13 @@ export class IndicadoresListComponent implements OnInit {
     this.modalAbierto.set(true);
   }
 
+  /** Cierra el modal y limpia el indicador en edición. */
   cerrarModal(): void {
     this.modalAbierto.set(false);
     this.editando.set(null);
   }
 
+  /** Valida y persiste el indicador (crear o actualizar). */
   guardar(): void {
     if (!this.lineaTematicaId || !this.codigo.trim() || !this.nombre.trim()) {
       this.error.set('Línea temática, código y nombre son obligatorios.');
@@ -144,10 +157,15 @@ export class IndicadoresListComponent implements OnInit {
     }
   }
 
+  /** @returns Título del modal según modo crear o editar. */
   tituloModal(): string {
     return this.editando() ? `Editar indicador #${this.editando()!.id}` : 'Nuevo indicador';
   }
 
+  /**
+   * En edición el código del indicador no puede modificarse.
+   * @returns true si el campo código debe estar deshabilitado.
+   */
   codigoBloqueado(): boolean {
     return !!this.editando();
   }

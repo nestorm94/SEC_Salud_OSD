@@ -1,9 +1,10 @@
 using Observatorios.Api.Auth;
-using Observatorios.Api.Health;
 using Observatorios.Api.Data;
+using Observatorios.Api.Health;
 using Observatorios.Api.Endpoints;
 using Observatorios.Api.Services;
 
+/* --- Modo consola: depuración de plantillas OSC sin levantar el servidor web --- */
 if (args is ["debug-osc", var xlsxPath, ..])
 {
     using var fs = File.OpenRead(xlsxPath);
@@ -73,6 +74,7 @@ static void GenerarExcelPruebaOsc(string path)
     wb.SaveAs(path);
 }
 
+/* --- Resolución de rutas wwwroot (Angular dist o portal HTML) según entorno --- */
 var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
 var isDevelopment = envName.Equals(Environments.Development, StringComparison.OrdinalIgnoreCase);
 
@@ -99,6 +101,7 @@ else
     repoRoot = contentRoot;
 }
 
+/* --- Configuración del host: servicios DI, auth JWT, repositorios y seeds --- */
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -160,6 +163,7 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 var app = builder.Build();
 
+/* --- Health checks, Swagger, CORS, manejo global de excepciones y pipeline HTTP --- */
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = r => r.Tags.Contains("live")
@@ -235,6 +239,7 @@ var skipSeeds = builder.Configuration.GetValue("Observatorio:SkipStartupSeeds", 
     || string.Equals(Environment.GetEnvironmentVariable("OBSERVATORIO_SKIP_STARTUP_SEEDS"), "true",
         StringComparison.OrdinalIgnoreCase);
 
+/* --- Bootstrap de esquema SQL y datos semilla al arranque (áreas, líneas, usuarios prueba) --- */
 using (var scope = app.Services.CreateScope())
 {
     if (!skipBootstrap)
@@ -275,6 +280,7 @@ Console.WriteLine($"[Observatorios.Api] wwwroot: {app.Environment.WebRootPath ??
 Console.WriteLine("[Observatorios.Api] Login: POST /api/auth/login  |  admin@observatorio.gov.co / Admin123*");
 Console.WriteLine();
 
+/* --- Mapeo de API REST, controladores MVC y fallback SPA Angular --- */
 app.MapObservatorioApi(repoRoot, uploadsDir);
 app.MapControllers();
 

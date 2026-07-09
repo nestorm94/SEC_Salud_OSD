@@ -3,11 +3,22 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Agrega métricas del panel principal del OSD: totales de archivos, cargas por estado
+/// y actividad reciente unificada de cargues y archivos pendientes.
+/// </summary>
 public sealed class DashboardRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>
+    /// Obtiene contadores del dashboard y los últimos movimientos de carga/archivo.
+    /// </summary>
+    /// <param name="dependenciaId">Filtra por dependencia; null para vista global.</param>
+    /// <param name="subidoPorUsuarioId">Filtra archivos/cargas del usuario; null sin filtro.</param>
+    /// <param name="ct">Token de cancelación.</param>
+    /// <returns>Resumen con totales y lista de actividad reciente.</returns>
     public async Task<DashboardResumen> ObtenerResumenAsync(
         int? dependenciaId, int? subidoPorUsuarioId, CancellationToken ct = default)
     {
@@ -19,6 +30,7 @@ public sealed class DashboardRepository(IConfiguration config)
         int cargasConError;
         int cargasAprobadas;
 
+        /* SP usp_Dashboard_Resumen: contadores agregados de archivos y cargas por estado. */
         await using (var cmd = new SqlCommand("dbo.usp_Dashboard_Resumen", con)
                      {
                          CommandType = CommandType.StoredProcedure
@@ -49,6 +61,7 @@ public sealed class DashboardRepository(IConfiguration config)
         int? subidoPorUsuarioId,
         CancellationToken ct)
     {
+        /* UNION de dbo.CargasArchivo y dbo.Archivos no enviados para actividad reciente del panel. */
         const string sql = """
             SELECT Id, Origen, Dependencia, Estado, Archivo, Fecha, Usuario
             FROM (
@@ -111,9 +124,11 @@ public sealed class DashboardRepository(IConfiguration config)
     }
 }
 
+/// <summary>Contadores y actividad reciente retornados al panel del OSD.</summary>
 public sealed record DashboardResumen(
     int TotalArchivos, int CargasPendientes, int CargasConError, int CargasAprobadas,
     IReadOnlyList<UltimoCargueRow> UltimosCargues);
 
+/// <summary>Fila de actividad reciente (cargue o archivo) en el dashboard.</summary>
 public sealed record UltimoCargueRow(
     int Id, string Origen, string Dependencia, string Estado, string Archivo, DateTime Fecha, string? Usuario);

@@ -3,6 +3,7 @@ namespace Observatorios.Api.Data;
 /// <summary>Utilidades para parámetros CSV en stored procedures de usuarios.</summary>
 internal static class SqlProcHelper
 {
+    /// <summary>Serializa roles a CSV para parámetros de SP de usuarios.</summary>
     public static string RolesToCsv(IEnumerable<string> roles) =>
         string.Join(',', roles
             .Where(r => !string.IsNullOrWhiteSpace(r))

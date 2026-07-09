@@ -22,6 +22,11 @@ import {
 
 type FiltroCarga = 'todas' | 'pendientes' | 'errores';
 
+/**
+ * Bandeja unificada de validación del OSD.
+ * Combina cargues masivos y prevalidaciones de archivos en una sola tabla con filtros,
+ * detalle de errores y flujo de aprobación/rechazo por validadores.
+ */
 @Component({
   selector: 'app-validaciones',
   standalone: true,
@@ -58,6 +63,7 @@ export class ValidacionesComponent implements OnInit {
   procesando = signal(false);
   observaciones = '';
 
+  /** Aplica filtro de estado sobre la lista unificada (todas, pendientes o con errores). */
   filasFiltradas = computed(() => {
     const list = this.filas();
     const f = this.filtro();
@@ -72,6 +78,10 @@ export class ValidacionesComponent implements OnInit {
 
   readonly pag = tablePagination(this.filasFiltradas);
 
+  /**
+   * Cambia el filtro activo y reinicia la página del paginador.
+   * @param valor Criterio de filtrado seleccionado en la UI.
+   */
   onFiltroChange(valor: FiltroCarga): void {
     this.filtro.set(valor);
     this.pag.resetPage();
@@ -81,6 +91,10 @@ export class ValidacionesComponent implements OnInit {
     this.cargar();
   }
 
+  /**
+   * Carga en paralelo cargues y archivos, los normaliza a `ValidacionFila`
+   * y ordena alfabéticamente por nombre de archivo.
+   */
   cargar(): void {
     this.loading.set(true);
     this.error.set('');
@@ -131,6 +145,10 @@ export class ValidacionesComponent implements OnInit {
     });
   }
 
+  /**
+   * Abre el modal de detalle y carga errores según el origen (cargue o archivo).
+   * @param fila Registro seleccionado en la tabla.
+   */
   abrirDetalle(fila: ValidacionFila): void {
     this.error.set('');
     this.filaSeleccionada.set(fila);
@@ -152,6 +170,7 @@ export class ValidacionesComponent implements OnInit {
       return;
     }
 
+    // Prevalidación: los errores vienen como lista de mensajes en el detalle del archivo.
     this.archivosService.obtenerDetalle(fila.id).subscribe({
       next: (det) => {
         const lista = det.errores_validacion || [];
@@ -173,6 +192,10 @@ export class ValidacionesComponent implements OnInit {
     });
   }
 
+  /**
+   * Abre el modal de rechazo si la fila admite acciones de validación.
+   * @param fila Registro a rechazar.
+   */
   abrirRechazo(fila: ValidacionFila): void {
     if (!puedeAprobarFila(fila)) return;
     this.error.set('');
@@ -182,6 +205,7 @@ export class ValidacionesComponent implements OnInit {
     this.modalDetalleAbierto.set(false);
   }
 
+  /** Cierra modales y limpia estado de la fila seleccionada. */
   cerrarModales(): void {
     this.modalDetalleAbierto.set(false);
     this.modalRechazoAbierto.set(false);
@@ -190,6 +214,10 @@ export class ValidacionesComponent implements OnInit {
     this.observaciones = '';
   }
 
+  /**
+   * Aprueba un cargue o envía y aprueba un archivo según su origen.
+   * @param fila Registro pendiente de validación.
+   */
   aprobar(fila: ValidacionFila): void {
     if (!puedeAprobarFila(fila) || this.procesando()) return;
     this.procesando.set(true);
@@ -232,6 +260,7 @@ export class ValidacionesComponent implements OnInit {
     });
   }
 
+  /** Confirma el rechazo con observaciones obligatorias, según origen carga o archivo. */
   confirmarRechazo(): void {
     const fila = this.filaSeleccionada();
     if (!fila || this.procesando()) return;
@@ -273,24 +302,33 @@ export class ValidacionesComponent implements OnInit {
     });
   }
 
+  /** @param fila Fila a evaluar. @returns true si admite aprobación. */
   puedeAprobar(fila: ValidacionFila): boolean {
     return puedeAprobarFila(fila);
   }
 
+  /** @param fila Fila a evaluar. @returns true si admite rechazo (misma regla que aprobación). */
   puedeRechazar(fila: ValidacionFila): boolean {
     return puedeAprobarFila(fila);
   }
 
+  /**
+   * Etiqueta legible del origen del registro.
+   * @param fila Fila de la bandeja unificada.
+   * @returns "Cargue" o "Prevalidación".
+   */
   etiquetaOrigen(fila: ValidacionFila): string {
     return fila.origen === 'carga' ? 'Cargue' : 'Prevalidación';
   }
 
+  /** @returns Título del modal de detalle según origen e ID. */
   tituloModalDetalle(): string {
     const f = this.filaSeleccionada();
     if (!f) return 'Detalle';
     return f.origen === 'carga' ? `Cargue #${f.id}` : `Archivo #${f.id}`;
   }
 
+  /** @returns Título del modal de rechazo según origen e ID. */
   tituloModalRechazo(): string {
     const f = this.filaSeleccionada();
     if (!f) return 'Rechazar';

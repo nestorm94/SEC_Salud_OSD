@@ -3,11 +3,16 @@ using Microsoft.Data.SqlClient;
 
 namespace Observatorios.Api.Data;
 
+/// <summary>
+/// Persistencia de usuarios del OSD: autenticación, roles, dependencias y áreas temáticas
+/// asignadas mediante procedimientos dbo.usp_Usuario_*.
+/// </summary>
 public sealed class UsuariosRepository(IConfiguration config)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Busca usuario activo por correo electrónico (login alternativo).</summary>
     public async Task<UsuarioDbRow?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -17,6 +22,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return await r.ReadAsync(ct) ? LeerUsuarioDb(r) : null;
     }
 
+    /// <summary>Busca usuario por nombre de usuario para autenticación.</summary>
     public async Task<UsuarioDbRow?> GetByNombreUsuarioAsync(string nombreUsuario, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -26,6 +32,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return await r.ReadAsync(ct) ? LeerUsuarioDb(r) : null;
     }
 
+    /// <summary>Ids de áreas temáticas asignadas al usuario (alcance de carga).</summary>
     public async Task<IReadOnlyList<int>> GetAreasTematicasIdsAsync(int usuarioId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -38,6 +45,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Nombres de roles del usuario para emisión de JWT y autorización.</summary>
     public async Task<IReadOnlyList<string>> GetRolesAsync(int usuarioId, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -50,6 +58,8 @@ public sealed class UsuariosRepository(IConfiguration config)
         return list;
     }
 
+    /// <summary>Crea usuario con hash BCrypt y roles iniciales.</summary>
+    /// <returns>Id del usuario creado.</returns>
     public async Task<int> CrearAsync(CrearUsuarioRequest req, CancellationToken ct = default)
     {
         var hash = BCrypt.Net.BCrypt.HashPassword(req.Password);
@@ -64,6 +74,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
     }
 
+    /// <summary>Lista todos los usuarios con dependencia, línea y roles.</summary>
     public async Task<IReadOnlyList<UsuarioListaRow>> ListarAsync(CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -72,6 +83,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return await LeerUsuariosListaAsync(r, ct);
     }
 
+    /// <summary>Obtiene detalle de usuario por id incluyendo roles.</summary>
     public async Task<UsuarioDetalleRow?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -81,6 +93,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         return await r.ReadAsync(ct) ? LeerUsuarioDetalle(r) : null;
     }
 
+    /// <summary>Actualiza email, dependencia, línea y opcionalmente contraseña.</summary>
     public async Task ActualizarAsync(int id, ActualizarUsuarioRequest req, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -96,6 +109,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Activa o desactiva la cuenta del usuario.</summary>
     public async Task SetActivoAsync(int id, bool activo, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -105,6 +119,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Reemplaza la lista completa de roles del usuario.</summary>
     public async Task ActualizarRolesAsync(int usuarioId, IReadOnlyList<string> roles, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);
@@ -114,6 +129,7 @@ public sealed class UsuariosRepository(IConfiguration config)
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    /// <summary>Asigna áreas temáticas sobre las que el usuario puede operar.</summary>
     public async Task ActualizarAreasTematicasAsync(int usuarioId, IReadOnlyList<int> areaIds, CancellationToken ct = default)
     {
         await using var con = await AbrirAsync(ct);

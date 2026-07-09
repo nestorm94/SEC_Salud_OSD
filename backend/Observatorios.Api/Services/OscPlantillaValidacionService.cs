@@ -45,6 +45,7 @@ public sealed class OscPlantillaValidacionService(IGeografiaValidacionService? g
         ("formula", "Fórmula aplicada"),
     ];
 
+    /// <summary>Ejecuta validación completa de hojas Diccionario_datos y DATA.</summary>
     public OscValidacionResult Validar(Stream excelStream)
     {
         var erroresDict = new List<string>();

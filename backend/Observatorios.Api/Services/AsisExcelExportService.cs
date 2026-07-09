@@ -3,12 +3,13 @@ using Observatorios.Api.Data;
 
 namespace Observatorios.Api.Services;
 
-/// <summary>Exporta nacimientos y mortalidad ASIS al formato Excel DANE (plantillas departamentales).</summary>
+/// <summary>Exporta indicadores ASIS al formato Excel DANE para reportes departamentales.</summary>
 public sealed class AsisExcelExportService(AsisRepository repo)
 {
     private const string DeptCodigo = "85";
     private const string DeptNombre = "Casanare";
 
+    /// <summary>Genera libro Excel de nacimientos por dimensiones (área, sexo, edad, etc.).</summary>
     public async Task<byte[]> ExportNacimientosAsync(int? vigencia, string? codigoMunicipio, CancellationToken ct)
     {
         using var wb = new XLWorkbook();
@@ -56,6 +57,7 @@ public sealed class AsisExcelExportService(AsisRepository repo)
         return Guardar(wb);
     }
 
+    /// <summary>Genera libro Excel de defunciones por dimensiones demográficas.</summary>
     public async Task<byte[]> ExportMortalidadAsync(int? vigencia, string? codigoMunicipio, CancellationToken ct)
     {
         using var wb = new XLWorkbook();

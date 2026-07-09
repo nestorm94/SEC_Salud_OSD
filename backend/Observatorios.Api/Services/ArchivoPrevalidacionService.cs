@@ -7,6 +7,7 @@ public sealed class ArchivoPrevalidacionService(
     IndicadorRepository indicadores,
     OscPlantillaValidacionService oscValidador)
 {
+    /// <summary>Valida estructura y contenido de plantilla OSC antes del envío definitivo.</summary>
     public async Task<PrevalidacionResultado> ValidarAsync(
         Stream stream,
         string nombreArchivo,

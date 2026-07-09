@@ -4,16 +4,24 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Observatorios.Api.Data;
 
-/// <summary>Consulta proyección de población vía <c>usp_ProyeccionPoblacion_ConsultarPaginado</c>.</summary>
+/// <summary>
+/// Consulta paginada de vistas de proyección de población del OSD Casanare
+/// mediante usp_ProyeccionPoblacion_ConsultarPaginado con caché en memoria.
+/// </summary>
 public sealed class PoblacionVistasRepository(IConfiguration config, IMemoryCache cache)
 {
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default en appsettings.json");
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(3);
 
+    /// <summary>Claves de vista admitidas: nacional-casanare, curso-vida, quinquenios.</summary>
     public static readonly IReadOnlyCollection<string> ClavesValidas =
         ["nacional-casanare", "curso-vida", "quinquenios"];
 
+    /// <summary>
+    /// Ejecuta consulta paginada con filtros territoriales; resultados cacheados 3 minutos.
+    /// </summary>
+    /// <returns>Columnas dinámicas y filas según la vista solicitada.</returns>
     public async Task<VistaPoblacionPaginada> ConsultarPaginadoAsync(
         string clave, int pagina, int tamanoPagina,
         string? territorio = null, string? regional = null, string? area = null,
@@ -112,6 +120,7 @@ public sealed class PoblacionVistasRepository(IConfiguration config, IMemoryCach
     };
 }
 
+/// <summary>Resultado paginado de una vista de proyección de población.</summary>
 public sealed record VistaPoblacionPaginada(
     string Clave, int Pagina, int TamanoPagina, long TotalFilas, int TotalPaginas,
     IReadOnlyList<string> Columnas, IReadOnlyList<Dictionary<string, object?>> Filas);

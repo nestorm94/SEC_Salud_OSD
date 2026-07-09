@@ -5,8 +5,13 @@ using Observatorios.Api.Services;
 
 namespace Observatorios.Api.Endpoints;
 
+/// <summary>
+/// API ASIS del OSD: indicadores de población, mortalidad y nacimientos en Casanare
+/// con consulta paginada y exportación Excel.
+/// </summary>
 public static class AsisEndpoints
 {
+    /// <summary>Registra rutas /api/asis e indicadores ASIS.</summary>
     public static void MapAsisApi(this RouteGroupBuilder secured)
     {
         var asis = secured.MapGroup("/asis");

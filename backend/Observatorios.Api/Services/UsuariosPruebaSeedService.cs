@@ -12,6 +12,7 @@ public sealed class UsuariosPruebaSeedService(IConfiguration config, UsuariosRep
     private readonly string _cs = config.GetConnectionString("Default")
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Default");
 
+    /// <summary>Contraseña común de las cuentas de prueba por línea temática.</summary>
     public const string PasswordPrueba = "Prueba123*";
 
     private static readonly (string CodigoLinea, string SufijoUsuario, string SufijoEmail)[] Cuentas =
@@ -23,6 +24,7 @@ public sealed class UsuariosPruebaSeedService(IConfiguration config, UsuariosRep
         ("LT-ECON", "econ", "economia"),
     ];
 
+    /// <summary>Crea usuarios prueba. prueba.* si no existen (una cuenta por línea).</summary>
     public async Task<int> EnsureSeedAsync(CancellationToken ct = default)
     {
         await using var con = new SqlConnection(_cs);
@@ -42,7 +44,7 @@ public sealed class UsuariosPruebaSeedService(IConfiguration config, UsuariosRep
             var existente = await usuarios.GetByNombreUsuarioAsync(usuario, ct);
             if (existente is not null)
             {
-                await AsegurarCuentaPruebaAsync(con, usuario, lineaId.Value, ct);
+                await AsegurarCuentaPruebaAsync(con, usuario, lineaId.Value, "RESPONSABLE_TEMATICO", ct);
                 continue;
             }
 
@@ -56,7 +58,29 @@ public sealed class UsuariosPruebaSeedService(IConfiguration config, UsuariosRep
             creados++;
         }
 
+        // Cuentas de flujo institucional para pruebas de aceptación (validador / coordinador).
+        creados += await AsegurarRolInstitucionalAsync(con, depId, "validador", "validador@observatorio.gov.co", "VALIDADOR", ct);
+        creados += await AsegurarRolInstitucionalAsync(con, depId, "coordinador", "coordinador@observatorio.gov.co", "COORDINADOR_DEPENDENCIA", ct);
+
         return creados;
+    }
+
+    /// <summary>
+    /// Crea o reactiva un usuario institucional de prueba con un rol específico (validador, coordinador).
+    /// </summary>
+    private async Task<int> AsegurarRolInstitucionalAsync(
+        SqlConnection con, int? depId, string usuario, string email, string rol, CancellationToken ct)
+    {
+        var existente = await usuarios.GetByNombreUsuarioAsync(usuario, ct);
+        if (existente is not null)
+        {
+            await AsegurarCuentaPruebaAsync(con, usuario, existente.LineaTematicaId, rol, ct);
+            return 0;
+        }
+
+        await usuarios.CrearAsync(new CrearUsuarioRequest(
+            usuario, PasswordPrueba, email, depId, null, [rol]), ct);
+        return 1;
     }
 
     private static async Task<int?> ObtenerDependenciaCasanareAsync(SqlConnection con, CancellationToken ct)
@@ -73,22 +97,23 @@ public sealed class UsuariosPruebaSeedService(IConfiguration config, UsuariosRep
         return (int?)await cmd.ExecuteScalarAsync(ct);
     }
 
-    private static async Task AsegurarCuentaPruebaAsync(SqlConnection con, string nombreUsuario, int lineaId, CancellationToken ct)
+    private static async Task AsegurarCuentaPruebaAsync(SqlConnection con, string nombreUsuario, int? lineaId, string rol, CancellationToken ct)
     {
         const string sql = """
-UPDATE dbo.Usuarios SET LineaTematicaId = @LineaId, Activo = 1 WHERE NombreUsuario = @User;
+UPDATE dbo.Usuarios SET LineaTematicaId = COALESCE(@LineaId, LineaTematicaId), Activo = 1 WHERE NombreUsuario = @User;
 INSERT INTO dbo.UsuarioRol (UsuarioId, RolId)
 SELECT u.Id, r.Id
 FROM dbo.Usuarios u
 CROSS JOIN dbo.Roles r
-WHERE u.NombreUsuario = @User AND r.Nombre = N'RESPONSABLE_TEMATICO'
+WHERE u.NombreUsuario = @User AND r.Nombre = @Rol
   AND NOT EXISTS (
     SELECT 1 FROM dbo.UsuarioRol ur
     WHERE ur.UsuarioId = u.Id AND ur.RolId = r.Id);
 """;
         await using var cmd = new SqlCommand(sql, con);
         cmd.Parameters.AddWithValue("@User", nombreUsuario);
-        cmd.Parameters.AddWithValue("@LineaId", lineaId);
+        cmd.Parameters.AddWithValue("@LineaId", (object?)lineaId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Rol", rol);
         await cmd.ExecuteNonQueryAsync(ct);
     }
 }

@@ -29,9 +29,12 @@ public static class DiccionarioOscV2Reader
         ["formula"] = 13
     };
 
+    /// <summary>Fila estándar de encabezados en plantilla OSC V.2.</summary>
     public const int FilaEncabezadosDefault = 5;
+    /// <summary>Primera fila de definición de variables en el diccionario.</summary>
     public const int FilaDatosInicioDefault = 6;
 
+    /// <summary>Detecta si la hoja corresponde al formato OSC (Diccionario_datos).</summary>
     public static bool EsPlantillaOsc(IXLWorksheet hoja)
     {
         if (!hoja.Name.Contains("Diccionario", StringComparison.OrdinalIgnoreCase))
@@ -45,6 +48,7 @@ public static class DiccionarioOscV2Reader
             && b5.Contains("variable", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Localiza la fila de encabezados si difiere del valor por defecto.</summary>
     public static int BuscarFilaEncabezados(IXLWorksheet hoja, int maxFilas = 30)
     {
         for (var r = 1; r <= maxFilas; r++)
@@ -57,6 +61,7 @@ public static class DiccionarioOscV2Reader
         return -1;
     }
 
+    /// <summary>Resuelve índices de columnas del diccionario según encabezados detectados.</summary>
     public static Dictionary<string, int> ResolverColumnas(IXLWorksheet hoja, int filaEncabezado)
     {
         var dinamico = MapearEncabezadosMultifila(hoja, filaEncabezado);
@@ -85,6 +90,7 @@ public static class DiccionarioOscV2Reader
         return map;
     }
 
+    /// <summary>Mapea encabezados de una fila a nombres canónicos de campos OSC.</summary>
     public static Dictionary<string, int> MapearEncabezados(IXLRow headerRow)
     {
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -125,6 +131,7 @@ public static class DiccionarioOscV2Reader
         }
     }
 
+    /// <summary>Lee definición de campos del diccionario y acumula errores de formato.</summary>
     public static List<CampoDiccionarioDto> LeerCampos(
         IXLWorksheet hoja,
         int filaEncabezado,
@@ -190,6 +197,7 @@ public static class DiccionarioOscV2Reader
         return campos;
     }
 
+    /// <summary>Verifica presencia de columnas mínimas exigidas por la plantilla OSC.</summary>
     public static void ValidarColumnasMinimas(IReadOnlyDictionary<string, int> headers, List<ValidationErrorDto> errores)
     {
         string[] requeridas = ["nombre_campo", "tipo_dato", "obligatorio"];
@@ -320,6 +328,7 @@ public static class DiccionarioOscV2Reader
         _ => canon
     };
 
+    /// <summary>Normaliza nombres de variable para comparación entre diccionario y DATA.</summary>
     public static string Normalizar(string? s)
     {
         if (string.IsNullOrWhiteSpace(s)) return "";
