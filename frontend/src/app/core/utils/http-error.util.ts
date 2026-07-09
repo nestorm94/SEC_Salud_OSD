@@ -1,6 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-/** Mensaje legible para errores HTTP de la API. */
+/**
+ * Traduce un error HTTP a un mensaje legible para el usuario.
+ * @param err Error capturado (típicamente `HttpErrorResponse`).
+ * @param fallback Mensaje por defecto si no se puede determinar uno específico.
+ * @returns Texto descriptivo listo para mostrar en la interfaz.
+ */
 export function mapHttpErrorMessage(err: unknown, fallback: string): string {
   if (!(err instanceof HttpErrorResponse)) {
     return fallback;

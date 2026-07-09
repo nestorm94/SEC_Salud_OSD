@@ -5,10 +5,16 @@ using Observatorios.Api;
 
 namespace Observatorios.Api.Tests;
 
+/// <summary>
+/// Prueba de integración del endpoint /health con la API en memoria (sin bootstrap ni seeds).
+/// </summary>
 public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
+    /// <summary>
+    /// Configura el host de prueba con entorno Testing y cadena de conexión mínima.
+    /// </summary>
     public HealthEndpointTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.WithWebHostBuilder(builder =>
@@ -27,6 +33,9 @@ public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Pr
         }).CreateClient();
     }
 
+    /// <summary>
+    /// Verifica que GET /health responda 200 y contenga el texto Healthy.
+    /// </summary>
     [Fact]
     public async Task Health_live_responde_200()
     {

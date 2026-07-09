@@ -1,7 +1,24 @@
 /*
-Catalogos nivel educativo y pertenencia etnica (nacimientos) + columnas en fact.
+================================================================================
+ 24_catalogos_nacimientos_educacion_etnia.sql
+================================================================================
+ PROPÓSITO:
+   Crea catálogos dim_nivel_educativo y dim_pertenencia_etnica con tablas map_*,
+   añade columnas id_nivel_educativo/id_pertenencia_etnica al fact de nacimientos
+   y SP usp_sync_catalogos_nacimientos_staging para poblar desde staging.
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -f 65001 -i scripts\asis-test-clone\24_catalogos_nacimientos_educacion_etnia.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS (ejecutar antes):
+   - 20_fact_nacimientos_estructura.sql (fact y staging)
+
+ ORDEN DE EJECUCIÓN:
+   20 -> 24 (este script) -> 21_usp_normalizar -> 23_fix_encoding (opcional)
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -f 65001 -i scripts\asis-test-clone\24_catalogos_nacimientos_educacion_etnia.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -17,6 +34,7 @@ GO
 
 PRINT N'=== 24 - Catalogos educacion y etnia nacimientos ===';
 
+/* --- CREATE TABLE dim_nivel_educativo: catálogo niveles educativos DANE --- */
 IF OBJECT_ID(N'dbo.dim_nivel_educativo', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.dim_nivel_educativo (
@@ -33,6 +51,7 @@ BEGIN
     );
 END
 
+/* --- CREATE TABLE dim_pertenencia_etnica: catálogo grupos étnicos DANE --- */
 IF OBJECT_ID(N'dbo.dim_pertenencia_etnica', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.dim_pertenencia_etnica (
@@ -83,6 +102,7 @@ BEGIN
         ON dbo.map_pertenencia_etnica_fuente (fuente_tabla, columna_origen, valor_origen);
 END
 
+/* --- ALTER TABLE fact: columnas FK opcionales educación y etnia --- */
 IF COL_LENGTH(N'dbo.fact_nacimientos_casanare_normalizada', N'id_nivel_educativo') IS NULL
     ALTER TABLE dbo.fact_nacimientos_casanare_normalizada ADD id_nivel_educativo int NULL;
 
@@ -107,6 +127,7 @@ BEGIN
 
     IF OBJECT_ID(N'dbo.nacimientos_casanare_staging', N'U') IS NULL RETURN;
 
+    /* --- INSERT dim_nivel_educativo: valores distintos desde staging --- */
     ;WITH ne AS (
         SELECT DISTINCT LTRIM(RTRIM(nivel_educativo)) AS etiqueta
         FROM dbo.nacimientos_casanare_staging
@@ -145,6 +166,7 @@ BEGIN
     FROM pe
     WHERE NOT EXISTS (SELECT 1 FROM dbo.dim_pertenencia_etnica AS d WHERE d.etiqueta_dane = pe.etiqueta);
 
+    /* --- INSERT map_nivel_educativo_fuente: JOIN dim por etiqueta_dane --- */
     DELETE FROM dbo.map_nivel_educativo_fuente WHERE fuente_tabla = N'nacimientos_casanare';
     INSERT dbo.map_nivel_educativo_fuente (fuente_tabla, columna_origen, valor_origen, id_nivel_educativo)
     SELECT N'nacimientos_casanare', N'nivel_educativo', d.etiqueta_dane, d.id_nivel_educativo

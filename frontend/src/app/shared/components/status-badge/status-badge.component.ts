@@ -1,6 +1,10 @@
 import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+/**
+ * Etiqueta visual de estado con color semántico según palabras clave.
+ * Útil para mostrar estados de cargas, archivos y flujos de validación.
+ */
 @Component({
   selector: 'app-status-badge',
   standalone: true,
@@ -39,6 +43,7 @@ import { CommonModule } from '@angular/common';
   `
 })
 export class StatusBadgeComponent {
+  /** Texto del estado a mostrar y clasificar visualmente. */
   @Input() estado = '';
 
   readonly badgeClass = computed(() => {

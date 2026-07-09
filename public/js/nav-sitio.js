@@ -1,8 +1,13 @@
 /**
- * Menú superior unificado (páginas legacy + enlace al panel y administración).
+ * @fileoverview Menú superior unificado del portal HTML legacy del OSD.
+ * Inicializa navegación, datos de usuario y enlaces a panel y administración.
  */
 import { requerirAuth, getUsuario, cerrarSesion, refrescarSesion, puedeAdministrar } from "./auth.js";
 
+/**
+ * Inicializa la barra de navegación del sitio: sesión, usuario y enlaces contextuales.
+ * @returns {Promise<boolean>} false si no hay sesión válida; true si el nav quedó listo.
+ */
 export async function initNavSitio() {
   if (!requerirAuth()) return false;
   await refrescarSesion();

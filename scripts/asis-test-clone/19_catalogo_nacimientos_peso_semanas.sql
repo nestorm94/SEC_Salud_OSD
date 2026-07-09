@@ -1,9 +1,24 @@
 /*
-Catalogos parametrizados: peso al nacer y semanas de gestacion (nacimientos DANE).
-Incluye categorias normalizadas para ASIS (bajo peso, prematuro, etc.) y map_*_fuente.
+================================================================================
+ 19_catalogo_nacimientos_peso_semanas.sql
+================================================================================
+ PROPÓSITO:
+   Crea catálogos parametrizados de peso al nacer y semanas de gestación
+   (dim_peso_al_nacer, dim_semanas_gestacion) y tablas map_*_fuente para
+   homologar valores del CSV nacimientos_casanare.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\19_catalogo_nacimientos_peso_semanas.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql (contexto dims geográficas)
+
+ ORDEN DE EJECUCIÓN:
+   19 (este script) -> 20_fact_nacimientos_estructura -> 21_usp_normalizar...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\19_catalogo_nacimientos_peso_semanas.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -22,7 +37,7 @@ GO
 
 BEGIN TRANSACTION;
 
-/* --- dim_peso_al_nacer --- */
+/* --- CREATE TABLE dim_peso_al_nacer: rangos gramos y flags bajo/muy bajo peso --- */
 IF OBJECT_ID(N'dbo.dim_peso_al_nacer', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.dim_peso_al_nacer (
@@ -46,6 +61,7 @@ BEGIN
     PRINT N'Tabla dim_peso_al_nacer creada.';
 END
 
+/* --- INSERT dim_peso_al_nacer: 6 categorías DANE (P01–P05, P99 sin info) --- */
 IF NOT EXISTS (SELECT 1 FROM dbo.dim_peso_al_nacer)
 BEGIN
     SET IDENTITY_INSERT dbo.dim_peso_al_nacer ON;
@@ -65,7 +81,7 @@ END
 ELSE
     PRINT N'dim_peso_al_nacer: ya tiene datos.';
 
-/* --- dim_semanas_gestacion --- */
+/* --- CREATE TABLE dim_semanas_gestacion: rangos semanas y flags prematuro/término --- */
 IF OBJECT_ID(N'dbo.dim_semanas_gestacion', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.dim_semanas_gestacion (
@@ -136,6 +152,7 @@ DECLARE @P4 int = (SELECT id_peso_al_nacer FROM dbo.dim_peso_al_nacer WHERE codi
 DECLARE @P5 int = (SELECT id_peso_al_nacer FROM dbo.dim_peso_al_nacer WHERE codigo = N'P05');
 DECLARE @P99 int = (SELECT id_peso_al_nacer FROM dbo.dim_peso_al_nacer WHERE codigo = N'P99');
 
+/* --- INSERT map_peso_al_nacer_fuente: texto CSV → id_peso_al_nacer --- */
 INSERT dbo.map_peso_al_nacer_fuente (fuente_tabla, columna_origen, valor_origen, id_peso_al_nacer) VALUES
 (N'nacimientos_casanare', N'peso_al_nacer', N'1 - MENOR A 1000 GRAMOS', @P1),
 (N'nacimientos_casanare', N'peso_al_nacer', N'2 - ENTRE 1000 Y 1499 GRAMOS', @P2),
@@ -175,6 +192,7 @@ DECLARE @SG5 int = (SELECT id_semanas_gestacion FROM dbo.dim_semanas_gestacion W
 DECLARE @SG98 int = (SELECT id_semanas_gestacion FROM dbo.dim_semanas_gestacion WHERE codigo = N'SG98');
 DECLARE @SG99 int = (SELECT id_semanas_gestacion FROM dbo.dim_semanas_gestacion WHERE codigo = N'SG99');
 
+/* --- INSERT map_semanas_gestacion_fuente: texto CSV → id_semanas_gestacion --- */
 INSERT dbo.map_semanas_gestacion_fuente (fuente_tabla, columna_origen, valor_origen, id_semanas_gestacion) VALUES
 (N'nacimientos_casanare', N'semanas_gestacion', N'1 - MENOS DE 22 SEMANAS', @SG1),
 (N'nacimientos_casanare', N'semanas_gestacion', N'2 - DE 22 A 27 SEMANAS', @SG2),
@@ -200,6 +218,7 @@ SELECT codigo, codigo_dane, categoria_normalizada, es_prematuro, es_termino, ord
 FROM dbo.dim_semanas_gestacion ORDER BY orden_visualizacion;
 
 PRINT N'--- Mapeos CSV nacimientos ---';
+/* --- JOIN map_peso ↔ dim: resumen de mapeos cargados --- */
 SELECT columna_origen, valor_origen, p.codigo AS codigo_peso
 FROM dbo.map_peso_al_nacer_fuente AS m
 INNER JOIN dbo.dim_peso_al_nacer AS p ON p.id_peso_al_nacer = m.id_peso_al_nacer

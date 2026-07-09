@@ -2,8 +2,14 @@ using Observatorios.Api.Data;
 
 namespace Observatorios.Api.Tests;
 
+/// <summary>
+/// Prueba las utilidades de conversión CSV para roles y áreas temáticas en SqlProcHelper.
+/// </summary>
 public sealed class SqlProcHelperTests
 {
+    /// <summary>
+    /// Verifica que RolesToCsv omita entradas vacías y duplicados (insensible a mayúsculas).
+    /// </summary>
     [Fact]
     public void RolesToCsv_omite_vacios_y_duplicados()
     {
@@ -11,6 +17,9 @@ public sealed class SqlProcHelperTests
         Assert.Equal("ADMIN,VALIDADOR", csv);
     }
 
+    /// <summary>
+    /// Verifica que RolesFromCsv parsee correctamente y deduplique al convertir de vuelta.
+    /// </summary>
     [Fact]
     public void RolesFromCsv_redondea_ida_y_vuelta()
     {
@@ -20,6 +29,9 @@ public sealed class SqlProcHelperTests
         Assert.Contains("VALIDADOR", roles);
     }
 
+    /// <summary>
+    /// Verifica que AreaIdsFromCsv parsee enteros e ignore valores no numéricos.
+    /// </summary>
     [Fact]
     public void AreaIdsFromCsv_parsea_enteros()
     {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Administración de indicadores (admin/indicadores.html) del portal HTML legacy del OSD.
+ * CRUD de indicadores asociados a líneas temáticas, con filtro por línea.
+ */
 import { initPortal, fetchJson, apiUrl } from "../portal/layout.js";
 import { iconButton, iconActionsHtml } from "../shared/icon-actions.js";
 
@@ -26,6 +30,10 @@ function llenarSelectLineas(sel, incluirTodas = false) {
   }
 }
 
+/**
+ * Carga el catálogo de líneas temáticas activas en los selectores de filtro y formulario.
+ * @returns {Promise<void>}
+ */
 async function cargarLineas() {
   const { res, data } = await fetchJson(apiUrl("/api/admin/lineas-tematicas"));
   if (!res.ok) throw new Error(data.error || res.status);
@@ -34,6 +42,10 @@ async function cargarLineas() {
   llenarSelectLineas(document.getElementById("f-linea"), false);
 }
 
+/**
+ * Carga y renderiza la tabla de indicadores, opcionalmente filtrada por línea temática.
+ * @returns {Promise<void>}
+ */
 async function cargar() {
   const filtro = document.getElementById("filtro-linea").value;
   const q = filtro ? `?linea_tematica_id=${filtro}` : "";
@@ -62,6 +74,7 @@ function cerrarForm() {
   document.getElementById("panel-form").hidden = true;
 }
 
+/** Abre el formulario en modo creación de un nuevo indicador. */
 function abrirNuevo() {
   document.getElementById("titulo-form").textContent = "Nuevo indicador";
   document.getElementById("f-id").value = "";
@@ -75,6 +88,10 @@ function abrirNuevo() {
   document.getElementById("panel-form").hidden = false;
 }
 
+/**
+ * Abre el formulario en modo edición para el indicador indicado.
+ * @param {number} id - Identificador del indicador.
+ */
 function abrirEditar(id) {
   const i = indicadores.find((x) => x.id === id);
   if (!i) return;

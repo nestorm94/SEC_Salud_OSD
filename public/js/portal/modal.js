@@ -1,4 +1,7 @@
-/** Diálogos del portal (mismo estilo que cargas.html / portal.css). */
+/**
+ * @fileoverview Diálogos modales reutilizables del portal HTML legacy del OSD.
+ * Confirmaciones, solicitud de texto y mensajes informativos con estilo unificado.
+ */
 
 let listo = false;
 
@@ -73,8 +76,9 @@ function boton(texto, clase, onClick) {
 }
 
 /**
+ * Muestra un diálogo de confirmación con acciones Aceptar/Cancelar.
  * @param {{ titulo?: string, mensaje: string, aceptar?: string, cancelar?: string, peligro?: boolean }} opts
- * @returns {Promise<boolean>}
+ * @returns {Promise<boolean>} true si el usuario confirmó.
  */
 export function confirmar(opts) {
   asegurarModal();
@@ -105,8 +109,9 @@ export function confirmar(opts) {
 }
 
 /**
+ * Muestra un diálogo con campo de texto (observaciones, motivos, etc.).
  * @param {{ titulo?: string, mensaje?: string, label?: string, placeholder?: string, obligatorio?: boolean, valorInicial?: string }} opts
- * @returns {Promise<string|null>} null si canceló
+ * @returns {Promise<string|null>} Texto ingresado, o null si canceló.
  */
 export function solicitarTexto(opts) {
   asegurarModal();
@@ -162,7 +167,9 @@ export function solicitarTexto(opts) {
 }
 
 /**
+ * Muestra un mensaje informativo, de éxito o error en un modal de solo lectura.
  * @param {{ titulo?: string, mensaje: string, tipo?: 'ok'|'error'|'info' }} opts
+ * @returns {Promise<void>}
  */
 export function mostrarMensaje(opts) {
   asegurarModal();

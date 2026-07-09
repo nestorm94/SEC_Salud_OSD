@@ -1,12 +1,26 @@
 /*
-FASE 0 — Restaurar backup como ObservatorioDB_ASIS_Test.
-NO toca ObservatorioDB original (archivos MDF/LDF distintos vía MOVE).
+================================================================================
+ 01_restore_observatoriodb_asis_test.sql
+================================================================================
+ PROPÓSITO:
+   Restaura el .bak de ObservatorioDB como ObservatorioDB_ASIS_Test usando MOVE
+   a archivos MDF/LDF distintos. No altera la base productiva original.
 
-Antes de reemplazar una base de prueba existente, cambiar @PermitirReemplazo = 1
-solo después de confirmar explícitamente (DROP de la base de prueba).
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (nueva base en la misma instancia).
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -E -i scripts\asis-test-clone\01_restore_observatoriodb_asis_test.sql
+ DEPENDENCIAS (ejecutar antes):
+   - 00_backup_observatoriodb.sql (genera ObservatorioDB_YYYY-MM-DD.bak)
+
+ ORDEN DE EJECUCIÓN:
+   00 -> 01 (este script) -> 02_validacion -> 04_normalizacion...
+
+ NOTA:
+   Para reemplazar un clon existente, confirmar y poner @PermitirReemplazo = 1.
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -E -i scripts\asis-test-clone\01_restore_observatoriodb_asis_test.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -25,6 +39,7 @@ DECLARE @Ldf nvarchar(500) = @DataDir + @DbTest + N'_log.ldf';
 DECLARE @drop nvarchar(max);
 DECLARE @restore nvarchar(max);
 
+/* --- Comprobar que el .bak del día existe antes de restaurar --- */
 IF NOT EXISTS (
     SELECT 1
     FROM sys.dm_os_file_exists(@BackupFile)
@@ -63,6 +78,7 @@ PRINT N'Origen backup: ' + @BackupFile;
 PRINT N'MDF: ' + @Mdf;
 PRINT N'LDF: ' + @Ldf;
 
+/* --- RESTORE con MOVE: archivos físicos separados del original --- */
 SET @restore = N'RESTORE DATABASE ' + QUOTENAME(@DbTest)
     + N' FROM DISK = ' + QUOTENAME(@BackupFile, CHAR(39))
     + N' WITH MOVE N''ObservatorioDB'' TO ' + QUOTENAME(@Mdf, CHAR(39))

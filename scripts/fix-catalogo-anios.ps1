@@ -1,9 +1,12 @@
 # Regenera usp_Catalogo_Anios_Listar con el nombre real de columna año (sin depender de UTF-8 en .sql)
+
+# Configuración y conexión a SQL Server
 $ErrorActionPreference = 'Stop'
 $cs = "Server=localhost\SQLEXPRESS2025;Database=ObservatorioDB;Trusted_Connection=True;TrustServerCertificate=True"
 $cn = New-Object System.Data.SqlClient.SqlConnection $cs
 $cn.Open()
 try {
+    # Obtener la vista de proyección por defecto y la columna de año (column_id = 7)
     $cmd = $cn.CreateCommand()
     $cmd.CommandText = "SELECT dbo.ufn_Proyeccion_VistaDefault()"
     $vista = [string]$cmd.ExecuteScalar()
@@ -18,6 +21,7 @@ WHERE c.object_id = OBJECT_ID(@v) AND c.column_id = 7
     $colAnio = [string]$cmd.ExecuteScalar()
     if ([string]::IsNullOrWhiteSpace($colAnio)) { throw "Columna año no encontrada en $vista" }
 
+    # Construcción del cuerpo del procedimiento con el nombre real de columna
     $qCol = '[' + $colAnio.Replace(']', ']]') + ']'
     $body = @"
 DECLARE @min int, @max int;
@@ -27,6 +31,7 @@ FROM $vista WITH (NOLOCK) WHERE $qCol IS NOT NULL;
 SELECT CAST(y AS nvarchar(10)) AS Valor FROM n OPTION (MAXRECURSION 32767);
 "@
 
+    # Creación o actualización del procedimiento almacenado
     $create = @"
 CREATE OR ALTER PROCEDURE dbo.usp_Catalogo_Anios_Listar
 AS

@@ -1,6 +1,25 @@
 /*
-Validacion fact_poblacion_proyeccion vs fuentes.
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 12_validacion_fact_poblacion.sql
+================================================================================
+ PROPÓSITO:
+   Valida fact_poblacion_proyeccion: conteos por dimensión, duplicados en grano
+   lógico, resolución de FKs y comparación de sumas vs tablas fuente DANE.
+
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 07_fact_poblacion_proyeccion.sql (tabla hecho y función fn_ASIS_Resolver_IdArea)
+   - 08/09/10/11 (SPs de normalización por nivel territorial)
+   - 14_proyeccion_dane_versionamiento.sql (dim_proyeccion_dane, id_proyeccion_dane)
+
+ ORDEN DE EJECUCIÓN:
+   07 -> 08/09/10 -> 11 -> 12 (este script) -> 13_comparacion_detallada...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\12_validacion_fact_poblacion.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -21,6 +40,7 @@ PRINT N'1. Total registros: ' + CAST(@total AS nvarchar(20));
 
 PRINT N'';
 PRINT N'1b. Por proyeccion DANE:';
+/* --- JOIN fact ↔ dim_proyeccion_dane: agregados por versión DANE --- */
 SELECT d.id_proyeccion_dane, d.nombre_proyeccion, d.anio_publicacion, COUNT(*) AS registros, SUM(f.poblacion) AS suma_poblacion
 FROM dbo.fact_poblacion_proyeccion AS f
 INNER JOIN dbo.dim_proyeccion_dane AS d ON d.id_proyeccion_dane = f.id_proyeccion_dane

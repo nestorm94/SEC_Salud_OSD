@@ -1,9 +1,24 @@
 /*
-FASE 0 — Validación posterior a normalización catálogos (ETAPA 4).
-SOLO lectura. ObservatorioDB_ASIS_Test.
+================================================================================
+ 06_validacion_post_normalizacion.sql
+================================================================================
+ PROPÓSITO:
+   ETAPA 4: validación de solo lectura tras 04 y 05. Reporta conteos,
+   duplicados, consistencia codigo_dane y mapeos de área sin id_area.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\06_validacion_post_normalizacion.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql
+   - 05_map_area_residencia_fuente.sql
+
+ ORDEN DE EJECUCIÓN:
+   04 -> 05 -> 06 (este script) -> 07_fact_poblacion...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\06_validacion_post_normalizacion.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -16,6 +31,7 @@ BEGIN
 END
 GO
 
+/* --- Conteos iniciales de dimensiones normalizadas --- */
 DECLARE @nDep int, @nMun int, @nAreaAct int, @nAreaTot int, @nMap int;
 SELECT @nDep = COUNT(*) FROM dbo.dim_departamento;
 SELECT @nMun = COUNT(*) FROM dbo.dim_municipio;

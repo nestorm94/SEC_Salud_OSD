@@ -1,12 +1,27 @@
 /*
-Comparacion lado a lado: vistas API legacy vs agregaciones fact.
-SOLO ObservatorioDB_ASIS_Test. Solo lectura (no modifica objetos).
+================================================================================
+ 15_comparacion_vistas_legacy_vs_fact.sql
+================================================================================
+ PROPÓSITO:
+   Compara vistas API legacy (vw_ASIS_Poblacion_*) contra agregaciones directas
+   sobre fact_poblacion_proyeccion. Solo lectura; no modifica objetos.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\15_comparacion_vistas_legacy_vs_fact.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
 
-Parametro opcional en sesion:
-  DECLARE @id_proyeccion_dane int = 1;
+ DEPENDENCIAS (ejecutar antes):
+   - 14_proyeccion_dane_versionamiento.sql (vistas y versionamiento)
+   - 16_vistas_paralelas_legacy_fact.sql (opcional, para comparar _Legacy/_Fact)
+
+ ORDEN DE EJECUCIÓN:
+   14 -> 16 (recomendado) -> 15 (este script)
+
+ PARÁMETRO OPCIONAL:
+   DECLARE @id_proyeccion_dane int = 1;
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\15_comparacion_vistas_legacy_vs_fact.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -40,6 +55,7 @@ fact AS (
     SELECT
         f.anio AS vigencia,
         CAST(SUM(f.poblacion) AS bigint) AS poblacion
+    /* --- JOIN fact ↔ dim_sexo ↔ dim_area: total departamental Casanare --- */
     FROM dbo.fact_poblacion_proyeccion AS f
     INNER JOIN dbo.dim_sexo AS ds ON ds.id_sexo = f.id_sexo
         AND ds.sexo IN (N'MASCULINO', N'FEMENINO')

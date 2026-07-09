@@ -1,5 +1,9 @@
 import { Component, Input } from '@angular/core';
 
+/**
+ * Indicador de carga reutilizable con mensaje configurable.
+ * Incluye spinner animado y atributos de accesibilidad.
+ */
 @Component({
   selector: 'app-loading-state',
   standalone: true,
@@ -27,5 +31,6 @@ import { Component, Input } from '@angular/core';
   `
 })
 export class LoadingStateComponent {
+  /** Texto mostrado junto al indicador de progreso. */
   @Input() message = 'Cargando...';
 }

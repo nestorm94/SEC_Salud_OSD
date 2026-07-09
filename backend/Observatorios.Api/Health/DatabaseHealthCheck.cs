@@ -3,8 +3,14 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Observatorios.Api.Health;
 
+/// <summary>
+/// Comprueba la conectividad con SQL Server usando la cadena ConnectionStrings:Default.
+/// </summary>
 public sealed class DatabaseHealthCheck(IConfiguration configuration) : IHealthCheck
 {
+    /// <summary>
+    /// Intenta abrir una conexión a la base de datos y devuelve Healthy, Degraded o Unhealthy.
+    /// </summary>
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

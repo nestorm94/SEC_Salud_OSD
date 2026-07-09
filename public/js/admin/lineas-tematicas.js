@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Administración de líneas temáticas (admin/lineas-tematicas.html) del portal HTML legacy del OSD.
+ * Alta, edición y listado del catálogo de líneas temáticas OSC.
+ */
 import { initPortal, fetchJson, apiUrl } from "../portal/layout.js";
 import { iconButton, iconActionsHtml } from "../shared/icon-actions.js";
 
@@ -15,6 +19,10 @@ function esc(s) {
   return d.innerHTML;
 }
 
+/**
+ * Carga y renderiza la tabla de líneas temáticas desde la API.
+ * @returns {Promise<void>}
+ */
 async function cargar() {
   const { res, data } = await fetchJson(apiUrl("/api/admin/lineas-tematicas"));
   if (!res.ok) throw new Error(data.error || res.status);
@@ -41,6 +49,7 @@ function cerrarForm() {
   document.getElementById("panel-form").hidden = true;
 }
 
+/** Abre el formulario en modo creación de una nueva línea temática. */
 function abrirNuevo() {
   document.getElementById("titulo-form").textContent = "Nueva línea temática";
   document.getElementById("f-id").value = "";
@@ -52,6 +61,10 @@ function abrirNuevo() {
   document.getElementById("panel-form").hidden = false;
 }
 
+/**
+ * Abre el formulario en modo edición para la línea temática indicada.
+ * @param {number} id - Identificador de la línea temática.
+ */
 function abrirEditar(id) {
   const l = lineas.find((x) => x.id === id);
   if (!l) return;

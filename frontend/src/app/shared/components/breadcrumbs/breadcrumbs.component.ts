@@ -25,6 +25,10 @@ const LABELS: Record<string, string> = {
   campos: 'Campos'
 };
 
+/**
+ * Migas de pan derivadas de la URL activa.
+ * Muestra la jerarquía de navegación solo cuando hay más de un nivel.
+ */
 @Component({
   selector: 'app-breadcrumbs',
   standalone: true,
@@ -47,6 +51,7 @@ const LABELS: Record<string, string> = {
 export class BreadcrumbsComponent {
   private readonly router = inject(Router);
 
+  /** Lista reactiva de segmentos de ruta con etiquetas legibles. */
   readonly crumbs = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -55,6 +60,7 @@ export class BreadcrumbsComponent {
     { initialValue: this.buildCrumbs() }
   );
 
+  /** Construye la cadena de migas a partir de los segmentos de la URL actual. */
   private buildCrumbs(): Crumb[] {
     const url = this.router.url.split('?')[0];
     const segments = url.split('/').filter(Boolean);

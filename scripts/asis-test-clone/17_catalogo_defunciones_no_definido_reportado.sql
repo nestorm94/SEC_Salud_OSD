@@ -1,10 +1,25 @@
 /*
-Catálogos No Definido / No Reportado para homologación de defunciones.
-Aplica a quinquenios (dim_grupo_edad) y curso de vida (dim_curso_vida).
+================================================================================
+ 17_catalogo_defunciones_no_definido_reportado.sql
+================================================================================
+ PROPÓSITO:
+   Añade categorías "No definido" / "No reportado" en dim_curso_vida y
+   dim_grupo_edad, y crea map_defunciones_edad_fuente para homologar valores
+   de la fuente [Defunciones Casanare] antes de cargar al fact.
 
-Ejecutar ANTES de 18_carga_defunciones_no_homologadas.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test.
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\17_catalogo_defunciones_no_definido_reportado.sql
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql (dims geográficas y área)
+   - Tablas dim_curso_vida, dim_grupo_edad existentes
+
+ ORDEN DE EJECUCIÓN:
+   17 (este script) -> 18_carga_defunciones_no_homologadas -> 25_vistas_asis_mortalidad...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\17_catalogo_defunciones_no_definido_reportado.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -23,7 +38,7 @@ GO
 
 BEGIN TRANSACTION;
 
-/* --- dim_curso_vida --- */
+/* --- INSERT dim_curso_vida: CV07 No definido, CV08 No reportado --- */
 IF NOT EXISTS (SELECT 1 FROM dbo.dim_curso_vida WHERE codigo = N'CV07')
 BEGIN
     SET IDENTITY_INSERT dbo.dim_curso_vida ON;
@@ -49,7 +64,7 @@ ELSE
 DECLARE @idCvNoDef int = (SELECT id_curso_vida FROM dbo.dim_curso_vida WHERE codigo = N'CV07');
 DECLARE @idCvNoRep int = (SELECT id_curso_vida FROM dbo.dim_curso_vida WHERE codigo = N'CV08');
 
-/* --- dim_grupo_edad (quinquenios / grupo etáreo en fuente) --- */
+/* --- INSERT dim_grupo_edad: GE09/GE10 vinculados a curso de vida padre --- */
 IF NOT EXISTS (SELECT 1 FROM dbo.dim_grupo_edad WHERE codigo = N'GE09')
 BEGIN
     SET IDENTITY_INSERT dbo.dim_grupo_edad ON;
@@ -72,7 +87,7 @@ END
 ELSE
     PRINT N'dim_grupo_edad: GE10 ya existe.';
 
-/* --- Tabla de mapeo fuente → dims (quinquenios y curso de vida) --- */
+/* --- CREATE TABLE map_defunciones_edad_fuente: FK a dim_grupo_edad y dim_curso_vida --- */
 IF OBJECT_ID(N'dbo.map_defunciones_edad_fuente', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.map_defunciones_edad_fuente (
@@ -95,6 +110,7 @@ END
 DECLARE @idGeNoDef int = (SELECT id_grupo_edad FROM dbo.dim_grupo_edad WHERE codigo = N'GE09');
 DECLARE @idGeNoRep int = (SELECT id_grupo_edad FROM dbo.dim_grupo_edad WHERE codigo = N'GE10');
 
+/* --- MERGE: equivalencias texto fuente → id_grupo_edad / id_curso_vida --- */
 MERGE dbo.map_defunciones_edad_fuente AS t
 USING (VALUES
     (N'Grupo_Etareo_Quinquenios_DANE', N'No Definido', @idGeNoDef, @idCvNoDef),

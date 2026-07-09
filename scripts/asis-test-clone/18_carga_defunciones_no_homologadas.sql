@@ -1,9 +1,26 @@
 /*
-Inserta en fact_defunciones_casanare_normalizada las filas de [Defunciones Casanare]
-con curso de vida / quinquenios = No Definido | No Reportado
-(requiere script 17 ejecutado antes).
+================================================================================
+ 18_carga_defunciones_no_homologadas.sql
+================================================================================
+ PROPÓSITO:
+   Inserta en fact_defunciones_casanare_normalizada las filas de [Defunciones Casanare]
+   con curso de vida / quinquenios = "No Definido" o "No Reportado", resolviendo
+   FKs de sexo y área mediante JOIN a dimensiones.
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\18_carga_defunciones_no_homologadas.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS (ejecutar antes):
+   - 17_catalogo_defunciones_no_definido_reportado.sql (GE09/GE10, CV07/CV08)
+   - 04_normalizacion_catalogos_geograficos.sql (dim_area_residencia con estado)
+   - Tabla fact_defunciones_casanare_normalizada existente
+
+ ORDEN DE EJECUCIÓN:
+   17 -> 18 (este script) -> validaciones / vistas mortalidad
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\18_carga_defunciones_no_homologadas.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -48,6 +65,7 @@ DECLARE @idGeNoRep int = (SELECT id_grupo_edad FROM dbo.dim_grupo_edad WHERE cod
 DECLARE @idCvNoDef int = (SELECT id_curso_vida FROM dbo.dim_curso_vida WHERE codigo = N'CV07');
 DECLARE @idCvNoRep int = (SELECT id_curso_vida FROM dbo.dim_curso_vida WHERE codigo = N'CV08');
 
+/* --- CTE src: filas fuente No Definido/Reportado; resolved: JOIN dim_sexo y dim_area --- */
 DECLARE @sql nvarchar(max) = N'
 BEGIN TRANSACTION;
 
@@ -150,6 +168,7 @@ SELECT @colCurso2 = MAX(CASE WHEN column_id = 6 THEN name END),
 FROM sys.columns
 WHERE object_id = @oid2;
 
+/* --- Validación Yopal 85001/2005: JOIN fact ↔ dim_grupo_edad GE09/GE10 --- */
 DECLARE @valSql nvarchar(max) = N'
 PRINT N''--- Validacion Yopal 85001 / 2005 ---'';
 SELECT

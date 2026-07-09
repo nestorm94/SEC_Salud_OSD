@@ -15,8 +15,13 @@ Esta guía orienta a cualquier desarrollador que revise el repositorio por prime
 ## Convención de comentarios
 
 - **Backend C#**: comentarios XML `/// <summary>` en clases y métodos públicos. Las consultas SQL embebidas indican vista, tabla o procedimiento usado.
-- **Frontend TypeScript**: JSDoc `/** ... */` en servicios, componentes y métodos exportados.
+- **Frontend TypeScript**: JSDoc `/** ... */` en servicios, componentes, layout, shared y métodos exportados.
+- **Portal legacy** (`public/js/`): JSDoc `@fileoverview` y funciones principales del sitio HTML estático.
 - **Scripts SQL**: bloque de encabezado con propósito, BD destino, dependencias y orden de ejecución; comentarios `--` en vistas, SPs y filtros geográficos (Casanare = código `85`).
+- **Scripts PowerShell** (`scripts/*.ps1`): comentarios `#` por sección, parámetros y pasos de despliegue/carga.
+- **Tests** (`Observatorios.Api.Tests/`): documentación de cada suite de pruebas automatizadas.
+
+> Cobertura de documentación en código: **v1.0.2** — backend, frontend Angular, SQL ASIS, PowerShell, portal legacy y tests.
 
 ## Flujo de arranque (backend)
 
@@ -91,4 +96,6 @@ npm start
 ## Versión de entrega
 
 - **Tag estable:** `v1.0.0` — entrega funcional ASIS + documentación
+- **Tag documentado:** `v1.0.1` — comentarios en código funcional principal
+- **Tag completo:** `v1.0.2` — layout, shared, SQL restante, PowerShell, portal legacy y tests
 - **Rama principal:** `main`

@@ -1,10 +1,28 @@
 /*
-Corrige usp_Catalogo_Anios_Listar: usa el nombre real de la columna año desde sys.columns
-(evita error por acentos al desplegar el script desde archivos UTF-8 incorrectos).
+================================================================================
+ sql-fix-catalogo-anios.sql
+================================================================================
+ PROPÓSITO:
+   Regenera usp_Catalogo_Anios_Listar resolviendo el nombre real de la columna
+   año desde sys.columns (evita errores por acentos en scripts UTF-8 mal codificados).
+
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test (requiere ufn_Proyeccion_VistaDefault).
+
+ DEPENDENCIAS (ejecutar antes):
+   - Vistas de proyección DANE y función dbo.ufn_Proyeccion_VistaDefault
+
+ ORDEN DE EJECUCIÓN:
+   Independiente; ejecutar cuando el catálogo de años falle por nombre de columna.
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB -E -i scripts\sql-fix-catalogo-anios.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
 
+/* --- Resolver @colAnio desde sys.columns de la vista de proyección default --- */
 DECLARE @vista nvarchar(256) = dbo.ufn_Proyeccion_VistaDefault();
 DECLARE @colAnio sysname;
 
@@ -24,6 +42,7 @@ END
 IF @colAnio IS NULL
     SET @colAnio = N'Año';
 
+/* --- CREATE OR ALTER PROCEDURE: SP dinámico con nombre de columna resuelto --- */
 DECLARE @sql nvarchar(max) = N'
 CREATE OR ALTER PROCEDURE dbo.usp_Catalogo_Anios_Listar
 AS

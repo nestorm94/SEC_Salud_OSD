@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Panel principal (dashboard.html) del portal HTML legacy del OSD.
+ * Muestra resumen de cargas, estadísticas y últimos archivos según el rol del usuario.
+ */
 import { apiUrl, fetchJson } from "./portal/layout.js";
 import { formatearSoloFecha } from "./fechas.js";
 
@@ -108,6 +112,10 @@ function renderDashboard(data) {
     </footer>`;
 }
 
+/**
+ * Obtiene el resumen del dashboard desde la API y renderiza la vista.
+ * @returns {Promise<void>}
+ */
 export async function cargarDashboard() {
   const root = document.getElementById("dashboard-root");
   if (!root) return;

@@ -1,10 +1,16 @@
 # Carga CSV nacimientos -> staging + usp_normalizar_nacimientos_casanare
+
+# Parámetros de conexión y ruta del archivo CSV
 param(
+    # Instancia de SQL Server
     [string]$Server = 'localhost\SQLEXPRESS2025',
+    # Base de datos de destino
     [string]$Database = 'ObservatorioDB_ASIS_Test',
+    # Ruta al CSV; si está vacía, se buscan ubicaciones candidatas
     [string]$CsvPath = ''
 )
 
+# Configuración inicial y resolución de ruta del CSV
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 if (-not $CsvPath) {
@@ -24,6 +30,7 @@ if (-not (Test-Path -LiteralPath $CsvPath)) {
 Write-Host "CSV: $CsvPath" -ForegroundColor Cyan
 Write-Host "BD:  $Database en $Server" -ForegroundColor Cyan
 
+# Rutas a scripts SQL de estructura, normalización y catálogos
 $structSql = Join-Path $PSScriptRoot 'asis-test-clone\20_fact_nacimientos_estructura.sql'
 $normSql = Join-Path $PSScriptRoot 'asis-test-clone\21_usp_normalizar_nacimientos_casanare.sql'
 $viewsSql = Join-Path $PSScriptRoot 'asis-test-clone\22_vistas_asis_nacimientos.sql'
@@ -31,12 +38,14 @@ $catalogEdu = Join-Path $PSScriptRoot 'asis-test-clone\24_catalogos_nacimientos_
 
 $catalogSql = Join-Path $PSScriptRoot 'asis-test-clone\19_catalogo_nacimientos_peso_semanas.sql'
 
+# Ejecución de scripts SQL previos (catálogos, estructura y SP de normalización)
 foreach ($f in @($catalogSql, $catalogEdu, $structSql, $normSql)) {
     if (Test-Path $f) {
         sqlcmd -S $Server -d $Database -E -f 65001 -i $f | Out-Host
     }
 }
 
+# Conexión a la base de datos y limpieza de la tabla staging
 Add-Type -AssemblyName System.Data
 $connStr = "Server=$Server;Database=$Database;Trusted_Connection=True;TrustServerCertificate=True"
 $conn = New-Object System.Data.SqlClient.SqlConnection $connStr
@@ -46,6 +55,7 @@ $cmd = $conn.CreateCommand()
 $cmd.CommandText = 'TRUNCATE TABLE dbo.nacimientos_casanare_staging'
 try { $cmd.ExecuteNonQuery() | Out-Null } catch { Write-Warning $_.Exception.Message }
 
+# Lectura del CSV y carga masiva (SqlBulkCopy) a staging
 $rows = Import-Csv -LiteralPath $CsvPath -Delimiter ';' -Encoding ([System.Text.UTF8Encoding]::new($false))
 $dt = New-Object System.Data.DataTable
 foreach ($col in @(
@@ -78,6 +88,7 @@ $conn.Close()
 
 Write-Host "Staging: $($dt.Rows.Count) filas cargadas." -ForegroundColor Green
 
+# Normalización a tabla de hechos, vistas ASIS y corrección de encoding
 sqlcmd -S $Server -d $Database -E -f 65001 -Q "EXEC dbo.usp_normalizar_nacimientos_casanare @reemplazar = 1"
 if (Test-Path $viewsSql) {
     sqlcmd -S $Server -d $Database -E -f 65001 -i $viewsSql | Out-Host
@@ -88,6 +99,7 @@ if (Test-Path $fixEnc) {
     sqlcmd -S $Server -d $Database -E -f 65001 -i $fixEnc | Out-Host
 }
 
+# Verificación rápida de totales y vista ASIS
 sqlcmd -S $Server -d $Database -E -f 65001 -Q @"
 SELECT SUM(numero_nacimientos) AS total_fact FROM dbo.fact_nacimientos_casanare_normalizada;
 SELECT TOP 3 * FROM dbo.vw_ASIS_Nacimientos_Total ORDER BY vigencia DESC;

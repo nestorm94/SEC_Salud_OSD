@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Layout compartido del portal HTML legacy del OSD.
+ * Sidebar, autenticación, permisos por rol y utilidades de tablas para todas las páginas del portal.
+ */
 import {
   requerirAuth,
   getUsuario,
@@ -11,10 +15,12 @@ import { apiUrl } from "../config.js";
 
 export { tieneRol, puedeAdministrar };
 
+/** @returns {boolean} true si el usuario puede aprobar o rechazar cargues. */
 export function puedeValidar() {
   return puedeAdministrar() || tieneRol("VALIDADOR");
 }
 
+/** @returns {boolean} true si el usuario puede subir archivos Excel. */
 export function puedeCargar() {
   return (
     puedeAdministrar() ||
@@ -116,7 +122,10 @@ function configurarNavMovil() {
   });
 }
 
-/** Menú lateral unificado en todas las páginas del portal. */
+/**
+ * Renderiza el menú lateral con enlaces de operación y administración según permisos.
+ * @param {string} activePath - Ruta actual para marcar el enlace activo.
+ */
 export function pintarSidebar(activePath) {
   const aside = document.querySelector(".portal-sidebar");
   if (!aside) return;
@@ -162,6 +171,12 @@ export function pintarSidebar(activePath) {
   aside.innerHTML = html;
 }
 
+/**
+ * Inicializa una página del portal: sesión, sidebar, permisos y cierre de sesión.
+ * @param {string} activePath - Ruta de la página para resaltar en el menú.
+ * @param {{ requiereAdmin?: boolean }} [options] - Si requiereAdmin, redirige si no es administrador.
+ * @returns {Promise<boolean>} false si no hay sesión o permiso; true si el portal quedó listo.
+ */
 export async function initPortal(activePath, options = {}) {
   if (!requerirAuth()) return false;
 
@@ -229,6 +244,14 @@ export async function initPortal(activePath, options = {}) {
   return true;
 }
 
+/**
+ * Carga datos de un endpoint y rellena un tbody con filas generadas por mapRow.
+ * @param {string} endpoint - Ruta relativa de la API (p. ej. /api/admin/roles).
+ * @param {(row: object) => string} mapRow - Función que devuelve HTML de una fila <tr>.
+ * @param {string} tbodyId - id del elemento tbody destino.
+ * @param {string} [emptyMsg] - Mensaje cuando no hay registros.
+ * @returns {Promise<void>}
+ */
 export async function cargarTabla(endpoint, mapRow, tbodyId, emptyMsg = "Sin registros") {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;

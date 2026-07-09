@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Módulo de carga y validación de archivos Excel del portal HTML legacy del OSD.
+ * Gestiona el formulario de index.html: catálogos, validación, envío y listado de archivos.
+ */
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
 import { getUsuario, cerrarSesion, authHeaders, puedeAdministrar } from "./auth.js";
@@ -169,6 +173,10 @@ function esArchivoPermitido(nombre) {
   return (nombre || "").toLowerCase().endsWith(".xlsx");
 }
 
+/**
+ * Carga el selector de líneas temáticas desde la API y preselecciona según el rol del usuario.
+ * @returns {Promise<object[]>} Lista de líneas temáticas disponibles.
+ */
 export async function cargarLineasTematicas() {
   const sel = $("#linea-tematica-id");
   if (!sel) throw new Error("No se encontró el selector de línea temática.");
@@ -214,6 +222,11 @@ export async function cargarLineasTematicas() {
   return lineas;
 }
 
+/**
+ * Rellena el selector de indicadores según la línea temática elegida.
+ * @param {string|number} lineaId - Identificador de la línea temática.
+ * @returns {Promise<void>}
+ */
 export async function cargarIndicadores(lineaId) {
   const sel = $("#indicador-id");
   if (!sel) return;
@@ -480,7 +493,11 @@ function enlazarEventos() {
   });
 }
 
-/** Llamar después de initPortal (sesión lista). */
+/**
+ * Punto de entrada de index.html: enlaza eventos, catálogos y tabla de archivos.
+ * Debe invocarse después de initPortal cuando la sesión esté lista.
+ * @returns {Promise<void>}
+ */
 export async function inicializarPaginaCarga() {
   resetEstadoValidacion();
   enlazarEventos();

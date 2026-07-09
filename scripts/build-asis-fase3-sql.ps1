@@ -1,13 +1,17 @@
 # Genera sql-refactor-fase7-asis-03-vistas-poblacion-mortalidad.sql
 # Lee nombres de columna con acentos desde SQL Server (evita corrupcion UTF-8 en sqlcmd).
+
+# Configuración inicial, rutas de salida y listas UNPIVOT de columnas H/M
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $out = Join-Path $root 'sql-refactor-fase7-asis-03-vistas-poblacion-mortalidad.sql'
 $hCols = (Get-Content (Join-Path $root '_asis_unpivot_h.txt') -Raw -Encoding UTF8).Trim()
 $mCols = (Get-Content (Join-Path $root '_asis_unpivot_m.txt') -Raw -Encoding UTF8).Trim()
 
+# Obtiene los nombres de columna de una vista o tabla desde sys.columns
 function Get-ColumnNames {
-    param([string]$ObjectName)
+  # Nombre calificado del objeto (ej. dbo.vw_Poblacion_Nacional_Casanare)
+  param([string]$ObjectName)
     $cs = "Server=localhost\SQLEXPRESS2025;Database=ObservatorioDB;Trusted_Connection=True;TrustServerCertificate=True"
     $cn = New-Object System.Data.SqlClient.SqlConnection $cs
     $cn.Open()
@@ -28,13 +32,16 @@ ORDER BY c.column_id
     finally { $cn.Close() }
 }
 
+# Envuelve un identificador SQL entre corchetes escapando ] internos
 function Bracket([string]$n) { "[$n]" }
 
+# Lectura de metadatos de columnas desde las vistas fuente de proyección DANE
 $pobCols = Get-ColumnNames 'dbo.vw_Poblacion_Nacional_Casanare'
 $qCols = Get-ColumnNames 'dbo.vw_Reporte_Poblacion_Quinquenios_Unificado'
 $cCols = Get-ColumnNames 'dbo.vw_Reporte_Poblacion_CursoVida_Unificado'
 $ppedCols = Get-ColumnNames 'dbo.[PPED-AreaSexoEdadMun-2018-2042_VP]'
 
+# Mapeo de índices de columna a identificadores entre corchetes (población nacional)
 $cDane = Bracket ($pobCols[0])
 $cAno = Bracket ($pobCols[6])
 $cArea = Bracket ($pobCols[4])
@@ -42,6 +49,7 @@ $cPob = Bracket ($pobCols[7])
 $cSexo = Bracket ($pobCols[5])
 $cRegional = Bracket ($pobCols[3])
 
+# Mapeo de columnas para vista de quinquenios
 $qDane = Bracket ($qCols[0])
 $qAno = Bracket ($qCols[6])
 $qArea = Bracket ($qCols[4])
@@ -49,6 +57,7 @@ $qPob = Bracket ($qCols[7])
 $qSexo = Bracket ($qCols[5])
 $qQuinq = Bracket ($qCols[7])
 
+# Mapeo de columnas para vista de curso de vida
 $cDane2 = Bracket ($cCols[0])
 $cAno2 = Bracket ($cCols[6])
 $cArea2 = Bracket ($cCols[4])
@@ -57,8 +66,10 @@ $cSexo2 = Bracket ($cCols[5])
 $cCurso = Bracket ($cCols[7])
 $cCursoNom = Bracket ($cCols[8])
 
+# Columna de área geográfica en la tabla PPED (pirámide poblacional)
 $ppedArea = Bracket (($ppedCols | Where-Object { $_ -like '*REA*' } | Select-Object -First 1))
 
+# Encabezado del script SQL generado
 $header = @'
 /*
 FASE 3 ASIS - Vistas poblacion y mortalidad (Casanare, DANE 85).
@@ -69,6 +80,7 @@ GO
 
 '@
 
+# Bloque SQL: vistas vw_ASIS_* de población (total, municipio, sexo, área, edad, curso de vida)
 $pob = @"
 /* ========== POBLACION ========== */
 
@@ -253,6 +265,7 @@ GO
 
 "@
 
+# Bloque SQL: vista de pirámide poblacional con UNPIVOT Hombres/Mujeres
 $piramide = @"
 
 CREATE OR ALTER VIEW dbo.vw_ASIS_Piramide_Poblacional
@@ -327,6 +340,7 @@ GO
 
 "@
 
+# Bloque SQL: vistas vw_ASIS_* de mortalidad (total, municipio, sexo, área, edad, detalle)
 $mort = @'
 /* ========== MORTALIDAD ========== */
 
@@ -464,6 +478,7 @@ GO
 
 '@
 
+# Bloque SQL: indicadores derivados (tasa bruta, serie temporal, comparativo)
 $indicadores = @'
 /* ========== INDICADORES DERIVADOS ========== */
 
@@ -524,6 +539,7 @@ GO
 
 '@
 
+# Bloque SQL: consultas de validación rápida tras crear las vistas
 $validacion = @'
 PRINT N'--- vw_ASIS_Poblacion_Total ---';
 SELECT TOP (10) * FROM dbo.vw_ASIS_Poblacion_Total ORDER BY vigencia DESC;
@@ -535,6 +551,7 @@ PRINT N'Fase 3 ASIS: vistas vw_ASIS_* listas.';
 GO
 '@
 
+# Ensamblado del script final y escritura en UTF-16 LE con BOM (compatible con sqlcmd)
 $content = $header + $pob + $piramide + $mort + $indicadores + $validacion
 $utf16 = New-Object System.Text.UnicodeEncoding $false, $true
 [System.IO.File]::WriteAllText($out, $content, $utf16)

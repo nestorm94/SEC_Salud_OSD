@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Historial de cargas (cargas.html) del portal HTML legacy del OSD.
+ * Lista cargues, errores de validación, historial de eventos y acciones de aprobación/rechazo.
+ */
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
 import { initPortal, puedeValidar } from "./portal/layout.js";
@@ -217,6 +221,10 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+/**
+ * Inicializa la página de historial de cargas: portal, modales y tabla principal.
+ * @returns {Promise<boolean>} false si no hay sesión; true si la página quedó operativa.
+ */
 export async function initCargasHistorial() {
   if (!(await initPortal("/cargas.html"))) return false;
   enlazarModales();

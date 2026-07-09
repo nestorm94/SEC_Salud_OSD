@@ -1,10 +1,26 @@
 /*
-FASE 0 — Versionamiento proyecciones DANE.
-dim_proyeccion_dane + id_proyeccion_dane en fact + vistas + usp_ASIS_CrearProyeccionDANE.
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 14_proyeccion_dane_versionamiento.sql
+================================================================================
+ PROPÓSITO:
+   Introduce versionamiento DANE: dim_proyeccion_dane, columna id_proyeccion_dane
+   en fact_poblacion_proyeccion, índice único actualizado, usp_ASIS_CrearProyeccionDANE
+   y vistas vw_ASIS_Poblacion_* con filtro por proyección.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\14_proyeccion_dane_versionamiento.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql
+   - 05_map_area_residencia_fuente.sql
+   - 07_fact_poblacion_proyeccion.sql (fact con datos cargados)
+
+ ORDEN DE EJECUCIÓN:
+   07/11 -> 14 (este script) -> 15_comparacion_vistas -> 16_vistas_paralelas...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\14_proyeccion_dane_versionamiento.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -40,6 +56,7 @@ ELSE
 GO
 
 /* --- Migrar fact existente --- */
+/* --- INSERT dim_proyeccion_dane: registro de migración para datos existentes --- */
 IF NOT EXISTS (
     SELECT 1 FROM dbo.dim_proyeccion_dane
     WHERE nombre_proyeccion = N'Proyeccion DANE carga inicial'
@@ -64,6 +81,7 @@ GO
 
 IF COL_LENGTH(N'dbo.fact_poblacion_proyeccion', N'id_proyeccion_dane') IS NOT NULL
 BEGIN
+/* --- UPDATE fact: asignar id_proyeccion_dane a filas migradas --- */
     UPDATE f
     SET f.id_proyeccion_dane = d.id_proyeccion_dane
     FROM dbo.fact_poblacion_proyeccion AS f
@@ -188,6 +206,7 @@ END
 GO
 
 /* --- Vistas con versionamiento --- */
+/* --- CREATE VIEW vw_ASIS_Poblacion_Nacional: JOIN fact + dims, nivel NACION --- */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Poblacion_Nacional
 AS
 SELECT

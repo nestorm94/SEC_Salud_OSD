@@ -1,9 +1,28 @@
 /*
-Comparacion fact_poblacion_proyeccion vs tablas fuente.
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 13_comparacion_detallada_poblacion.sql
+================================================================================
+ PROPÓSITO:
+   Comparación detallada fact_poblacion_proyeccion vs tablas fuente DANE
+   (departamental Casanare, municipal y nacional) por año y drill-down puntual.
 
-Ejecutar el archivo COMPLETO (no solo un SELECT suelto):
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\13_comparacion_detallada_poblacion.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 07_fact_poblacion_proyeccion.sql
+   - 08/09/10/11 (carga del fact)
+   - 12_validacion_fact_poblacion.sql (opcional, sanity check previo)
+
+ ORDEN DE EJECUCIÓN:
+   12 -> 13 (este script) -> 14_proyeccion_dane -> 15_comparacion_vistas...
+
+ NOTA:
+   Ejecutar el archivo COMPLETO (no solo un SELECT suelto).
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\13_comparacion_detallada_poblacion.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -33,6 +52,7 @@ SELECT origen, pob FROM (
 
 PRINT N'';
 PRINT N'A2. Departamental Casanare por anio (fuente vs fact):';
+/* --- JOIN FULL OUTER: fuente departamental vs fact por año (solo diferencias) --- */
 ;WITH cte_fuente_dept AS (
     SELECT
         CAST(ano AS int) AS anio,

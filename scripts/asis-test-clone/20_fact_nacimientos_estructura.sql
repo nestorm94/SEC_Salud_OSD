@@ -1,7 +1,26 @@
 /*
-FASE 2 nacimientos — dim_grupo_edad_madre, staging y fact_nacimientos_casanare_normalizada.
+================================================================================
+ 20_fact_nacimientos_estructura.sql
+================================================================================
+ PROPÓSITO:
+   FASE 2 nacimientos: crea dim_grupo_edad_madre, map_grupo_edad_madre_fuente,
+   extensiones de map_area_residencia_fuente, staging nacimientos_casanare_staging
+   y tabla hecho fact_nacimientos_casanare_normalizada con FKs a dimensiones.
 
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\20_fact_nacimientos_estructura.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test.
+
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql (dim_area_residencia)
+   - 05_map_area_residencia_fuente.sql (mapeo área base)
+   - 19_catalogo_nacimientos_peso_semanas.sql (dim_peso, dim_semanas)
+
+ ORDEN DE EJECUCIÓN:
+   19 -> 20 (este script) -> 24_catalogos_educacion_etnia -> 21_usp_normalizar...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\20_fact_nacimientos_estructura.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -20,7 +39,7 @@ GO
 
 BEGIN TRANSACTION;
 
-/* Quinquenios DANE edad de la madre (nacimientos) */
+/* --- CREATE TABLE dim_grupo_edad_madre: quinquenios DANE edad de la madre --- */
 IF OBJECT_ID(N'dbo.dim_grupo_edad_madre', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.dim_grupo_edad_madre (
@@ -79,6 +98,7 @@ END
 ELSE
     DELETE FROM dbo.map_grupo_edad_madre_fuente;
 
+/* --- INSERT map_grupo_edad_madre_fuente: JOIN dim por etiqueta_rango --- */
 INSERT dbo.map_grupo_edad_madre_fuente (fuente_tabla, columna_origen, valor_origen, id_grupo_edad_madre)
 SELECT N'nacimientos_casanare', N'grupo_etareo_quinquenios_dane', g.etiqueta_rango, g.id_grupo_edad_madre
 FROM dbo.dim_grupo_edad_madre AS g;
@@ -95,7 +115,7 @@ INSERT dbo.map_grupo_edad_madre_fuente (fuente_tabla, columna_origen, valor_orig
 SELECT N'nacimientos_casanare', N'grupo_etareo_quinquenios_dane', N'SIN INFORMACIÓN', g.id_grupo_edad_madre
 FROM dbo.dim_grupo_edad_madre AS g WHERE g.codigo = N'QM99';
 
-/* Area nacimientos: codigo 1/2/3 y nombre sin prefijo DANE */
+/* --- INSERT map_area_residencia_fuente: área nacimientos por nombre sin prefijo DANE --- */
 IF NOT EXISTS (SELECT 1 FROM dbo.map_area_residencia_fuente WHERE columna_origen = N'nombre_area_residencia' AND valor_origen = N'CABECERA')
     INSERT dbo.map_area_residencia_fuente (fuente_tabla, columna_origen, valor_origen, id_area, codigo_area, area_normalizada, vigente)
     SELECT N'nacimientos_casanare', N'nombre_area_residencia', N'CABECERA', id_area, codigo_area, area_normalizada, 1
@@ -111,7 +131,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.map_area_residencia_fuente WHERE columna_origen
     SELECT N'nacimientos_casanare', N'nombre_area_residencia', N'AREA RURAL DISPERSA', id_area, codigo_area, area_normalizada, 1
     FROM dbo.dim_area_residencia WHERE codigo_area = N'3';
 
-/* Staging CSV */
+/* --- CREATE TABLE nacimientos_casanare_staging: estructura CSV sin normalizar --- */
 IF OBJECT_ID(N'dbo.nacimientos_casanare_staging', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.nacimientos_casanare_staging (
@@ -133,7 +153,7 @@ BEGIN
     PRINT N'Tabla nacimientos_casanare_staging creada.';
 END
 
-/* Fact */
+/* --- CREATE TABLE fact_nacimientos_casanare_normalizada: hecho con FKs a dims --- */
 IF OBJECT_ID(N'dbo.fact_nacimientos_casanare_normalizada', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.fact_nacimientos_casanare_normalizada (

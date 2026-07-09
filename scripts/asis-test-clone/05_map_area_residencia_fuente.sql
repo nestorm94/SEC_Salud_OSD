@@ -1,9 +1,23 @@
 /*
-FASE 0 — Tabla map_area_residencia_fuente (ETAPA 3).
-SOLO ObservatorioDB_ASIS_Test.
+================================================================================
+ 05_map_area_residencia_fuente.sql
+================================================================================
+ PROPÓSITO:
+   ETAPA 3: crea o repuebla map_area_residencia_fuente con equivalencias
+   entre textos de área en tablas DANE/fuentes y dim_area_residencia.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\05_map_area_residencia_fuente.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 04_normalizacion_catalogos_geograficos.sql (dim_area_residencia limpia)
+
+ ORDEN DE EJECUCIÓN:
+   04 -> 05 (este script) -> 06_validacion -> 07_fact_poblacion...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\05_map_area_residencia_fuente.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -20,6 +34,7 @@ GO
 PRINT N'=== ETAPA 3 — map_area_residencia_fuente ===';
 GO
 
+/* --- CREATE TABLE: diccionario fuente → dim_area_residencia con FK --- */
 IF OBJECT_ID(N'dbo.map_area_residencia_fuente', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.map_area_residencia_fuente (
@@ -49,6 +64,7 @@ BEGIN
 END
 GO
 
+/* --- Resolver id_area desde dim_area_residencia por codigo_area DANE --- */
 DECLARE @Urbano int = (SELECT id_area FROM dbo.dim_area_residencia WHERE codigo_area = N'1');
 DECLARE @RuralCentro int = (SELECT id_area FROM dbo.dim_area_residencia WHERE codigo_area = N'2');
 DECLARE @RuralDispersa int = (SELECT id_area FROM dbo.dim_area_residencia WHERE codigo_area = N'3');
@@ -64,6 +80,7 @@ DECLARE @m TABLE (
     area_norm      varchar(100)  NULL
 );
 
+/* --- INSERT tabla variable: equivalencias texto fuente → id_area --- */
 INSERT @m (fuente_tabla, columna_origen, valor_origen, id_area, codigo_area, area_norm) VALUES
 /* Urbano */
 (N'*', N'AREA_GEOGRAFICA', N'Cabecera', @Urbano, N'1', N'Urbano'),
@@ -87,6 +104,7 @@ INSERT @m (fuente_tabla, columna_origen, valor_origen, id_area, codigo_area, are
 (N'*', N'Area_Residencia', N'INDETERMINADO', @Indeterminado, N'INDETERMINADO', N'Indeterminado'),
 (N'*', N'Area_Residencia', N'NO REPORTADO', @SinInfo, N'SIN INFORMACION', N'SIN INFORMACION');
 
+/* --- INSERT map_area_residencia_fuente desde tabla variable @m --- */
 INSERT dbo.map_area_residencia_fuente (
     fuente_tabla, columna_origen, valor_origen, id_area, codigo_area, area_normalizada, vigente
 )

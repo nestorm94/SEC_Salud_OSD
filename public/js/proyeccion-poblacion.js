@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Consulta de proyección de población (proyeccion-poblacion.html) del portal HTML legacy del OSD.
+ * Vistas tabulares con filtros geográficos, paginación y descarga a Excel.
+ */
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
 import { getToken, tokenExpirado, authHeaders } from "./auth.js";
@@ -67,6 +71,10 @@ function formatearCelda(col, valor) {
   return escapeHtml(String(valor));
 }
 
+/**
+ * Descarga la consulta actual de proyección en formato Excel según filtros activos.
+ * @returns {Promise<void>}
+ */
 async function descargarConsultaExcel() {
   const clave = claveDesdeHash();
   const filtros = leerFiltrosUI();
@@ -152,6 +160,10 @@ function llenarSelect(selectEl, opciones, valorSeleccionado, placeholderTodos) {
   if (valorSeleccionado) selectEl.value = valorSeleccionado;
 }
 
+/**
+ * Carga catálogos de departamentos, regionales, áreas, sexos y años en los filtros.
+ * @returns {Promise<void>}
+ */
 async function cargarCatalogos() {
   if (catalogosListos) return;
   if (!getToken() || tokenExpirado()) return;
@@ -282,6 +294,11 @@ function aplicarFiltrosUI(f) {
   }
 }
 
+/**
+ * Consulta y renderiza la vista de proyección según hash, filtros y paginación.
+ * @param {{ resetPagina?: boolean }} [opciones] - Si resetPagina, vuelve a la página 1.
+ * @returns {Promise<void>}
+ */
 async function cargarVista(opciones = {}) {
   const cargaId = ++ultimaCargaVistaId;
   const { resetPagina } = opciones;

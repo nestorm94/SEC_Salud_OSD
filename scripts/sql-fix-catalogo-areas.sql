@@ -1,12 +1,28 @@
 /*
-Corrige usp_Catalogo_Areas_Listar: usa el nombre real de la columna Área desde sys.columns
-(evita error por acentos al desplegar el script desde archivos UTF-8 incorrectos).
+================================================================================
+ sql-fix-catalogo-areas.sql
+================================================================================
+ PROPÓSITO:
+   Regenera usp_Catalogo_Areas_Listar resolviendo el nombre real de la columna
+   Área desde sys.columns (evita errores por acentos en scripts UTF-8 mal codificados).
 
-Preferir: .\scripts\fix-catalogo-areas.ps1 (lee el nombre real sin problemas de codificación).
+ BASE DE DATOS DESTINO:
+   ObservatorioDB u ObservatorioDB_ASIS_Test (requiere ufn_Proyeccion_VistaDefault).
+
+ DEPENDENCIAS (ejecutar antes):
+   - Vistas de proyección DANE y función dbo.ufn_Proyeccion_VistaDefault
+
+ ORDEN DE EJECUCIÓN:
+   Independiente; alternativa: scripts\fix-catalogo-areas.ps1 (mejor para encoding).
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB -E -i scripts\sql-fix-catalogo-areas.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
 
+/* --- Resolver @colArea desde sys.columns (column_id=5 o nombre con "rea") --- */
 DECLARE @vista nvarchar(256) = dbo.ufn_Proyeccion_VistaDefault();
 DECLARE @colArea sysname;
 
@@ -22,6 +38,7 @@ END
 IF @colArea IS NULL
     SET @colArea = N'Área';
 
+/* --- CREATE OR ALTER PROCEDURE: SP dinámico DISTINCT áreas con nombre resuelto --- */
 DECLARE @sql nvarchar(max) = N'
 CREATE OR ALTER PROCEDURE dbo.usp_Catalogo_Areas_Listar
 AS

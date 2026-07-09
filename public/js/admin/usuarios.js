@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Administración de usuarios (admin/usuarios.html) del portal HTML legacy del OSD.
+ * CRUD de usuarios, asignación de roles y líneas temáticas.
+ */
 import { initPortal, fetchJson, apiUrl } from "../portal/layout.js";
 import { getUsuario } from "../auth.js";
 import { iconButton, iconActionsHtml } from "../shared/icon-actions.js";
@@ -8,6 +12,10 @@ let usuarioActualId = null;
 
 const ROLES_ADMIN = new Set(["ADMIN", "ADMINISTRADOR", "ADMINISTRADOR"]);
 
+/**
+ * Inicializa la página de administración de usuarios: portal, catálogos y tabla.
+ * @returns {Promise<void>}
+ */
 export async function initAdminUsuarios() {
   if (!(await initPortal("/admin/usuarios.html", { requiereAdmin: true }))) return;
 

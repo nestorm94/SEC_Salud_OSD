@@ -1,9 +1,25 @@
 /*
-FASE 0 — Validación del clon ObservatorioDB_ASIS_Test vs ObservatorioDB.
-Solo lectura sobre ambas bases. NO modifica ObservatorioDB.
+================================================================================
+ 02_validacion_restore_observatoriodb_asis_test.sql
+================================================================================
+ PROPÓSITO:
+   Compara ObservatorioDB_ASIS_Test contra ObservatorioDB: conteo de tablas,
+   filas en dimensiones/hechos clave y ejecución TOP 1 de vistas principales.
+   Solo lectura; no modifica ninguna base.
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -E -i scripts\asis-test-clone\02_validacion_restore_observatoriodb_asis_test.sql
+ BASE DE DATOS DESTINO:
+   Consulta cruzada ObservatorioDB y ObservatorioDB_ASIS_Test (misma instancia).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 00_backup_observatoriodb.sql
+   - 01_restore_observatoriodb_asis_test.sql
+
+ ORDEN DE EJECUCIÓN:
+   00 -> 01 -> 02 (este script) -> 04_normalizacion...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -E -i scripts\asis-test-clone\02_validacion_restore_observatoriodb_asis_test.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -50,6 +66,7 @@ DECLARE @objetos TABLE (
     prueba bigint NULL
 );
 
+/* --- Tablas de referencia para comparar conteos original vs clon --- */
 INSERT @objetos (objeto) VALUES
 (N'dim_departamento'),
 (N'dim_municipio'),
@@ -108,6 +125,7 @@ PRINT N'';
 PRINT N'--- Vistas principales (TOP 1) ---';
 
 DECLARE @vistas TABLE (vista sysname NOT NULL, ok_origen bit NULL, ok_prueba bit NULL);
+/* --- Vistas API: probar SELECT TOP 1 en ambas bases --- */
 INSERT @vistas (vista) VALUES
 (N'vw_Poblacion_Nacional_Casanare'),
 (N'vw_Reporte_Poblacion_CursoVida_Unificado'),

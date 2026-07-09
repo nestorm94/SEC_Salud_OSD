@@ -1,5 +1,7 @@
 /**
- * Base de la API. Orden: localStorage → meta observatorios-api-base → reglas por puerto.
+ * @fileoverview Configuración de la URL base de la API para el portal HTML legacy del OSD
+ * (Observatorio de Salud Departamental de Casanare).
+ * Resuelve el origen de la API según localStorage, meta HTML o reglas por puerto.
  *
  * Si abre el HTML con Live Server / Five Server (puerto 5500, 5173, etc.), el "origen" de la
  * página NO es Kestrel: hay que llamar a http://localhost:5289 (o el puerto donde corre dotnet run).
@@ -24,6 +26,10 @@ function esHostLocal(hostname) {
   );
 }
 
+/**
+ * Obtiene la URL base de la API según el entorno (localStorage, meta, puerto actual).
+ * @returns {string} Origen de la API sin barra final, o cadena vacía fuera del navegador.
+ */
 export function apiBaseUrl() {
   if (typeof window === "undefined") return "";
 
@@ -73,6 +79,11 @@ export function apiBaseUrl() {
   return sinBarraFinal(window.location.origin);
 }
 
+/**
+ * Construye una URL absoluta hacia un endpoint de la API.
+ * @param {string} path - Ruta del endpoint (con o sin barra inicial).
+ * @returns {string} URL completa lista para fetch.
+ */
 export function apiUrl(path) {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const base = apiBaseUrl();

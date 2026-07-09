@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Cliente HTTP JSON del portal HTML legacy del OSD.
+ * Envuelve fetch con JWT, manejo de sesión expirada y parseo seguro del cuerpo de respuesta.
+ */
 import { authHeaders, cerrarSesion, tokenExpirado } from "./auth.js";
 import { apiBaseUrl } from "./config.js";
 
@@ -15,9 +19,11 @@ function redirigirLoginSiAplica() {
 }
 
 /**
- * fetch + lectura segura del cuerpo (evita "Unexpected end of JSON input" si viene vacío o HTML).
- * Incluye JWT si existe sesión (excepto login/ping).
- * @returns {{ res: Response, data: object }}
+ * Realiza fetch y parsea JSON de forma segura (evita errores con cuerpo vacío o HTML).
+ * Incluye JWT si existe sesión, salvo en rutas públicas (login, ping, salud).
+ * @param {string} url - URL del endpoint.
+ * @param {RequestInit & { sinAuth?: boolean }} [options] - Opciones de fetch; sinAuth omite el token.
+ * @returns {Promise<{ res: Response, data: object }>}
  */
 export async function fetchJson(url, options = {}) {
   const sinAuth = options.sinAuth === true || esRutaPublica(url);

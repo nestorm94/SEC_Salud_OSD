@@ -1,12 +1,26 @@
 /*
-Vistas ASIS en paralelo: legacy (API) + fact, sin DROP de objetos existentes.
-Restaura vw_ASIS_Poblacion_CursoVida y GrupoEdad al contrato legacy (fase7).
-Publica equivalentes _Fact para comparacion.
+================================================================================
+ 16_vistas_paralelas_legacy_fact.sql
+================================================================================
+ PROPÓSITO:
+   Publica vistas ASIS en paralelo: *_Legacy (contrato API fase7 desde vistas
+   unificadas DANE) y *_Fact (desde fact_poblacion_proyeccion). Restaura
+   vw_ASIS_Poblacion_CursoVida/GrupoEdad al contrato legacy sin DROP previo.
 
-SOLO ObservatorioDB_ASIS_Test.
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente).
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\16_vistas_paralelas_legacy_fact.sql
+ DEPENDENCIAS (ejecutar antes):
+   - 14_proyeccion_dane_versionamiento.sql (fact versionado y vistas base)
+   - Vistas fuente: vw_Reporte_Poblacion_Quinquenios_Unificado,
+     vw_Reporte_Poblacion_CursoVida_Unificado
+
+ ORDEN DE EJECUCIÓN:
+   14 -> 16 (este script) -> 15_comparacion_vistas...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\16_vistas_paralelas_legacy_fact.sql
+================================================================================
 */
 SET NOCOUNT ON;
 GO
@@ -47,6 +61,7 @@ SELECT @cCod = MAX(CASE WHEN column_id = 1 THEN name END),
        @cPob = MAX(CASE WHEN column_id = 10 THEN name END)
 FROM sys.columns WHERE object_id = @oidC;
 
+/* --- CREATE VIEW legacy: JOIN vw_Reporte_Quinquenios + dim_grupo_edad por texto --- */
 SET @sql = N'
 CREATE OR ALTER VIEW dbo.vw_ASIS_Poblacion_GrupoEdad_Legacy
 AS
@@ -134,6 +149,7 @@ GO
 
 /* --- Vistas FACT con forma API (incluye id_proyeccion_dane para versionamiento) --- */
 
+/* --- CREATE VIEW fact: JOIN fact + dims, agregado total departamental --- */
 CREATE OR ALTER VIEW dbo.vw_ASIS_Poblacion_Total_Fact
 AS
 SELECT

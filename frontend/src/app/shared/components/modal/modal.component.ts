@@ -1,6 +1,10 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+/**
+ * Diálogo modal accesible con cabecera, cuerpo y pie proyectables.
+ * Se cierra al pulsar el botón de cierre o al hacer clic en el overlay.
+ */
 @Component({
   selector: 'app-modal',
   standalone: true,
@@ -34,10 +38,15 @@ import { CommonModule } from '@angular/common';
   `
 })
 export class ModalComponent {
+  /** Controla la visibilidad del modal. */
   readonly open = input.required<boolean>();
+  /** Título mostrado en la cabecera del diálogo. */
   readonly title = input.required<string>();
+  /** Si es verdadero, amplía el ancho del panel. */
   readonly wide = input(false);
+  /** Emite al solicitar el cierre del modal. */
   readonly close = output<void>();
 
+  /** Identificador único para asociar `aria-labelledby` con el título. */
   readonly titleId = `osd-modal-${Math.random().toString(36).slice(2, 9)}`;
 }

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Aprobación de cargues (validaciones.html) del portal HTML legacy del OSD.
+ * Gestiona cargues pendientes y archivos validados sin enviar para usuarios con rol VALIDADOR.
+ */
 import { initPortal, fetchJson, apiUrl, puedeValidar } from "./portal/layout.js";
 import { formatearSoloFecha } from "./fechas.js";
 import { confirmar, solicitarTexto, mostrarMensaje } from "./portal/modal.js?v=7";
@@ -276,6 +280,10 @@ async function cargarPendientes() {
   }
 }
 
+/**
+ * Inicializa la página de validaciones; verifica permisos y carga tablas de pendientes.
+ * @returns {Promise<boolean>} false si no hay sesión o permiso; true si quedó operativa.
+ */
 export async function initValidaciones() {
   if (!(await initPortal("/validaciones.html"))) return false;
 

@@ -1,9 +1,24 @@
 /*
-FASE 0 — Normalización catálogos geográficos (ETAPA 1 y 2).
-SOLO ObservatorioDB_ASIS_Test. NO ejecutar sobre ObservatorioDB.
+================================================================================
+ 04_normalizacion_catalogos_geograficos.sql
+================================================================================
+ PROPÓSITO:
+   ETAPA 1: normaliza códigos DANE en dim_departamento/dim_municipio (padding,
+   unicidad, integridad referencial). ETAPA 2: desactiva filas de sexo
+   contaminadas en dim_area_residencia (FEMENINO/MASCULINO).
 
-Ejecutar:
-  sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\04_normalizacion_catalogos_geograficos.sql
+ BASE DE DATOS DESTINO:
+   ObservatorioDB_ASIS_Test (exclusivamente; el script valida DB_NAME()).
+
+ DEPENDENCIAS (ejecutar antes):
+   - 01_restore_observatoriodb_asis_test.sql (clon disponible)
+
+ ORDEN DE EJECUCIÓN:
+   04 (este script) -> 05_map_area -> 06_validacion -> 07_fact_poblacion...
+
+ EJECUCIÓN:
+   sqlcmd -S localhost\SQLEXPRESS2025 -d ObservatorioDB_ASIS_Test -E -i scripts\asis-test-clone\04_normalizacion_catalogos_geograficos.sql
+================================================================================
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -30,7 +45,7 @@ WHERE LEN(LTRIM(RTRIM(cod_departamento))) < 2
 
 PRINT N'dim_departamento filas actualizadas (padding): ' + CAST(@@ROWCOUNT AS nvarchar(20));
 
-/* Propagar a dim_municipio.cod_departamento (llave natural, no id) */
+/* --- JOIN dim_municipio ↔ dim_departamento: sincronizar cod_departamento natural --- */
 UPDATE m
 SET m.cod_departamento = d.cod_departamento
 FROM dbo.dim_municipio AS m
@@ -117,6 +132,7 @@ BEGIN
     RETURN;
 END
 
+/* --- JOIN dim_municipio LEFT JOIN dim_departamento: detectar cod_departamento huérfano --- */
 IF EXISTS (
     SELECT m.codigo_dane
     FROM dbo.dim_municipio AS m
@@ -162,6 +178,7 @@ GO
 PRINT N'=== ETAPA 2 — dim_area_residencia (contaminacion sexo) ===';
 GO
 
+/* --- ALTER TABLE: columna estado para marcar áreas activas/inactivas --- */
 IF COL_LENGTH(N'dbo.dim_area_residencia', N'estado') IS NULL
 BEGIN
     ALTER TABLE dbo.dim_area_residencia

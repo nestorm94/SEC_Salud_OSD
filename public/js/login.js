@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Página de inicio de sesión del portal HTML legacy del OSD (login.html).
+ * Autentica contra la API y redirige a la ruta solicitada en el parámetro ?next=.
+ */
 import { apiUrl } from "./config.js";
 import { fetchJson } from "./fetchJson.js";
 import { guardarSesion, getToken, tokenExpirado } from "./auth.js";
